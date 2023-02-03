@@ -1,2 +1,5 @@
 export * from "./account.model"
 export * from "./transfer.model"
+export * from "./_transferDirection"
+export * from "./nativeTransfer.model"
+export * from "./stakingReward.model"

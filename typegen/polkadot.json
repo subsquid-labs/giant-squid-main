@@ -1,0 +1,17 @@
+{
+    "outDir": "../src/chain/polkadot/types",
+    "specVersions": "https://polkadot.archive.subsquid.io/graphql",
+    "events": [
+        "Balances.Transfer",
+        "Staking.Reward",
+        "Staking.Rewarded"
+    ],
+    "calls": [
+        "Balances.transfer",
+        "Balances.force_transfer",
+        "Balances.transfer_keep_alive",
+        "Balances.transfer_all",
+        "Staking.payout_stakers"
+    ],
+    "storage": []
+}

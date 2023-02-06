@@ -39,13 +39,13 @@ export async function saveRewards(ctx: BatchContext<Store, Item>) {
     const accountIds = new Set<string>()
 
     processItem(ctx.blocks, (block, item) => {
-        assert('staking' in chain.api.events)
-        assert('calls' in chain.api)
-        assert('staking' in chain.api.calls)
-
         switch (item.name) {
             case 'Staking.Reward':
             case 'Staking.Rewarded': {
+                assert('staking' in chain.api.events)
+                assert('calls' in chain.api)
+                assert('staking' in chain.api.calls)
+
                 const e = chain.api.events.staking.Rewarded.decode(ctx, item.event)
                 if (e == null) return // skip some old format rewards
 

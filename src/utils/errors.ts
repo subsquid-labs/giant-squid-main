@@ -1,5 +1,5 @@
 export class UnknownVersionError extends Error {
     constructor(c: InstanceType<any>) {
-        super(`There is no relevant version for ${c.prototype.name}`)
+        super(`There is no relevant version for ${c.constructor.name}`)
     }
 }

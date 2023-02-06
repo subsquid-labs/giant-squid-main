@@ -4,7 +4,7 @@ import api from './api'
 function encodeAddress(address: Uint8Array) {
     return encode({
         bytes: address,
-        prefix: registry.get('acala').prefix,
+        prefix: registry.get('kusama').prefix,
     })
 }
 

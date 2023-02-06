@@ -8,7 +8,7 @@ const Transfer = {
         if (e.isV2000) {
             let [from, to, amount] = e.asV2000
             return {from, to, amount}
-        } else if (e.isV2000) {
+        } else if (e.isV2011) {
             return e.asV2011
         } else {
             throw new UnknownVersionError(e)

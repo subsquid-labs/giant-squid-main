@@ -4,7 +4,7 @@ import {CallItem, EventItem} from '@subsquid/substrate-processor/lib/interfaces/
 import {Store} from '@subsquid/typeorm-store'
 import {chain} from '../chain'
 import {Account, NativeTransfer, Transfer, TransferDirection} from '../model'
-import {processItem, toEntityMap} from '../utils'
+import {processItem, splitIntoBatches, toEntityMap} from '../utils'
 
 type Item =
     | EventItem<
@@ -57,7 +57,12 @@ export async function saveTransfers(ctx: BatchContext<Store, Item>) {
         }
     })
 
-    const accounts = await ctx.store.findBy(Account, {id: In([...accountIds])}).then(toEntityMap)
+    const a: Account[] = []
+    for (let batch of splitIntoBatches([...accountIds], 1000)) {
+        let res = await ctx.store.findBy(Account, {id: In(batch)})
+        a.push(...res)
+    }
+    const accounts = toEntityMap(a)
 
     const transfers: NativeTransfer[] = []
     const accountTransfers: Transfer[] = []

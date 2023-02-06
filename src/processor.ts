@@ -1,12 +1,15 @@
-import {lookupArchive} from '@subsquid/archive-registry'
+import {KnownArchivesSubstrate, lookupArchive} from '@subsquid/archive-registry'
 import {BatchContext, BatchProcessorItem, SubstrateBatchProcessor} from '@subsquid/substrate-processor'
 import {Store, TypeormDatabase} from '@subsquid/typeorm-store'
 import {saveRewards} from './core/rewards'
 import {saveTransfers} from './core/transfers'
 
+let chainName = process.env.CHAIN as KnownArchivesSubstrate | 'subsocial'
+chainName = chainName == 'subsocial' ? 'subsocial-parachain' : chainName
+
 const processor = new SubstrateBatchProcessor()
     .setDataSource({
-        archive: lookupArchive('kusama', {release: 'FireSquid'}),
+        archive: lookupArchive(chainName, {release: 'FireSquid'}),
     })
     .addEvent('Balances.Transfer', {
         data: {

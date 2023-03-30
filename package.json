@@ -27,6 +27,6 @@
     "@subsquid/substrate-metadata-explorer": "1.1.2",
     "@subsquid/substrate-typegen": "2.2.1",
     "@types/node": "18.15.11",
-    "typescript": "5.0.2"
+    "typescript": "5.0.3"
   }
 }

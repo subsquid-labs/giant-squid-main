@@ -20,7 +20,7 @@
     "@subsquid/typeorm-store": "0.2.2",
     "dotenv": "^16.0.0",
     "pg": "8.10.0",
-    "typeorm": "0.3.13"
+    "typeorm": "0.3.14"
   },
   "devDependencies": {
     "@subsquid/typeorm-codegen": "0.3.3",

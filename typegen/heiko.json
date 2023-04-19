@@ -1,7 +1,6 @@
 {
-    "outDir": "../src/chain/zeitgeist/types",
-    "specVersions": "https://zeitgeist.archive.subsquid.io/graphql",
-    "typesBundle": "../assets/type-bundles/zeitgeist.json",
+    "outDir": "../src/chain/heiko/types",
+    "specVersions": "https://heiko.archive.subsquid.io/graphql",
     "events": [
         "Balances.Transfer"
     ],

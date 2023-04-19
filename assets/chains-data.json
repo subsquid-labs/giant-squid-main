@@ -210,6 +210,18 @@
     "archiveName": "gmordie"
   },
   {
+    "prefix": 110,
+    "network": "heiko",
+    "displayName": "Parallel Heiko",
+    "symbols": [
+      "HKO"
+    ],
+    "decimals": [
+      12
+    ],
+    "archiveName": "heiko"
+  },
+  {
     "prefix": 63,
     "network": "hydradx",
     "displayName": "HydraDX",

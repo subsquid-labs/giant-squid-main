@@ -233,3 +233,72 @@ export class BalancesTransferKeepAliveCall {
         return this._chain.decodeCall(this.call)
     }
 }
+
+export class StakingPayoutStakersCall {
+    private readonly _chain: Chain
+    private readonly call: Call
+
+    constructor(ctx: CallContext)
+    constructor(ctx: ChainContext, call: Call)
+    constructor(ctx: CallContext, call?: Call) {
+        call = call || ctx.call
+        assert(call.name === 'Staking.payout_stakers')
+        this._chain = ctx._chain
+        this.call = call
+    }
+
+    /**
+     *  Pay out all the stakers behind a single validator for a single era.
+     * 
+     *  - `validator_stash` is the stash account of the validator. Their nominators, up to
+     *    `T::MaxNominatorRewardedPerValidator`, will also receive their rewards.
+     *  - `era` may be any era between `[current_era - history_depth; current_era]`.
+     * 
+     *  The origin of this call must be _Signed_. Any account can call this function, even if
+     *  it is not one of the stakers.
+     * 
+     *  # <weight>
+     *  - Time complexity: at most O(MaxNominatorRewardedPerValidator).
+     *  - Contains a limited number of reads and writes.
+     *  -----------
+     *  N is the Number of payouts for the validator (including the validator)
+     *  Weight:
+     *  - Reward Destination Staked: O(N)
+     *  - Reward Destination Controller (Creating): O(N)
+     * 
+     *    NOTE: weights are assuming that payouts are made to alive stash account (Staked).
+     *    Paying even a dead controller is cheaper weight-wise. We don't do any refunds here.
+     *  # </weight>
+     */
+    get isV268(): boolean {
+        return this._chain.getCallHash('Staking.payout_stakers') === '1a09dc413ed4b8ce5cbcdc282b798636ca24268cca001e43fc92d892de3b6a5f'
+    }
+
+    /**
+     *  Pay out all the stakers behind a single validator for a single era.
+     * 
+     *  - `validator_stash` is the stash account of the validator. Their nominators, up to
+     *    `T::MaxNominatorRewardedPerValidator`, will also receive their rewards.
+     *  - `era` may be any era between `[current_era - history_depth; current_era]`.
+     * 
+     *  The origin of this call must be _Signed_. Any account can call this function, even if
+     *  it is not one of the stakers.
+     * 
+     *  # <weight>
+     *  - Time complexity: at most O(MaxNominatorRewardedPerValidator).
+     *  - Contains a limited number of reads and writes.
+     *  -----------
+     *  N is the Number of payouts for the validator (including the validator)
+     *  Weight:
+     *  - Reward Destination Staked: O(N)
+     *  - Reward Destination Controller (Creating): O(N)
+     * 
+     *    NOTE: weights are assuming that payouts are made to alive stash account (Staked).
+     *    Paying even a dead controller is cheaper weight-wise. We don't do any refunds here.
+     *  # </weight>
+     */
+    get asV268(): {validatorStash: Uint8Array, era: number} {
+        assert(this.isV268)
+        return this._chain.decodeCall(this.call)
+    }
+}

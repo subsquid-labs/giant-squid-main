@@ -1,5 +1,5 @@
 manifestVersion: subsquid.io/v0.1
-name: gs-main-__network__
+name: gs-main-__network__LowerCase__
 version: 1
 description: |-
   Giant Squid Main for __displayName__

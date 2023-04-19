@@ -33,9 +33,6 @@ interface RewardData {
 
 export async function saveRewards(ctx: BatchContext<Store, Item>) {
     const rewardsData: RewardData[] = []
-
-    chain.api.events
-
     const accountIds = new Set<string>()
 
     processItem(ctx.blocks, (block, item) => {
@@ -49,7 +46,7 @@ export async function saveRewards(ctx: BatchContext<Store, Item>) {
             
                 const e = chain.api.events.staking.Rewarded.decode(ctx, item.event)
                 if (e == null) return // skip some old format rewards
-
+                
                 let accountId = encodeAddress(e.stash)
                 accountIds.add(accountId)
 

@@ -5,7 +5,7 @@ import {EventItem} from '@subsquid/substrate-processor/lib/interfaces/dataSelect
 import {Store} from '@subsquid/typeorm-store'
 import {chain} from '../chain'
 import {Account, StakingReward} from '../model'
-import {processItem, toEntityMap} from '../utils'
+import {processItem, toEntityMap, encodeAddress, decodeAddress} from '../utils'
 
 type Item = EventItem<
     'Staking.Reward' | 'Staking.Rewarded',
@@ -42,14 +42,15 @@ export async function saveRewards(ctx: BatchContext<Store, Item>) {
         switch (item.name) {
             case 'Staking.Reward':
             case 'Staking.Rewarded': {
+                
                 assert('staking' in chain.api.events)
                 assert('calls' in chain.api)
                 assert('staking' in chain.api.calls)
-
+            
                 const e = chain.api.events.staking.Rewarded.decode(ctx, item.event)
                 if (e == null) return // skip some old format rewards
 
-                let accountId = chain.encodeAddress(e.stash)
+                let accountId = encodeAddress(e.stash)
                 accountIds.add(accountId)
 
                 const data: RewardData = {
@@ -63,7 +64,7 @@ export async function saveRewards(ctx: BatchContext<Store, Item>) {
 
                 if (item.event.call?.name === 'Staking.payout_stakers') {
                     const c = chain.api.calls.staking.payout_stakers.decode(ctx, item.event.call)
-                    data.validatorId = chain.encodeAddress(c.validatorStash)
+                    data.validatorId = encodeAddress(c.validatorStash)
                     data.era = c.era
                 }
 
@@ -98,6 +99,6 @@ export async function saveRewards(ctx: BatchContext<Store, Item>) {
 function createAccount(id: string) {
     return new Account({
         id: id,
-        publicKey: toHex(chain.decodeAddress(id)),
+        publicKey: toHex(decodeAddress(id)),
     })
 }

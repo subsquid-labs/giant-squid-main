@@ -4,7 +4,7 @@ import {CallItem, EventItem} from '@subsquid/substrate-processor/lib/interfaces/
 import {Store} from '@subsquid/typeorm-store'
 import {chain} from '../chain'
 import {Account, NativeTransfer, Transfer, TransferDirection} from '../model'
-import {processItem, splitIntoBatches, toEntityMap} from '../utils'
+import {processItem, splitIntoBatches, toEntityMap, encodeAddress, decodeAddress} from '../utils'
 
 type Item =
     | EventItem<
@@ -39,8 +39,8 @@ export async function saveTransfers(ctx: BatchContext<Store, Item>) {
         switch (item.name) {
             case 'Balances.Transfer':
                 const {from, to, ...e} = chain.api.events.balances.Transfer.decode(ctx, item.event)
-                const fromId = chain.encodeAddress(from)
-                const toId = chain.encodeAddress(to)
+                const fromId = encodeAddress(from)
+                const toId = encodeAddress(to)
                 accountIds.add(fromId).add(toId)
 
                 transfersData.push({
@@ -111,6 +111,6 @@ export async function saveTransfers(ctx: BatchContext<Store, Item>) {
 function createAccount(id: string) {
     return new Account({
         id: id,
-        publicKey: toHex(chain.decodeAddress(id)),
+        publicKey: toHex(decodeAddress(id)),
     })
 }

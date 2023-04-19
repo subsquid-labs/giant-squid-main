@@ -77,7 +77,7 @@
       },
       "open": {
         "description": "Open a local browser window",
-        "cmd": ["npx", "--yes", "opener"]
+        "cmd": ["npx", "--yes", "opener", "-u","http://localhost:4350/graphql"]
       }
     }
   }

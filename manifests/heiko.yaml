@@ -1,15 +1,15 @@
 manifestVersion: subsquid.io/v0.1
-name: gs-main-gm
+name: gs-main-heiko
 version: 1
 description: |-
-  Giant Squid Main for GM
+  Giant Squid Main for Parallel Heiko
 build:
 deploy:
   addons:
     postgres:
   processor:
     env:
-      CHAIN: gm
+      CHAIN: heiko
     cmd: ["node", "lib/processor"]
   api:
     cmd:

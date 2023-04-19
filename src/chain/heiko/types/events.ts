@@ -17,59 +17,30 @@ export class BalancesTransferEvent {
     /**
      *  Transfer succeeded. \[from, to, value\]
      */
-    get isV268(): boolean {
+    get isV160(): boolean {
         return this._chain.getEventHash('Balances.Transfer') === 'dad2bcdca357505fa3c7832085d0db53ce6f902bd9f5b52823ee8791d351872c'
     }
 
     /**
      *  Transfer succeeded. \[from, to, value\]
      */
-    get asV268(): [Uint8Array, Uint8Array, bigint] {
-        assert(this.isV268)
+    get asV160(): [Uint8Array, Uint8Array, bigint] {
+        assert(this.isV160)
         return this._chain.decodeEvent(this.event)
     }
 
     /**
      * Transfer succeeded.
      */
-    get isV274(): boolean {
+    get isV176(): boolean {
         return this._chain.getEventHash('Balances.Transfer') === '0ffdf35c495114c2d42a8bf6c241483fd5334ca0198662e14480ad040f1e3a66'
     }
 
     /**
      * Transfer succeeded.
      */
-    get asV274(): {from: Uint8Array, to: Uint8Array, amount: bigint} {
-        assert(this.isV274)
-        return this._chain.decodeEvent(this.event)
-    }
-}
-
-export class StakingRewardedEvent {
-    private readonly _chain: Chain
-    private readonly event: Event
-
-    constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
-    constructor(ctx: EventContext, event?: Event) {
-        event = event || ctx.event
-        assert(event.name === 'Staking.Rewarded')
-        this._chain = ctx._chain
-        this.event = event
-    }
-
-    /**
-     *  The nominator has been rewarded by this amount. \[stash, amount\]
-     */
-    get isV268(): boolean {
-        return this._chain.getEventHash('Staking.Rewarded') === '23bebce4ca9ed37548947d07d4dc50e772f07401b9a416b6aa2f3e9cb5adcaf4'
-    }
-
-    /**
-     *  The nominator has been rewarded by this amount. \[stash, amount\]
-     */
-    get asV268(): [Uint8Array, bigint] {
-        assert(this.isV268)
+    get asV176(): {from: Uint8Array, to: Uint8Array, amount: bigint} {
+        assert(this.isV176)
         return this._chain.decodeEvent(this.event)
     }
 }

@@ -1,6 +1,6 @@
 import assert from 'assert'
 import {Chain, ChainContext, CallContext, Call, Result, Option} from './support'
-import * as v3 from './v3'
+import * as templateParachainV3 from './templateParachainV3'
 
 export class BalancesForceTransferCall {
     private readonly _chain: Chain
@@ -23,7 +23,7 @@ export class BalancesForceTransferCall {
      *   assumed to be in the overlay.
      * # </weight>
      */
-    get isV3(): boolean {
+    get isTemplateParachainV3(): boolean {
         return this._chain.getCallHash('Balances.force_transfer') === 'e5944fbe8224a17fe49f9c1d1d01efaf87fb1778fd39618512af54c9ba6f9dff'
     }
 
@@ -35,8 +35,8 @@ export class BalancesForceTransferCall {
      *   assumed to be in the overlay.
      * # </weight>
      */
-    get asV3(): {source: v3.MultiAddress, dest: v3.MultiAddress, value: bigint} {
-        assert(this.isV3)
+    get asTemplateParachainV3(): {source: templateParachainV3.MultiAddress, dest: templateParachainV3.MultiAddress, value: bigint} {
+        assert(this.isTemplateParachainV3)
         return this._chain.decodeCall(this.call)
     }
 }
@@ -81,7 +81,7 @@ export class BalancesTransferCall {
      * - Origin account is already in memory, so no DB operations for them.
      * # </weight>
      */
-    get isV3(): boolean {
+    get isTemplateParachainV3(): boolean {
         return this._chain.getCallHash('Balances.transfer') === 'fc85bea9d0d171982f66e8a55667d58dc9a1612bcafe84309942bf47e23e3094'
     }
 
@@ -112,8 +112,8 @@ export class BalancesTransferCall {
      * - Origin account is already in memory, so no DB operations for them.
      * # </weight>
      */
-    get asV3(): {dest: v3.MultiAddress, value: bigint} {
-        assert(this.isV3)
+    get asTemplateParachainV3(): {dest: templateParachainV3.MultiAddress, value: bigint} {
+        assert(this.isTemplateParachainV3)
         return this._chain.decodeCall(this.call)
     }
 }
@@ -150,7 +150,7 @@ export class BalancesTransferAllCall {
      * - O(1). Just like transfer, but reading the user's transferable balance first.
      *   #</weight>
      */
-    get isV3(): boolean {
+    get isTemplateParachainV3(): boolean {
         return this._chain.getCallHash('Balances.transfer_all') === '9c94c2ca9979f6551af6e123fb6b6ba14d026f862f9a023706f8f88c556b355f'
     }
 
@@ -173,8 +173,8 @@ export class BalancesTransferAllCall {
      * - O(1). Just like transfer, but reading the user's transferable balance first.
      *   #</weight>
      */
-    get asV3(): {dest: v3.MultiAddress, keepAlive: boolean} {
-        assert(this.isV3)
+    get asTemplateParachainV3(): {dest: templateParachainV3.MultiAddress, keepAlive: boolean} {
+        assert(this.isTemplateParachainV3)
         return this._chain.decodeCall(this.call)
     }
 }
@@ -200,7 +200,7 @@ export class BalancesTransferKeepAliveCall {
      * 
      * [`transfer`]: struct.Pallet.html#method.transfer
      */
-    get isV3(): boolean {
+    get isTemplateParachainV3(): boolean {
         return this._chain.getCallHash('Balances.transfer_keep_alive') === 'fc85bea9d0d171982f66e8a55667d58dc9a1612bcafe84309942bf47e23e3094'
     }
 
@@ -212,8 +212,8 @@ export class BalancesTransferKeepAliveCall {
      * 
      * [`transfer`]: struct.Pallet.html#method.transfer
      */
-    get asV3(): {dest: v3.MultiAddress, value: bigint} {
-        assert(this.isV3)
+    get asTemplateParachainV3(): {dest: templateParachainV3.MultiAddress, value: bigint} {
+        assert(this.isTemplateParachainV3)
         return this._chain.decodeCall(this.call)
     }
 }

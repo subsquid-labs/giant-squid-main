@@ -1,8 +1,8 @@
 {
   "name": "kusama-transfers",
   "private": true,
-  "engines" : { 
-    "node" : ">=16"
+  "engines": {
+    "node": ">=16"
   },
   "scripts": {
     "build": "rm -rf lib && tsc",
@@ -23,10 +23,11 @@
     "typeorm": "0.3.17"
   },
   "devDependencies": {
-    "@subsquid/typeorm-codegen": "1.2.0",
     "@subsquid/substrate-metadata-explorer": "1.1.2",
     "@subsquid/substrate-typegen": "2.2.1",
-    "@types/node": "18.16.19",
-    "typescript": "5.1.6"
+    "@subsquid/typeorm-codegen": "0.3.3",
+    "@types/node": "18.15.11",
+    "generate-template-files": "^3.2.1",
+    "typescript": "5.0.4"
   }
 }

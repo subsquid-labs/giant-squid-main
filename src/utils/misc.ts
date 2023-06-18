@@ -1,5 +1,5 @@
 import {
-  BatchBlock,
+  BlockData,
   decodeHex,
   SubstrateBlock,
   toHex,
@@ -28,7 +28,7 @@ export function decodeAddress(address: string) {
 }
 
 export function processItem<I>(
-  blocks: BatchBlock<I>[],
+  blocks: BlockData<I>[],
   fn: (block: SubstrateBlock, item: I) => void
 ) {
   for (let block of blocks) {

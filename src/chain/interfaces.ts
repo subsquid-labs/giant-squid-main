@@ -1,4 +1,4 @@
-import type { SubstrateProcessor } from '@subsquid/substrate-processor'
+import type { SubstrateBatchProcessor } from '@subsquid/substrate-processor'
 
 import type acala from './acala/api'
 import type astar from './astar/api'
@@ -42,10 +42,10 @@ export type ChainApi =
 
 export interface ProcessorConfig {
   chainName: string
-  dataSource: Parameters<SubstrateProcessor<any>['setDataSource']>[0]
+  dataSource: Parameters<SubstrateBatchProcessor<any>['setDataSource']>[0]
   prefix?: number
-  blockRange?: Parameters<SubstrateProcessor<any>['setBlockRange']>[0],
-  typesBundle?: Parameters<SubstrateProcessor<any>['setTypesBundle']>[0]
+  blockRange?: Parameters<SubstrateBatchProcessor<any>['setBlockRange']>[0],
+  typesBundle?: Parameters<SubstrateBatchProcessor<any>['setTypesBundle']>[0]
 }
 
 export interface IChainData {

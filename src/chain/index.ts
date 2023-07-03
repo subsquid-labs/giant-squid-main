@@ -1,120 +1,49 @@
-import assert from 'assert'
-import {assertNotNull} from '@subsquid/substrate-processor'
-import type acala from './acala'
-import type astar from './astar'
-import type bifrost from './bifrost'
-import type calamari from './calamari'
-import type efinity from './efinity'
-import type gmordie from './gmordie'
-import type hydradx from './hydradx'
-import type karura from './karura'
-import type khala from './khala'
-import type kusama from './kusama'
-import type moonbeam from './moonbeam'
-import type moonriver from './moonriver'
-import type phala from './phala'
-import type polkadot from './polkadot'
-import type shiden from './shiden'
-import type statemine from './statemine'
-import type statemint from './statemint'
-import type subsocial from './subsocial'
+import { assertNotNull } from '@subsquid/substrate-processor'
+import { ProcessorConfig, ChainApi, IChainData } from './interfaces'
+import {
+  KnownArchivesSubstrate,
+  lookupArchive,
+} from '@subsquid/archive-registry'
+import fs from 'fs'
 
-// const chains = {
-//     acala,
-//     astar,
-//     bifrost,
-//     calamari,
-//     efinity,
-//     gmordie,
-//     hydradx,
-//     karura,
-//     khala,
-//     kusama,
-//     moonbeam,
-//     moonriver,
-//     phala,
-//     polkadot,
-//     shiden,
-//     statemine,
-//     statemint,
-//     // subsocial,
-// }
+function getChain(): { api: ChainApi; config: ProcessorConfig } {
+  const chainName = assertNotNull(
+    process.env.CHAIN,
+    'Missing env variable CHAIN'
+  )
+  const chainNameKebab = chainName.split('_').join('-')
+  const chainAPI = require(`./${chainNameKebab}`).default
 
-// let a: subsocial = ''
+  let chainsConfig: IChainData[]
+  try {
+    const data = fs.readFileSync('assets/chains-data.json')
+    chainsConfig = JSON.parse(data.toString())
+  } catch (err) {
+    console.error("Can't read chain config from 'assets/chains-data.json : ")
+    throw err
+  }
 
-type Chain =
-    | typeof acala
-    | typeof astar
-    | typeof bifrost
-    | typeof calamari
-    | typeof efinity
-    | typeof gmordie
-    | typeof hydradx
-    | typeof karura
-    | typeof khala
-    | typeof kusama
-    | typeof moonbeam
-    | typeof moonriver
-    | typeof phala
-    | typeof polkadot
-    | typeof shiden
-    | typeof statemine
-    | typeof statemint
-    | typeof subsocial
+  const chainConfig = chainsConfig.find((chain) => chain.network === chainName)
+  if (!chainConfig) {
+    throw new Error(`Chain ${chainName} not found in assets/chains-data.json`)
+  }
 
-function getChain(): Chain {
-    let chainName = assertNotNull(process.env.CHAIN, 'Missing env variable CHAIN')
-    return require(`./${chainName}`).default
-    // switch (process.env.CHAIN) {
-    //     case null:
-    //     case undefined:
-    //         throw new Error('Missing env variable CHAIN')
-    //     case 'polkadot':
-    //         return require('./polkadot')
-    //     case 'kusama':
-    //         return require('./kusama')
-    //     case 'acala':
-    //         return require('./acala')
-    //     // case 'karura':
-    //     //     return require('./karura')
-    //     // case 'moonbeam':
-    //     //     return require('./moonbeam')
-    //     // case 'moonriver':
-    //     //     return require('./moonriver')
-    //     // case 'bifrost':
-    //     //     return require('./bifrost')
-    //     // case 'hydradx':
-    //     //     return require('./hydradx')
-    //     // case 'phala':
-    //     //     return require('./phala')
-    //     default:
-    //         throw new Error(`Unknown chain "${process.env.CHAIN}"`)
-    // }
+  let processorConfig: ProcessorConfig = {
+    chainName: chainConfig.network,
+    dataSource: {
+      archive: lookupArchive(
+        chainConfig.archiveName as KnownArchivesSubstrate,
+        { release: 'FireSquid' }
+      ),
+    },
+    prefix: chainConfig.prefix,
+  }
+
+  if (chainAPI.customConfig) {
+    Object.assign(processorConfig, chainAPI.customConfig)
+  }
+
+  return { api: chainAPI.api, config: processorConfig }
 }
 
-export let chain = getChain()
-
-// switch (process.env.CHAIN) {
-//     case null:
-//     case undefined:
-//         throw new Error('Missing env variable CHAIN')
-//     case 'polkadot':
-//         return polkadot
-//     case 'kusama':
-//         return kusama
-//     case 'acala':
-//         return acala
-//     case 'karura':
-//         return karura
-//     case 'moonbeam':
-//         return moonbeam
-//     case 'moonriver':
-//         return moonriver
-//     case 'bifrost':
-//         return bifrost
-//     case 'hydradx':
-//         return hydradx
-//     case 'phala':
-//         return phala
-//     default:
-// }
+export const chain = getChain()

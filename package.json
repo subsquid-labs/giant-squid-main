@@ -1,8 +1,8 @@
 {
   "name": "kusama-transfers",
   "private": true,
-  "engines" : { 
-    "node" : ">=16"
+  "engines": {
+    "node": ">=16"
   },
   "scripts": {
     "build": "rm -rf lib && tsc",
@@ -12,21 +12,23 @@
     "query-node:start": "squid-graphql-server --subscriptions --max-response-size 10000 --dumb-cache in-memory --dumb-cache-ttl 1000 --dumb-cache-size 100 --dumb-cache-max-age 1000"
   },
   "dependencies": {
+    "@belopash/squid-tools": "^0.0.3",
     "@subsquid/archive-registry": "3.1.0",
     "@subsquid/graphql-server": "4.2.0",
-    "@subsquid/ss58": "0.1.4",
-    "@subsquid/substrate-processor": "2.4.1",
+    "@subsquid/ss58": "1.2.0",
+    "@subsquid/substrate-processor": "^3.3.0",
     "@subsquid/typeorm-migration": "1.2.0",
     "@subsquid/typeorm-store": "1.2.1",
     "dotenv": "^16.0.0",
-    "pg": "8.11.1",
-    "typeorm": "0.3.17"
+    "pg": "8.10.0",
+    "typeorm": "0.3.16"
   },
   "devDependencies": {
+    "@subsquid/substrate-metadata-explorer": "2.2.0",
+    "@subsquid/substrate-typegen": "3.2.0",
     "@subsquid/typeorm-codegen": "1.2.0",
-    "@subsquid/substrate-metadata-explorer": "1.1.2",
-    "@subsquid/substrate-typegen": "2.2.1",
-    "@types/node": "18.16.19",
-    "typescript": "5.1.6"
+    "@types/node": "18.15.11",
+    "generate-template-files": "^3.2.1",
+    "typescript": "5.0.4"
   }
 }

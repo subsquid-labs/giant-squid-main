@@ -17,15 +17,15 @@ export class BalancesTransferEvent {
     /**
      * Transfer succeeded.
      */
-    get isV3(): boolean {
+    get isTemplateParachainV3(): boolean {
         return this._chain.getEventHash('Balances.Transfer') === '0ffdf35c495114c2d42a8bf6c241483fd5334ca0198662e14480ad040f1e3a66'
     }
 
     /**
      * Transfer succeeded.
      */
-    get asV3(): {from: Uint8Array, to: Uint8Array, amount: bigint} {
-        assert(this.isV3)
+    get asTemplateParachainV3(): {from: Uint8Array, to: Uint8Array, amount: bigint} {
+        assert(this.isTemplateParachainV3)
         return this._chain.decodeEvent(this.event)
     }
 }

@@ -1,16 +1,8 @@
-import {KnownArchivesSubstrate, lookupArchive} from '@subsquid/archive-registry'
-import {BatchContext, BatchProcessorItem, SubstrateBatchProcessor} from '@subsquid/substrate-processor'
-import {Store, TypeormDatabase} from '@subsquid/typeorm-store'
-import {saveRewards} from './core/rewards'
-import {saveTransfers} from './core/transfers'
+import {DataHandlerContext, BatchProcessorItem, SubstrateBatchProcessor} from '@subsquid/substrate-processor'
+import {chain} from './chain'
 
-let chainName = process.env.CHAIN as KnownArchivesSubstrate | 'subsocial'
-chainName = chainName == 'subsocial' ? 'subsocial-parachain' : chainName
-
-const processor = new SubstrateBatchProcessor()
-    .setDataSource({
-        archive: lookupArchive(chainName, {release: 'FireSquid'}),
-    })
+export const processor = new SubstrateBatchProcessor()
+    .setDataSource(chain.config.dataSource)
     .addEvent('Balances.Transfer', {
         data: {
             event: {
@@ -48,10 +40,8 @@ const processor = new SubstrateBatchProcessor()
         },
     } as const)
 
-type Item = BatchProcessorItem<typeof processor>
-type Ctx = BatchContext<Store, Item>
+if (chain.config.blockRange) processor.setBlockRange(chain.config.blockRange)
+if (chain.config.typesBundle) processor.setTypesBundle(chain.config.typesBundle)
 
-processor.run(new TypeormDatabase(), async (ctx) => {
-    await saveTransfers(ctx as any)
-    await saveRewards(ctx as any)
-})
+export type Item = BatchProcessorItem<typeof processor>
+export type ProcessorContext<Store> = DataHandlerContext<Store, Item>

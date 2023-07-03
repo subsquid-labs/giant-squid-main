@@ -13,12 +13,12 @@
   },
   "dependencies": {
     "@belopash/squid-tools": "^0.0.3",
-    "@subsquid/archive-registry": "3.0.0",
+    "@subsquid/archive-registry": "3.1.0",
     "@subsquid/graphql-server": "4.2.0",
     "@subsquid/ss58": "1.2.0",
     "@subsquid/substrate-processor": "^3.3.0",
     "@subsquid/typeorm-migration": "1.2.0",
-    "@subsquid/typeorm-store": "1.2.0",
+    "@subsquid/typeorm-store": "1.2.1",
     "dotenv": "^16.0.0",
     "pg": "8.10.0",
     "typeorm": "0.3.16"

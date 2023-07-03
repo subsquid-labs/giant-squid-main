@@ -10,7 +10,7 @@ deploy:
   processor:
     env:
       CHAIN: gmordie
-    cmd: ["node", "lib/processor"]
+    cmd: ["node", "lib/main"]
   api:
     cmd:
       [

@@ -49,15 +49,11 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new EnsureAccount(block, item.event.extrinsic, {
-                        account: () => {
-                            return from.get()
-                        },
+                        account: () => from.get(),
                         id: fromId,
                     }),
                     new EnsureAccount(block, item.event.extrinsic, {
-                        account: () => {
-                            return to.get()
-                        },
+                        account: () => to.get(),
                         id: toId,
                     }),
                     new TransferAction(block, item.event.extrinsic, {
@@ -92,9 +88,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new EnsureAccount(block, item.event.extrinsic, {
-                        account: () => {
-                            return account.get()
-                        },
+                        account: () => account.get(),
                         id: accountId,
                     }),
                     new RewardAction(block, item.event.extrinsic, {
@@ -121,9 +115,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new RenameSubAction(block, item.extrinsic, {
-                        sub: () => {
-                            return sub.getOrFail()
-                        },
+                        sub: () => sub.getOrFail(),
                         name: unwrapData(renameSubData.data)!,
                     })
                 )
@@ -152,32 +144,20 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                     actions.push(
                         new EnsureAccount(block, item.extrinsic, {
-                            account: () => {
-                                return account.get()
-                            },
+                            account: () => account.get(),
                             id: subId,
                         }),
                         new EnsureSubIdentityAction(block, item.extrinsic, {
-                            sub: () => {
-                                return sub.get()
-                            },
-                            account: () => {
-                                return account.getOrFail()
-                            },
+                            sub: () => sub.get(),
+                            account: () => account.getOrFail(),
                             id: subId,
                         }),
                         new AddSubIdentityAction(block, item.extrinsic, {
-                            identity: () => {
-                                return identity.getOrFail()
-                            },
-                            sub: () => {
-                                return sub.getOrFail()
-                            },
+                            identity: () => identity.getOrFail(),
+                            sub: () => sub.getOrFail(),
                         }),
                         new RenameSubAction(block, item.extrinsic, {
-                            sub: () => {
-                                return sub.getOrFail()
-                            },
+                            sub: () => sub.getOrFail(),
                             name: unwrapData(subData[1]),
                         })
                     )
@@ -197,10 +177,29 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                 const identity = ctx.store.defer(Identity, identityId)
 
                 actions.push(
+                    new LazyAction(block, item.extrinsic, async (ctx) => {
+                        const a: Action[] = []
+
+                        if (block.height === 2017208 && block.specId.startsWith('kusama')) {
+                            const account = ctx.store.defer(Account, identityId)
+
+                            a.push(
+                                new EnsureAccount(block, item.extrinsic, {
+                                    account: () => account.get(),
+                                    id: identityId,
+                                }),
+                                new EnsureIdentityAction(block, item.extrinsic, {
+                                    identity: () => identity.get(),
+                                    account: () => account.getOrFail(),
+                                    id: identityId,
+                                })
+                            )
+                        }
+
+                        return a
+                    }),
                     new GiveJudgementAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
                         judgement: judgementGivenData.judgement.__kind,
                     })
                 )
@@ -225,30 +224,20 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new EnsureAccount(block, item.extrinsic, {
-                        account: () => {
-                            return account.get()
-                        },
+                        account: () => account.get(),
                         id: identityId,
                     }),
                     new EnsureIdentityAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.get()
-                        },
-                        account: () => {
-                            return account.getOrFail()
-                        },
+                        identity: () => identity.get(),
+                        account: () => account.getOrFail(),
                         id: identityId,
                     }),
                     new GiveJudgementAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
                         judgement: Judgement.Unknown,
                     }),
                     new SetIdentityAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
                         web: unwrapData(identitySetData.web),
                         display: unwrapData(identitySetData.display),
                         legal: unwrapData(identitySetData.legal),
@@ -287,30 +276,20 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new EnsureAccount(block, item.extrinsic, {
-                        account: () => {
-                            return account.get()
-                        },
+                        account: () => account.get(),
                         id: subId,
                     }),
                     new EnsureSubIdentityAction(block, item.extrinsic, {
-                        sub: () => {
-                            return sub.get()
-                        },
-                        account: () => {
-                            return account.getOrFail()
-                        },
+                        sub: () => sub.get(),
+                        account: () => account.getOrFail(),
                         id: subId,
                     }),
                     new AddSubIdentityAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
-                        sub: () => {
-                            return sub.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
+                        sub: () => sub.getOrFail(),
                     }),
                     new RenameSubAction(block, item.extrinsic, {
-                        sub: sub.getOrFail,
+                        sub: () => sub.getOrFail(),
                         name: unwrapData(subAddedCallData.data),
                     })
                 )
@@ -331,20 +310,19 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new ClearIdentityAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
                     }),
                     new GiveJudgementAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
                         judgement: Judgement.Unknown,
                     }),
                     new LazyAction(block, item.extrinsic, async (ctx) => {
                         const a: Action[] = []
 
-                        const i = await identity.getOrFail()
+                        const i = await ctx.store.getOrFail(Identity, {
+                            where: {id: identityId},
+                            relations: {subs: true},
+                        })
 
                         for (const s of i.subs) {
                             new RemoveSubIdentityAction(block, item.extrinsic, {
@@ -372,20 +350,19 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new ClearIdentityAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
                     }),
                     new GiveJudgementAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
                         judgement: Judgement.Unknown,
                     }),
                     new LazyAction(block, item.extrinsic, async () => {
                         const a: Action[] = []
 
-                        const i = await identity.getOrFail()
+                        const i = await ctx.store.getOrFail(Identity, {
+                            where: {id: identityId},
+                            relations: {subs: true},
+                        })
 
                         for (const s of i.subs) {
                             new RemoveSubIdentityAction(block, item.extrinsic, {
@@ -396,9 +373,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                         return a
                     }),
                     new KillIdentityAction(block, item.extrinsic, {
-                        identity: () => {
-                            return identity.getOrFail()
-                        },
+                        identity: () => identity.getOrFail(),
                     })
                 )
 
@@ -415,9 +390,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new RemoveSubIdentityAction(block, item.event.extrinsic, {
-                        sub: () => {
-                            return sub.getOrFail()
-                        },
+                        sub: () => sub.getOrFail(),
                     })
                 )
 
@@ -434,9 +407,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 actions.push(
                     new RemoveSubIdentityAction(block, item.event.extrinsic, {
-                        sub: () => {
-                            return sub.getOrFail()
-                        },
+                        sub: () => sub.getOrFail(),
                     })
                 )
 

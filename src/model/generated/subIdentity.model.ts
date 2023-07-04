@@ -16,9 +16,9 @@ export class SubIdentity {
     identity!: Identity | undefined | null
 
     @Index_({unique: true})
-    @OneToOne_(() => Account, {nullable: false})
+    @OneToOne_(() => Account, {nullable: true})
     @JoinColumn_()
-    account!: Account
+    account!: Account | undefined | null
 
     @Column_("text", {nullable: true})
     name!: string | undefined | null

@@ -1,5 +1,5 @@
-module.exports = class Data1688494901352 {
-    name = 'Data1688494901352'
+module.exports = class Data1688500733671 {
+    name = 'Data1688500733671'
 
     async up(db) {
         await db.query(`CREATE TABLE "native_transfer" ("id" character varying NOT NULL, "block_number" integer NOT NULL, "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "extrinsic_hash" text, "amount" numeric NOT NULL, "success" boolean NOT NULL, "from_id" character varying, "to_id" character varying, CONSTRAINT "PK_2c3c43fc41181e002fd0f3bcf0f" PRIMARY KEY ("id"))`)
@@ -18,10 +18,10 @@ module.exports = class Data1688494901352 {
         await db.query(`CREATE INDEX "IDX_a13699fe2651c6c2717a7076f5" ON "staking_reward" ("account_id") `)
         await db.query(`CREATE TABLE "account" ("id" character varying NOT NULL, "public_key" text NOT NULL, CONSTRAINT "PK_54115ee388cdb6d86bb4bf5b2ea" PRIMARY KEY ("id"))`)
         await db.query(`CREATE INDEX "IDX_34e5683537bbd7627b0e9469b8" ON "account" ("public_key") `)
-        await db.query(`CREATE TABLE "sub_identity" ("id" character varying NOT NULL, "name" text, "identity_id" character varying, "account_id" character varying NOT NULL, CONSTRAINT "REL_60bfbb0c3d38d9df54b626a2ec" UNIQUE ("account_id"), CONSTRAINT "PK_11d0d1c557b7c9ee76420c51b32" PRIMARY KEY ("id"))`)
+        await db.query(`CREATE TABLE "sub_identity" ("id" character varying NOT NULL, "name" text, "identity_id" character varying, "account_id" character varying, CONSTRAINT "REL_60bfbb0c3d38d9df54b626a2ec" UNIQUE ("account_id"), CONSTRAINT "PK_11d0d1c557b7c9ee76420c51b32" PRIMARY KEY ("id"))`)
         await db.query(`CREATE INDEX "IDX_e52887ef5c374d8dc83e01ee9c" ON "sub_identity" ("identity_id") `)
         await db.query(`CREATE UNIQUE INDEX "IDX_60bfbb0c3d38d9df54b626a2ec" ON "sub_identity" ("account_id") `)
-        await db.query(`CREATE TABLE "identity" ("id" character varying NOT NULL, "judgement" character varying(10) NOT NULL, "additional" jsonb, "display" text, "legal" text, "web" text, "riot" text, "email" text, "pgp_fingerprint" text, "image" text, "twitter" text, "is_killed" boolean NOT NULL, "account_id" character varying NOT NULL, CONSTRAINT "REL_bafa9e6c71c3f69cef6602a809" UNIQUE ("account_id"), CONSTRAINT "PK_ff16a44186b286d5e626178f726" PRIMARY KEY ("id"))`)
+        await db.query(`CREATE TABLE "identity" ("id" character varying NOT NULL, "judgement" character varying(10) NOT NULL, "additional" jsonb, "display" text, "legal" text, "web" text, "riot" text, "email" text, "pgp_fingerprint" text, "image" text, "twitter" text, "is_killed" boolean NOT NULL, "account_id" character varying, CONSTRAINT "REL_bafa9e6c71c3f69cef6602a809" UNIQUE ("account_id"), CONSTRAINT "PK_ff16a44186b286d5e626178f726" PRIMARY KEY ("id"))`)
         await db.query(`CREATE UNIQUE INDEX "IDX_bafa9e6c71c3f69cef6602a809" ON "identity" ("account_id") `)
         await db.query(`ALTER TABLE "native_transfer" ADD CONSTRAINT "FK_dd3c998c07dabdafe827060b67f" FOREIGN KEY ("from_id") REFERENCES "account"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "native_transfer" ADD CONSTRAINT "FK_08861105fb579f4171e2e1d21d6" FOREIGN KEY ("to_id") REFERENCES "account"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)

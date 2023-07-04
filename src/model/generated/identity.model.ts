@@ -15,7 +15,7 @@ export class Identity {
     id!: string
 
     @Index_({unique: true})
-    @OneToOne_(() => Account, {nullable: false})
+    @OneToOne_(() => Account, {nullable: true})
     @JoinColumn_()
     account!: Account
 

@@ -1,30 +1,15 @@
 import type {Result, Option} from './support'
 
-export type MultiAddress = MultiAddress_Id | MultiAddress_Index | MultiAddress_Raw | MultiAddress_Address32 | MultiAddress_Address20
-
-export interface MultiAddress_Id {
-    __kind: 'Id'
-    value: Uint8Array
-}
-
-export interface MultiAddress_Index {
-    __kind: 'Index'
-    value: null
-}
-
-export interface MultiAddress_Raw {
-    __kind: 'Raw'
-    value: Uint8Array
-}
-
-export interface MultiAddress_Address32 {
-    __kind: 'Address32'
-    value: Uint8Array
-}
-
-export interface MultiAddress_Address20 {
-    __kind: 'Address20'
-    value: Uint8Array
+export interface IdentityInfo {
+    additional: [Data, Data][]
+    display: Data
+    legal: Data
+    web: Data
+    riot: Data
+    email: Data
+    pgpFingerprint: (Uint8Array | undefined)
+    image: Data
+    twitter: Data
 }
 
 export type Data = Data_None | Data_Raw0 | Data_Raw1 | Data_Raw2 | Data_Raw3 | Data_Raw4 | Data_Raw5 | Data_Raw6 | Data_Raw7 | Data_Raw8 | Data_Raw9 | Data_Raw10 | Data_Raw11 | Data_Raw12 | Data_Raw13 | Data_Raw14 | Data_Raw15 | Data_Raw16 | Data_Raw17 | Data_Raw18 | Data_Raw19 | Data_Raw20 | Data_Raw21 | Data_Raw22 | Data_Raw23 | Data_Raw24 | Data_Raw25 | Data_Raw26 | Data_Raw27 | Data_Raw28 | Data_Raw29 | Data_Raw30 | Data_Raw31 | Data_Raw32 | Data_BlakeTwo256 | Data_Sha256 | Data_Keccak256 | Data_ShaThree256
@@ -216,35 +201,4 @@ export interface Data_Keccak256 {
 export interface Data_ShaThree256 {
     __kind: 'ShaThree256'
     value: Uint8Array
-}
-
-export type Judgement = Judgement_Unknown | Judgement_FeePaid | Judgement_Reasonable | Judgement_KnownGood | Judgement_OutOfDate | Judgement_LowQuality | Judgement_Erroneous
-
-export interface Judgement_Unknown {
-    __kind: 'Unknown'
-}
-
-export interface Judgement_FeePaid {
-    __kind: 'FeePaid'
-    value: bigint
-}
-
-export interface Judgement_Reasonable {
-    __kind: 'Reasonable'
-}
-
-export interface Judgement_KnownGood {
-    __kind: 'KnownGood'
-}
-
-export interface Judgement_OutOfDate {
-    __kind: 'OutOfDate'
-}
-
-export interface Judgement_LowQuality {
-    __kind: 'LowQuality'
-}
-
-export interface Judgement_Erroneous {
-    __kind: 'Erroneous'
 }

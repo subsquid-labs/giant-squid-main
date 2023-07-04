@@ -3,6 +3,8 @@ type Account @entity {
     publicKey: ID! @index
     transfers: [Transfer!] @derivedFrom(field: "account")
     rewards: [StakingReward!] @derivedFrom(field: "account")
+    identity: Identity @derivedFrom(field: "account")
+    subndentity: Identity @derivedFrom(field: "account")
 }
 
 enum TransferDirection {
@@ -38,4 +40,43 @@ type StakingReward @entity {
     amount: BigInt!
     era: Int
     validatorId: ID
+}
+
+type IdentityAdditionalField {
+    name: String
+    value: String
+}
+
+enum Judgement {
+    Unknown
+    FeePaid
+    Reasonable
+    KnownGood
+    OutOfDate
+    LowQuality
+    Errorneous
+}
+
+type Identity @entity {
+    id: ID!
+    account: Account! @unique
+    judgement: Judgement!
+    subs: [SubIdentity!] @derivedFrom(field: "identity")
+    additional: [IdentityAdditionalField!]
+    display: String
+    legal: String
+    web: String
+    riot: String
+    email: String
+    pgpFingerprint: String
+    image: String
+    twitter: String
+    isKilled: Boolean!
+}
+
+type SubIdentity @entity {
+    id: ID!
+    identity: Identity
+    account: Account! @unique
+    name: String
 }

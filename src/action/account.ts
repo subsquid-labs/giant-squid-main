@@ -4,12 +4,13 @@ import {decodeAddress} from '../utils'
 import {Action, ActionContext} from './base'
 
 export interface AccountData {
+    account: () => Promise<Account | undefined>
     id: string
 }
 
 export class EnsureAccount extends Action<AccountData> {
     protected async _perform(ctx: ActionContext): Promise<void> {
-        let account = await ctx.store.get(Account, this.data.id)
+        let account = await this.data.account()
         if (account != null) return
 
         account = new Account({

@@ -42,11 +42,11 @@
       },
       "typegen": {
         "description": "Generate data access classes for an substrate metadata",
-        "cmd": ["bash", "./sripts/typegen.sh"]
+        "cmd": ["squid-substrate-typegen", {"glob": "./typegen/*.json"}]
       },
       "process": {
         "description": "Load .env and start the squid processor",
-        "deps": ["build", "migration:apply"],
+        "deps": [ "migration:apply"],
         "cmd": ["node", "--require=dotenv/config", "lib/main.js"]
       },
       "process:prod": {

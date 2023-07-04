@@ -1,9 +1,14 @@
 import assert from 'assert'
 import {Chain, ChainContext, CallContext, Call, Result, Option} from './support'
 import * as v1020 from './v1020'
+import * as v1030 from './v1030'
+import * as v1032 from './v1032'
+import * as v1050 from './v1050'
+import * as v2015 from './v2015'
 import * as v2028 from './v2028'
 import * as v9050 from './v9050'
 import * as v9111 from './v9111'
+import * as v9300 from './v9300'
 
 export class BalancesForceTransferCall {
     private readonly _chain: Chain
@@ -617,6 +622,893 @@ export class BalancesTransferKeepAliveCall {
      */
     get asV9111(): {dest: v9111.MultiAddress, value: bigint} {
         assert(this.isV9111)
+        return this._chain.decodeCall(this.call)
+    }
+}
+
+export class IdentityAddSubCall {
+    private readonly _chain: Chain
+    private readonly call: Call
+
+    constructor(ctx: CallContext)
+    constructor(ctx: ChainContext, call: Call)
+    constructor(ctx: CallContext, call?: Call) {
+        call = call || ctx.call
+        assert(call.name === 'Identity.add_sub')
+        this._chain = ctx._chain
+        this.call = call
+    }
+
+    /**
+     *  Add the given account to the sender's subs.
+     * 
+     *  Payment: Balance reserved by a previous `set_subs` call for one sub will be repatriated
+     *  to the sender.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  sub identity of `sub`.
+     */
+    get isV2015(): boolean {
+        return this._chain.getCallHash('Identity.add_sub') === '3a44789cb2db1c330353e6200ca05fb21d197f103560aec42b25fed99b8ede6d'
+    }
+
+    /**
+     *  Add the given account to the sender's subs.
+     * 
+     *  Payment: Balance reserved by a previous `set_subs` call for one sub will be repatriated
+     *  to the sender.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  sub identity of `sub`.
+     */
+    get asV2015(): {sub: Uint8Array, data: v2015.Data} {
+        assert(this.isV2015)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     *  Add the given account to the sender's subs.
+     * 
+     *  Payment: Balance reserved by a previous `set_subs` call for one sub will be repatriated
+     *  to the sender.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  sub identity of `sub`.
+     */
+    get isV2028(): boolean {
+        return this._chain.getCallHash('Identity.add_sub') === 'ef8fb13f5dc864a3db268a8f01b166d2deee87052a98309538fe8961be9020a9'
+    }
+
+    /**
+     *  Add the given account to the sender's subs.
+     * 
+     *  Payment: Balance reserved by a previous `set_subs` call for one sub will be repatriated
+     *  to the sender.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  sub identity of `sub`.
+     */
+    get asV2028(): {sub: v2028.LookupSource, data: v2028.Data} {
+        assert(this.isV2028)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     * Add the given account to the sender's subs.
+     * 
+     * Payment: Balance reserved by a previous `set_subs` call for one sub will be repatriated
+     * to the sender.
+     * 
+     * The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     * sub identity of `sub`.
+     */
+    get isV9111(): boolean {
+        return this._chain.getCallHash('Identity.add_sub') === 'b7d02496580d984a1a588630bfbf580f423f08a761006f8706b057ac73069a38'
+    }
+
+    /**
+     * Add the given account to the sender's subs.
+     * 
+     * Payment: Balance reserved by a previous `set_subs` call for one sub will be repatriated
+     * to the sender.
+     * 
+     * The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     * sub identity of `sub`.
+     */
+    get asV9111(): {sub: v9111.MultiAddress, data: v9111.Data} {
+        assert(this.isV9111)
+        return this._chain.decodeCall(this.call)
+    }
+}
+
+export class IdentityClearIdentityCall {
+    private readonly _chain: Chain
+    private readonly call: Call
+
+    constructor(ctx: CallContext)
+    constructor(ctx: ChainContext, call: Call)
+    constructor(ctx: CallContext, call?: Call) {
+        call = call || ctx.call
+        assert(call.name === 'Identity.clear_identity')
+        this._chain = ctx._chain
+        this.call = call
+    }
+
+    /**
+     *  Clear an account's identity info and all sub-account and return all deposits.
+     * 
+     *  Payment: All reserved balances on the account are returned.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  identity.
+     * 
+     *  Emits `IdentityCleared` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + S + X)`.
+     *  - One balance-reserve operation.
+     *  - Two storage mutations.
+     *  - One event.
+     *  # </weight>
+     */
+    get isV1030(): boolean {
+        return this._chain.getCallHash('Identity.clear_identity') === '01f2f9c28aa1d4d36a81ff042620b6677d25bf07c2bf4acc37b58658778a4fca'
+    }
+
+    /**
+     *  Clear an account's identity info and all sub-account and return all deposits.
+     * 
+     *  Payment: All reserved balances on the account are returned.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  identity.
+     * 
+     *  Emits `IdentityCleared` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + S + X)`.
+     *  - One balance-reserve operation.
+     *  - Two storage mutations.
+     *  - One event.
+     *  # </weight>
+     */
+    get asV1030(): null {
+        assert(this.isV1030)
+        return this._chain.decodeCall(this.call)
+    }
+}
+
+export class IdentityKillIdentityCall {
+    private readonly _chain: Chain
+    private readonly call: Call
+
+    constructor(ctx: CallContext)
+    constructor(ctx: ChainContext, call: Call)
+    constructor(ctx: CallContext, call?: Call) {
+        call = call || ctx.call
+        assert(call.name === 'Identity.kill_identity')
+        this._chain = ctx._chain
+        this.call = call
+    }
+
+    /**
+     *  Remove an account's identity and sub-account information and slash the deposits.
+     * 
+     *  Payment: Reserved balances from `set_subs` and `set_identity` are slashed and handled by
+     *  `Slash`. Verification request deposits are not returned; they should be cancelled
+     *  manually using `cancel_request`.
+     * 
+     *  The dispatch origin for this call must be _Root_ or match `T::ForceOrigin`.
+     * 
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     * 
+     *  Emits `IdentityKilled` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + S + X)`.
+     *  - One balance-reserve operation.
+     *  - Two storage mutations.
+     *  - One event.
+     *  # </weight>
+     */
+    get isV1030(): boolean {
+        return this._chain.getCallHash('Identity.kill_identity') === 'cd19c54875d335772c471b877903ed3a260a7316fd1d201b12e013ae0a7dfe2d'
+    }
+
+    /**
+     *  Remove an account's identity and sub-account information and slash the deposits.
+     * 
+     *  Payment: Reserved balances from `set_subs` and `set_identity` are slashed and handled by
+     *  `Slash`. Verification request deposits are not returned; they should be cancelled
+     *  manually using `cancel_request`.
+     * 
+     *  The dispatch origin for this call must be _Root_ or match `T::ForceOrigin`.
+     * 
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     * 
+     *  Emits `IdentityKilled` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + S + X)`.
+     *  - One balance-reserve operation.
+     *  - Two storage mutations.
+     *  - One event.
+     *  # </weight>
+     */
+    get asV1030(): {target: v1030.LookupSource} {
+        assert(this.isV1030)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     *  Remove an account's identity and sub-account information and slash the deposits.
+     * 
+     *  Payment: Reserved balances from `set_subs` and `set_identity` are slashed and handled by
+     *  `Slash`. Verification request deposits are not returned; they should be cancelled
+     *  manually using `cancel_request`.
+     * 
+     *  The dispatch origin for this call must be _Root_ or match `T::ForceOrigin`.
+     * 
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     * 
+     *  Emits `IdentityKilled` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + S + X)`.
+     *  - One balance-reserve operation.
+     *  - `S + 2` storage mutations.
+     *  - One event.
+     *  # </weight>
+     */
+    get isV1050(): boolean {
+        return this._chain.getCallHash('Identity.kill_identity') === '66d8abf7976ff596d8d614948b9d84cb24f0b898d88d24eb2cc035ae5e93c7b8'
+    }
+
+    /**
+     *  Remove an account's identity and sub-account information and slash the deposits.
+     * 
+     *  Payment: Reserved balances from `set_subs` and `set_identity` are slashed and handled by
+     *  `Slash`. Verification request deposits are not returned; they should be cancelled
+     *  manually using `cancel_request`.
+     * 
+     *  The dispatch origin for this call must be _Root_ or match `T::ForceOrigin`.
+     * 
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     * 
+     *  Emits `IdentityKilled` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + S + X)`.
+     *  - One balance-reserve operation.
+     *  - `S + 2` storage mutations.
+     *  - One event.
+     *  # </weight>
+     */
+    get asV1050(): {target: Uint8Array} {
+        assert(this.isV1050)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     *  Remove an account's identity and sub-account information and slash the deposits.
+     * 
+     *  Payment: Reserved balances from `set_subs` and `set_identity` are slashed and handled by
+     *  `Slash`. Verification request deposits are not returned; they should be cancelled
+     *  manually using `cancel_request`.
+     * 
+     *  The dispatch origin for this call must match `T::ForceOrigin`.
+     * 
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     * 
+     *  Emits `IdentityKilled` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + S + X)`.
+     *  - One balance-reserve operation.
+     *  - `S + 2` storage mutations.
+     *  - One event.
+     *  # </weight>
+     */
+    get isV2028(): boolean {
+        return this._chain.getCallHash('Identity.kill_identity') === 'b473bcbba83335e310f2f681307dcf6b16b8d79ec99a4fb2202c34bed7de3b65'
+    }
+
+    /**
+     *  Remove an account's identity and sub-account information and slash the deposits.
+     * 
+     *  Payment: Reserved balances from `set_subs` and `set_identity` are slashed and handled by
+     *  `Slash`. Verification request deposits are not returned; they should be cancelled
+     *  manually using `cancel_request`.
+     * 
+     *  The dispatch origin for this call must match `T::ForceOrigin`.
+     * 
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     * 
+     *  Emits `IdentityKilled` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + S + X)`.
+     *  - One balance-reserve operation.
+     *  - `S + 2` storage mutations.
+     *  - One event.
+     *  # </weight>
+     */
+    get asV2028(): {target: v2028.LookupSource} {
+        assert(this.isV2028)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     * Remove an account's identity and sub-account information and slash the deposits.
+     * 
+     * Payment: Reserved balances from `set_subs` and `set_identity` are slashed and handled by
+     * `Slash`. Verification request deposits are not returned; they should be cancelled
+     * manually using `cancel_request`.
+     * 
+     * The dispatch origin for this call must match `T::ForceOrigin`.
+     * 
+     * - `target`: the account whose identity the judgement is upon. This must be an account
+     *   with a registered identity.
+     * 
+     * Emits `IdentityKilled` if successful.
+     * 
+     * # <weight>
+     * - `O(R + S + X)`.
+     * - One balance-reserve operation.
+     * - `S + 2` storage mutations.
+     * - One event.
+     * # </weight>
+     */
+    get isV9111(): boolean {
+        return this._chain.getCallHash('Identity.kill_identity') === '8142da248a3023c20f65ce8f6287f9eaf75336ab8815cb15537149abcdd0c20c'
+    }
+
+    /**
+     * Remove an account's identity and sub-account information and slash the deposits.
+     * 
+     * Payment: Reserved balances from `set_subs` and `set_identity` are slashed and handled by
+     * `Slash`. Verification request deposits are not returned; they should be cancelled
+     * manually using `cancel_request`.
+     * 
+     * The dispatch origin for this call must match `T::ForceOrigin`.
+     * 
+     * - `target`: the account whose identity the judgement is upon. This must be an account
+     *   with a registered identity.
+     * 
+     * Emits `IdentityKilled` if successful.
+     * 
+     * # <weight>
+     * - `O(R + S + X)`.
+     * - One balance-reserve operation.
+     * - `S + 2` storage mutations.
+     * - One event.
+     * # </weight>
+     */
+    get asV9111(): {target: v9111.MultiAddress} {
+        assert(this.isV9111)
+        return this._chain.decodeCall(this.call)
+    }
+}
+
+export class IdentityProvideJudgementCall {
+    private readonly _chain: Chain
+    private readonly call: Call
+
+    constructor(ctx: CallContext)
+    constructor(ctx: ChainContext, call: Call)
+    constructor(ctx: CallContext, call?: Call) {
+        call = call || ctx.call
+        assert(call.name === 'Identity.provide_judgement')
+        this._chain = ctx._chain
+        this.call = call
+    }
+
+    /**
+     *  Provide a judgement for an account's identity.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must be the account
+     *  of the registrar whose index is `reg_index`.
+     * 
+     *  - `reg_index`: the index of the registrar whose judgement is being made.
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     *  - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * 
+     *  Emits `JudgementGiven` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + X)`.
+     *  - One balance-transfer operation.
+     *  - Up to one account-lookup operation.
+     *  - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     *  - One event.
+     *  # </weight>
+     */
+    get isV1030(): boolean {
+        return this._chain.getCallHash('Identity.provide_judgement') === '8921aacefaea850d12d833946f2249c69867ed2c34eaedbfc09510053a096876'
+    }
+
+    /**
+     *  Provide a judgement for an account's identity.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must be the account
+     *  of the registrar whose index is `reg_index`.
+     * 
+     *  - `reg_index`: the index of the registrar whose judgement is being made.
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     *  - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * 
+     *  Emits `JudgementGiven` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + X)`.
+     *  - One balance-transfer operation.
+     *  - Up to one account-lookup operation.
+     *  - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     *  - One event.
+     *  # </weight>
+     */
+    get asV1030(): {regIndex: number, target: v1030.LookupSource, judgement: v1030.IdentityJudgement} {
+        assert(this.isV1030)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     *  Provide a judgement for an account's identity.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must be the account
+     *  of the registrar whose index is `reg_index`.
+     * 
+     *  - `reg_index`: the index of the registrar whose judgement is being made.
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     *  - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * 
+     *  Emits `JudgementGiven` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + X)`.
+     *  - One balance-transfer operation.
+     *  - Up to one account-lookup operation.
+     *  - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     *  - One event.
+     *  # </weight>
+     */
+    get isV1050(): boolean {
+        return this._chain.getCallHash('Identity.provide_judgement') === '791c0e6b8f05476998f8aaac88c6d48f65d1a8c2670bcbd045a3ca694c679bd7'
+    }
+
+    /**
+     *  Provide a judgement for an account's identity.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must be the account
+     *  of the registrar whose index is `reg_index`.
+     * 
+     *  - `reg_index`: the index of the registrar whose judgement is being made.
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     *  - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * 
+     *  Emits `JudgementGiven` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + X)`.
+     *  - One balance-transfer operation.
+     *  - Up to one account-lookup operation.
+     *  - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     *  - One event.
+     *  # </weight>
+     */
+    get asV1050(): {regIndex: number, target: Uint8Array, judgement: v1050.IdentityJudgement} {
+        assert(this.isV1050)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     *  Provide a judgement for an account's identity.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must be the account
+     *  of the registrar whose index is `reg_index`.
+     * 
+     *  - `reg_index`: the index of the registrar whose judgement is being made.
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     *  - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * 
+     *  Emits `JudgementGiven` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + X)`.
+     *  - One balance-transfer operation.
+     *  - Up to one account-lookup operation.
+     *  - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     *  - One event.
+     *  # </weight>
+     */
+    get isV2028(): boolean {
+        return this._chain.getCallHash('Identity.provide_judgement') === 'abdb42b954610658025900cff996632ccf91d9ab5409152108d45ed12cca332b'
+    }
+
+    /**
+     *  Provide a judgement for an account's identity.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must be the account
+     *  of the registrar whose index is `reg_index`.
+     * 
+     *  - `reg_index`: the index of the registrar whose judgement is being made.
+     *  - `target`: the account whose identity the judgement is upon. This must be an account
+     *    with a registered identity.
+     *  - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * 
+     *  Emits `JudgementGiven` if successful.
+     * 
+     *  # <weight>
+     *  - `O(R + X)`.
+     *  - One balance-transfer operation.
+     *  - Up to one account-lookup operation.
+     *  - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     *  - One event.
+     *  # </weight>
+     */
+    get asV2028(): {regIndex: number, target: v2028.LookupSource, judgement: v2028.IdentityJudgement} {
+        assert(this.isV2028)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     * Provide a judgement for an account's identity.
+     * 
+     * The dispatch origin for this call must be _Signed_ and the sender must be the account
+     * of the registrar whose index is `reg_index`.
+     * 
+     * - `reg_index`: the index of the registrar whose judgement is being made.
+     * - `target`: the account whose identity the judgement is upon. This must be an account
+     *   with a registered identity.
+     * - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * 
+     * Emits `JudgementGiven` if successful.
+     * 
+     * # <weight>
+     * - `O(R + X)`.
+     * - One balance-transfer operation.
+     * - Up to one account-lookup operation.
+     * - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     * - One event.
+     * # </weight>
+     */
+    get isV9111(): boolean {
+        return this._chain.getCallHash('Identity.provide_judgement') === 'abe9fadae40ed65e9f7ddf86c0556a4a577958e2dc507fbb3f459268e87e7b6c'
+    }
+
+    /**
+     * Provide a judgement for an account's identity.
+     * 
+     * The dispatch origin for this call must be _Signed_ and the sender must be the account
+     * of the registrar whose index is `reg_index`.
+     * 
+     * - `reg_index`: the index of the registrar whose judgement is being made.
+     * - `target`: the account whose identity the judgement is upon. This must be an account
+     *   with a registered identity.
+     * - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * 
+     * Emits `JudgementGiven` if successful.
+     * 
+     * # <weight>
+     * - `O(R + X)`.
+     * - One balance-transfer operation.
+     * - Up to one account-lookup operation.
+     * - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     * - One event.
+     * # </weight>
+     */
+    get asV9111(): {regIndex: number, target: v9111.MultiAddress, judgement: v9111.Judgement} {
+        assert(this.isV9111)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     * Provide a judgement for an account's identity.
+     * 
+     * The dispatch origin for this call must be _Signed_ and the sender must be the account
+     * of the registrar whose index is `reg_index`.
+     * 
+     * - `reg_index`: the index of the registrar whose judgement is being made.
+     * - `target`: the account whose identity the judgement is upon. This must be an account
+     *   with a registered identity.
+     * - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * - `identity`: The hash of the [`IdentityInfo`] for that the judgement is provided.
+     * 
+     * Emits `JudgementGiven` if successful.
+     * 
+     * # <weight>
+     * - `O(R + X)`.
+     * - One balance-transfer operation.
+     * - Up to one account-lookup operation.
+     * - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     * - One event.
+     * # </weight>
+     */
+    get isV9300(): boolean {
+        return this._chain.getCallHash('Identity.provide_judgement') === '293a16f5e8f521553f92204e3de7063fafc7905d71ca7812337b8bc6e200bcf9'
+    }
+
+    /**
+     * Provide a judgement for an account's identity.
+     * 
+     * The dispatch origin for this call must be _Signed_ and the sender must be the account
+     * of the registrar whose index is `reg_index`.
+     * 
+     * - `reg_index`: the index of the registrar whose judgement is being made.
+     * - `target`: the account whose identity the judgement is upon. This must be an account
+     *   with a registered identity.
+     * - `judgement`: the judgement of the registrar of index `reg_index` about `target`.
+     * - `identity`: The hash of the [`IdentityInfo`] for that the judgement is provided.
+     * 
+     * Emits `JudgementGiven` if successful.
+     * 
+     * # <weight>
+     * - `O(R + X)`.
+     * - One balance-transfer operation.
+     * - Up to one account-lookup operation.
+     * - Storage: 1 read `O(R)`, 1 mutate `O(R + X)`.
+     * - One event.
+     * # </weight>
+     */
+    get asV9300(): {regIndex: number, target: v9300.MultiAddress, judgement: v9300.Judgement, identity: Uint8Array} {
+        assert(this.isV9300)
+        return this._chain.decodeCall(this.call)
+    }
+}
+
+export class IdentityRenameSubCall {
+    private readonly _chain: Chain
+    private readonly call: Call
+
+    constructor(ctx: CallContext)
+    constructor(ctx: ChainContext, call: Call)
+    constructor(ctx: CallContext, call?: Call) {
+        call = call || ctx.call
+        assert(call.name === 'Identity.rename_sub')
+        this._chain = ctx._chain
+        this.call = call
+    }
+
+    /**
+     *  Alter the associated name of the given sub-account.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  sub identity of `sub`.
+     */
+    get isV2015(): boolean {
+        return this._chain.getCallHash('Identity.rename_sub') === '3a44789cb2db1c330353e6200ca05fb21d197f103560aec42b25fed99b8ede6d'
+    }
+
+    /**
+     *  Alter the associated name of the given sub-account.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  sub identity of `sub`.
+     */
+    get asV2015(): {sub: Uint8Array, data: v2015.Data} {
+        assert(this.isV2015)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     *  Alter the associated name of the given sub-account.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  sub identity of `sub`.
+     */
+    get isV2028(): boolean {
+        return this._chain.getCallHash('Identity.rename_sub') === 'ef8fb13f5dc864a3db268a8f01b166d2deee87052a98309538fe8961be9020a9'
+    }
+
+    /**
+     *  Alter the associated name of the given sub-account.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  sub identity of `sub`.
+     */
+    get asV2028(): {sub: v2028.LookupSource, data: v2028.Data} {
+        assert(this.isV2028)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     * Alter the associated name of the given sub-account.
+     * 
+     * The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     * sub identity of `sub`.
+     */
+    get isV9111(): boolean {
+        return this._chain.getCallHash('Identity.rename_sub') === 'b7d02496580d984a1a588630bfbf580f423f08a761006f8706b057ac73069a38'
+    }
+
+    /**
+     * Alter the associated name of the given sub-account.
+     * 
+     * The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     * sub identity of `sub`.
+     */
+    get asV9111(): {sub: v9111.MultiAddress, data: v9111.Data} {
+        assert(this.isV9111)
+        return this._chain.decodeCall(this.call)
+    }
+}
+
+export class IdentitySetIdentityCall {
+    private readonly _chain: Chain
+    private readonly call: Call
+
+    constructor(ctx: CallContext)
+    constructor(ctx: ChainContext, call: Call)
+    constructor(ctx: CallContext, call?: Call) {
+        call = call || ctx.call
+        assert(call.name === 'Identity.set_identity')
+        this._chain = ctx._chain
+        this.call = call
+    }
+
+    /**
+     *  Set an account's identity information and reserve the appropriate deposit.
+     * 
+     *  If the account already has identity information, the deposit is taken as part payment
+     *  for the new deposit.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  identity.
+     * 
+     *  - `info`: The identity information.
+     * 
+     *  Emits `IdentitySet` if successful.
+     * 
+     *  # <weight>
+     *  - `O(X + R)` where `X` additional-field-count (deposit-bounded).
+     *  - At most two balance operations.
+     *  - One storage mutation (codec `O(X + R)`).
+     *  - One event.
+     *  # </weight>
+     */
+    get isV1030(): boolean {
+        return this._chain.getCallHash('Identity.set_identity') === '0a4b1e421517b2dbf295654a2c6c617cd7631b9de55c4fe17ff5e236ccdc7bdc'
+    }
+
+    /**
+     *  Set an account's identity information and reserve the appropriate deposit.
+     * 
+     *  If the account already has identity information, the deposit is taken as part payment
+     *  for the new deposit.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  identity.
+     * 
+     *  - `info`: The identity information.
+     * 
+     *  Emits `IdentitySet` if successful.
+     * 
+     *  # <weight>
+     *  - `O(X + R)` where `X` additional-field-count (deposit-bounded).
+     *  - At most two balance operations.
+     *  - One storage mutation (codec `O(X + R)`).
+     *  - One event.
+     *  # </weight>
+     */
+    get asV1030(): {info: v1030.IdentityInfo} {
+        assert(this.isV1030)
+        return this._chain.decodeCall(this.call)
+    }
+
+    /**
+     *  Set an account's identity information and reserve the appropriate deposit.
+     * 
+     *  If the account already has identity information, the deposit is taken as part payment
+     *  for the new deposit.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  identity.
+     * 
+     *  - `info`: The identity information.
+     * 
+     *  Emits `IdentitySet` if successful.
+     * 
+     *  # <weight>
+     *  - `O(X + R)` where `X` additional-field-count (deposit-bounded).
+     *  - At most two balance operations.
+     *  - One storage mutation (codec `O(X + R)`).
+     *  - One event.
+     *  # </weight>
+     */
+    get isV1032(): boolean {
+        return this._chain.getCallHash('Identity.set_identity') === 'ab457704fd8cda5fee32e84ab7782778f4117cd54400c364cf7597eee5bc60ca'
+    }
+
+    /**
+     *  Set an account's identity information and reserve the appropriate deposit.
+     * 
+     *  If the account already has identity information, the deposit is taken as part payment
+     *  for the new deposit.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  identity.
+     * 
+     *  - `info`: The identity information.
+     * 
+     *  Emits `IdentitySet` if successful.
+     * 
+     *  # <weight>
+     *  - `O(X + R)` where `X` additional-field-count (deposit-bounded).
+     *  - At most two balance operations.
+     *  - One storage mutation (codec `O(X + R)`).
+     *  - One event.
+     *  # </weight>
+     */
+    get asV1032(): {info: v1032.IdentityInfo} {
+        assert(this.isV1032)
+        return this._chain.decodeCall(this.call)
+    }
+}
+
+export class IdentitySetSubsCall {
+    private readonly _chain: Chain
+    private readonly call: Call
+
+    constructor(ctx: CallContext)
+    constructor(ctx: ChainContext, call: Call)
+    constructor(ctx: CallContext, call?: Call) {
+        call = call || ctx.call
+        assert(call.name === 'Identity.set_subs')
+        this._chain = ctx._chain
+        this.call = call
+    }
+
+    /**
+     *  Set the sub-accounts of the sender.
+     * 
+     *  Payment: Any aggregate balance reserved by previous `set_subs` calls will be returned
+     *  and an amount `SubAccountDeposit` will be reserved for each item in `subs`.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  identity.
+     * 
+     *  - `subs`: The identity's sub-accounts.
+     * 
+     *  # <weight>
+     *  - `O(S)` where `S` subs-count (hard- and deposit-bounded).
+     *  - At most two balance operations.
+     *  - One storage mutation (codec `O(S)`); one storage-exists.
+     *  # </weight>
+     */
+    get isV1030(): boolean {
+        return this._chain.getCallHash('Identity.set_subs') === 'f156a100857e71b9e1eab839801795e8569b63b49f6c30333c5bf12811cbbe73'
+    }
+
+    /**
+     *  Set the sub-accounts of the sender.
+     * 
+     *  Payment: Any aggregate balance reserved by previous `set_subs` calls will be returned
+     *  and an amount `SubAccountDeposit` will be reserved for each item in `subs`.
+     * 
+     *  The dispatch origin for this call must be _Signed_ and the sender must have a registered
+     *  identity.
+     * 
+     *  - `subs`: The identity's sub-accounts.
+     * 
+     *  # <weight>
+     *  - `O(S)` where `S` subs-count (hard- and deposit-bounded).
+     *  - At most two balance operations.
+     *  - One storage mutation (codec `O(S)`); one storage-exists.
+     *  # </weight>
+     */
+    get asV1030(): {subs: [Uint8Array, v1030.Data][]} {
+        assert(this.isV1030)
         return this._chain.decodeCall(this.call)
     }
 }

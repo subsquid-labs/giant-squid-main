@@ -1,6 +1,5 @@
 import assert from 'assert'
 import {Chain, ChainContext, CallContext, Call, Result, Option} from './support'
-import * as v5300 from './v5300'
 
 export class BalancesForceTransferCall {
     private readonly _chain: Chain
@@ -23,8 +22,8 @@ export class BalancesForceTransferCall {
      *   assumed to be in the overlay.
      * # </weight>
      */
-    get isV5300(): boolean {
-        return this._chain.getCallHash('Balances.force_transfer') === 'e5944fbe8224a17fe49f9c1d1d01efaf87fb1778fd39618512af54c9ba6f9dff'
+    get isV6100(): boolean {
+        return this._chain.getCallHash('Balances.force_transfer') === '5943ae1ef3513ee6550de75db5107994b40b854e8b6882c4a9016266af9e639b'
     }
 
     /**
@@ -35,8 +34,8 @@ export class BalancesForceTransferCall {
      *   assumed to be in the overlay.
      * # </weight>
      */
-    get asV5300(): {source: v5300.MultiAddress, dest: v5300.MultiAddress, value: bigint} {
-        assert(this.isV5300)
+    get asV6100(): {source: Uint8Array, dest: Uint8Array, value: bigint} {
+        assert(this.isV6100)
         return this._chain.decodeCall(this.call)
     }
 }
@@ -81,8 +80,8 @@ export class BalancesTransferCall {
      * - Origin account is already in memory, so no DB operations for them.
      * # </weight>
      */
-    get isV5300(): boolean {
-        return this._chain.getCallHash('Balances.transfer') === 'fc85bea9d0d171982f66e8a55667d58dc9a1612bcafe84309942bf47e23e3094'
+    get isV6100(): boolean {
+        return this._chain.getCallHash('Balances.transfer') === '467dee5087ba2ba771d4bb4c0c9afaa6fa202df3114b49c8db6e165b679e2c4f'
     }
 
     /**
@@ -112,8 +111,8 @@ export class BalancesTransferCall {
      * - Origin account is already in memory, so no DB operations for them.
      * # </weight>
      */
-    get asV5300(): {dest: v5300.MultiAddress, value: bigint} {
-        assert(this.isV5300)
+    get asV6100(): {dest: Uint8Array, value: bigint} {
+        assert(this.isV6100)
         return this._chain.decodeCall(this.call)
     }
 }
@@ -150,8 +149,8 @@ export class BalancesTransferAllCall {
      * - O(1). Just like transfer, but reading the user's transferable balance first.
      *   #</weight>
      */
-    get isV5300(): boolean {
-        return this._chain.getCallHash('Balances.transfer_all') === '9c94c2ca9979f6551af6e123fb6b6ba14d026f862f9a023706f8f88c556b355f'
+    get isV6100(): boolean {
+        return this._chain.getCallHash('Balances.transfer_all') === 'f8ce8e577c7dd91d99648a56e9a48561995bf0be3a680c01895f87fb1c0f92e6'
     }
 
     /**
@@ -173,8 +172,8 @@ export class BalancesTransferAllCall {
      * - O(1). Just like transfer, but reading the user's transferable balance first.
      *   #</weight>
      */
-    get asV5300(): {dest: v5300.MultiAddress, keepAlive: boolean} {
-        assert(this.isV5300)
+    get asV6100(): {dest: Uint8Array, keepAlive: boolean} {
+        assert(this.isV6100)
         return this._chain.decodeCall(this.call)
     }
 }
@@ -200,8 +199,8 @@ export class BalancesTransferKeepAliveCall {
      * 
      * [`transfer`]: struct.Pallet.html#method.transfer
      */
-    get isV5300(): boolean {
-        return this._chain.getCallHash('Balances.transfer_keep_alive') === 'fc85bea9d0d171982f66e8a55667d58dc9a1612bcafe84309942bf47e23e3094'
+    get isV6100(): boolean {
+        return this._chain.getCallHash('Balances.transfer_keep_alive') === '467dee5087ba2ba771d4bb4c0c9afaa6fa202df3114b49c8db6e165b679e2c4f'
     }
 
     /**
@@ -212,8 +211,8 @@ export class BalancesTransferKeepAliveCall {
      * 
      * [`transfer`]: struct.Pallet.html#method.transfer
      */
-    get asV5300(): {dest: v5300.MultiAddress, value: bigint} {
-        assert(this.isV5300)
+    get asV6100(): {dest: Uint8Array, value: bigint} {
+        assert(this.isV6100)
         return this._chain.decodeCall(this.call)
     }
 }

@@ -10,8 +10,8 @@ import {Call, ChainContext} from '../../types/support'
 const transfer = {
     decode(ctx: ChainContext, call: Call) {
         let e = new BalancesTransferCall(ctx, call)
-        if (e.isV1) {
-            return e.asV1
+        if (e.isV3014) {
+            return e.asV3014
         } else {
             throw new UnknownVersionError(e)
         }
@@ -21,8 +21,8 @@ const transfer = {
 const transfer_all = {
     decode(ctx: ChainContext, call: Call) {
         let e = new BalancesTransferAllCall(ctx, call)
-        if (e.isV1) {
-            return e.asV1
+        if (e.isV3014) {
+            return e.asV3014
         } else {
             throw new UnknownVersionError(e)
         }
@@ -32,8 +32,8 @@ const transfer_all = {
 const force_transfer = {
     decode(ctx: ChainContext, call: Call) {
         let e = new BalancesForceTransferCall(ctx, call)
-        if (e.isV1) {
-            return e.asV1
+        if (e.isV3014) {
+            return e.asV3014
         } else {
             throw new UnknownVersionError(e)
         }
@@ -43,8 +43,8 @@ const force_transfer = {
 const transfer_keep_alive = {
     decode(ctx: ChainContext, call: Call) {
         let e = new BalancesTransferKeepAliveCall(ctx, call)
-        if (e.isV1) {
-            return e.asV1
+        if (e.isV3014) {
+            return e.asV3014
         } else {
             throw new UnknownVersionError(e)
         }

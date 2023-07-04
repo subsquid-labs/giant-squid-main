@@ -1,8 +1,8 @@
-module.exports = class Data1675427641224 {
-    name = 'Data1675427641224'
+module.exports = class Data1688494901352 {
+    name = 'Data1688494901352'
 
     async up(db) {
-        await db.query(`CREATE TABLE "native_transfer" ("id" character varying NOT NULL, "block_number" integer NOT NULL, "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "extrinsic_hash" text, "amount" numeric NOT NULL, "from_id" character varying, "to_id" character varying, CONSTRAINT "PK_2c3c43fc41181e002fd0f3bcf0f" PRIMARY KEY ("id"))`)
+        await db.query(`CREATE TABLE "native_transfer" ("id" character varying NOT NULL, "block_number" integer NOT NULL, "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "extrinsic_hash" text, "amount" numeric NOT NULL, "success" boolean NOT NULL, "from_id" character varying, "to_id" character varying, CONSTRAINT "PK_2c3c43fc41181e002fd0f3bcf0f" PRIMARY KEY ("id"))`)
         await db.query(`CREATE INDEX "IDX_83b8a385501126ab1e5b3a6e38" ON "native_transfer" ("block_number") `)
         await db.query(`CREATE INDEX "IDX_9d32b6b7e940a49e91af2b7c8b" ON "native_transfer" ("timestamp") `)
         await db.query(`CREATE INDEX "IDX_cf97a8008dc22834e9e9d8596e" ON "native_transfer" ("extrinsic_hash") `)
@@ -18,11 +18,19 @@ module.exports = class Data1675427641224 {
         await db.query(`CREATE INDEX "IDX_a13699fe2651c6c2717a7076f5" ON "staking_reward" ("account_id") `)
         await db.query(`CREATE TABLE "account" ("id" character varying NOT NULL, "public_key" text NOT NULL, CONSTRAINT "PK_54115ee388cdb6d86bb4bf5b2ea" PRIMARY KEY ("id"))`)
         await db.query(`CREATE INDEX "IDX_34e5683537bbd7627b0e9469b8" ON "account" ("public_key") `)
+        await db.query(`CREATE TABLE "sub_identity" ("id" character varying NOT NULL, "name" text, "identity_id" character varying, "account_id" character varying NOT NULL, CONSTRAINT "REL_60bfbb0c3d38d9df54b626a2ec" UNIQUE ("account_id"), CONSTRAINT "PK_11d0d1c557b7c9ee76420c51b32" PRIMARY KEY ("id"))`)
+        await db.query(`CREATE INDEX "IDX_e52887ef5c374d8dc83e01ee9c" ON "sub_identity" ("identity_id") `)
+        await db.query(`CREATE UNIQUE INDEX "IDX_60bfbb0c3d38d9df54b626a2ec" ON "sub_identity" ("account_id") `)
+        await db.query(`CREATE TABLE "identity" ("id" character varying NOT NULL, "judgement" character varying(10) NOT NULL, "additional" jsonb, "display" text, "legal" text, "web" text, "riot" text, "email" text, "pgp_fingerprint" text, "image" text, "twitter" text, "is_killed" boolean NOT NULL, "account_id" character varying NOT NULL, CONSTRAINT "REL_bafa9e6c71c3f69cef6602a809" UNIQUE ("account_id"), CONSTRAINT "PK_ff16a44186b286d5e626178f726" PRIMARY KEY ("id"))`)
+        await db.query(`CREATE UNIQUE INDEX "IDX_bafa9e6c71c3f69cef6602a809" ON "identity" ("account_id") `)
         await db.query(`ALTER TABLE "native_transfer" ADD CONSTRAINT "FK_dd3c998c07dabdafe827060b67f" FOREIGN KEY ("from_id") REFERENCES "account"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "native_transfer" ADD CONSTRAINT "FK_08861105fb579f4171e2e1d21d6" FOREIGN KEY ("to_id") REFERENCES "account"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "transfer" ADD CONSTRAINT "FK_7aa3769048ff14716eb5e0939e1" FOREIGN KEY ("transfer_id") REFERENCES "native_transfer"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "transfer" ADD CONSTRAINT "FK_bc8d11fdb46573269220c45af52" FOREIGN KEY ("account_id") REFERENCES "account"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "staking_reward" ADD CONSTRAINT "FK_a13699fe2651c6c2717a7076f57" FOREIGN KEY ("account_id") REFERENCES "account"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
+        await db.query(`ALTER TABLE "sub_identity" ADD CONSTRAINT "FK_e52887ef5c374d8dc83e01ee9c3" FOREIGN KEY ("identity_id") REFERENCES "identity"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
+        await db.query(`ALTER TABLE "sub_identity" ADD CONSTRAINT "FK_60bfbb0c3d38d9df54b626a2ecc" FOREIGN KEY ("account_id") REFERENCES "account"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
+        await db.query(`ALTER TABLE "identity" ADD CONSTRAINT "FK_bafa9e6c71c3f69cef6602a8095" FOREIGN KEY ("account_id") REFERENCES "account"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     }
 
     async down(db) {
@@ -42,10 +50,18 @@ module.exports = class Data1675427641224 {
         await db.query(`DROP INDEX "public"."IDX_a13699fe2651c6c2717a7076f5"`)
         await db.query(`DROP TABLE "account"`)
         await db.query(`DROP INDEX "public"."IDX_34e5683537bbd7627b0e9469b8"`)
+        await db.query(`DROP TABLE "sub_identity"`)
+        await db.query(`DROP INDEX "public"."IDX_e52887ef5c374d8dc83e01ee9c"`)
+        await db.query(`DROP INDEX "public"."IDX_60bfbb0c3d38d9df54b626a2ec"`)
+        await db.query(`DROP TABLE "identity"`)
+        await db.query(`DROP INDEX "public"."IDX_bafa9e6c71c3f69cef6602a809"`)
         await db.query(`ALTER TABLE "native_transfer" DROP CONSTRAINT "FK_dd3c998c07dabdafe827060b67f"`)
         await db.query(`ALTER TABLE "native_transfer" DROP CONSTRAINT "FK_08861105fb579f4171e2e1d21d6"`)
         await db.query(`ALTER TABLE "transfer" DROP CONSTRAINT "FK_7aa3769048ff14716eb5e0939e1"`)
         await db.query(`ALTER TABLE "transfer" DROP CONSTRAINT "FK_bc8d11fdb46573269220c45af52"`)
         await db.query(`ALTER TABLE "staking_reward" DROP CONSTRAINT "FK_a13699fe2651c6c2717a7076f57"`)
+        await db.query(`ALTER TABLE "sub_identity" DROP CONSTRAINT "FK_e52887ef5c374d8dc83e01ee9c3"`)
+        await db.query(`ALTER TABLE "sub_identity" DROP CONSTRAINT "FK_60bfbb0c3d38d9df54b626a2ecc"`)
+        await db.query(`ALTER TABLE "identity" DROP CONSTRAINT "FK_bafa9e6c71c3f69cef6602a8095"`)
     }
 }

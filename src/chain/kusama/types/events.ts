@@ -60,6 +60,186 @@ export class BalancesTransferEvent {
     }
 }
 
+export class IdentityIdentityClearedEvent {
+    private readonly _chain: Chain
+    private readonly event: Event
+
+    constructor(ctx: EventContext)
+    constructor(ctx: ChainContext, event: Event)
+    constructor(ctx: EventContext, event?: Event) {
+        event = event || ctx.event
+        assert(event.name === 'Identity.IdentityCleared')
+        this._chain = ctx._chain
+        this.event = event
+    }
+
+    /**
+     *  A name was cleared, and the given balance returned.
+     */
+    get isV1030(): boolean {
+        return this._chain.getEventHash('Identity.IdentityCleared') === '23bebce4ca9ed37548947d07d4dc50e772f07401b9a416b6aa2f3e9cb5adcaf4'
+    }
+
+    /**
+     *  A name was cleared, and the given balance returned.
+     */
+    get asV1030(): [Uint8Array, bigint] {
+        assert(this.isV1030)
+        return this._chain.decodeEvent(this.event)
+    }
+
+    /**
+     * A name was cleared, and the given balance returned.
+     */
+    get isV9130(): boolean {
+        return this._chain.getEventHash('Identity.IdentityCleared') === '569627bf2a8105e3949fd62dcaae8174fb02f8afedb8e5d8a7fecda5d63b25c3'
+    }
+
+    /**
+     * A name was cleared, and the given balance returned.
+     */
+    get asV9130(): {who: Uint8Array, deposit: bigint} {
+        assert(this.isV9130)
+        return this._chain.decodeEvent(this.event)
+    }
+}
+
+export class IdentityIdentityKilledEvent {
+    private readonly _chain: Chain
+    private readonly event: Event
+
+    constructor(ctx: EventContext)
+    constructor(ctx: ChainContext, event: Event)
+    constructor(ctx: EventContext, event?: Event) {
+        event = event || ctx.event
+        assert(event.name === 'Identity.IdentityKilled')
+        this._chain = ctx._chain
+        this.event = event
+    }
+
+    /**
+     *  A name was removed and the given balance slashed.
+     */
+    get isV1030(): boolean {
+        return this._chain.getEventHash('Identity.IdentityKilled') === '23bebce4ca9ed37548947d07d4dc50e772f07401b9a416b6aa2f3e9cb5adcaf4'
+    }
+
+    /**
+     *  A name was removed and the given balance slashed.
+     */
+    get asV1030(): [Uint8Array, bigint] {
+        assert(this.isV1030)
+        return this._chain.decodeEvent(this.event)
+    }
+
+    /**
+     * A name was removed and the given balance slashed.
+     */
+    get isV9130(): boolean {
+        return this._chain.getEventHash('Identity.IdentityKilled') === '569627bf2a8105e3949fd62dcaae8174fb02f8afedb8e5d8a7fecda5d63b25c3'
+    }
+
+    /**
+     * A name was removed and the given balance slashed.
+     */
+    get asV9130(): {who: Uint8Array, deposit: bigint} {
+        assert(this.isV9130)
+        return this._chain.decodeEvent(this.event)
+    }
+}
+
+export class IdentitySubIdentityRemovedEvent {
+    private readonly _chain: Chain
+    private readonly event: Event
+
+    constructor(ctx: EventContext)
+    constructor(ctx: ChainContext, event: Event)
+    constructor(ctx: EventContext, event?: Event) {
+        event = event || ctx.event
+        assert(event.name === 'Identity.SubIdentityRemoved')
+        this._chain = ctx._chain
+        this.event = event
+    }
+
+    /**
+     *  A sub-identity (first) was removed from an identity (second) and the deposit freed.
+     */
+    get isV2015(): boolean {
+        return this._chain.getEventHash('Identity.SubIdentityRemoved') === 'dad2bcdca357505fa3c7832085d0db53ce6f902bd9f5b52823ee8791d351872c'
+    }
+
+    /**
+     *  A sub-identity (first) was removed from an identity (second) and the deposit freed.
+     */
+    get asV2015(): [Uint8Array, Uint8Array, bigint] {
+        assert(this.isV2015)
+        return this._chain.decodeEvent(this.event)
+    }
+
+    /**
+     * A sub-identity was removed from an identity and the deposit freed.
+     */
+    get isV9130(): boolean {
+        return this._chain.getEventHash('Identity.SubIdentityRemoved') === '3ffe8c1fa99373079f0c7dbda5849194c73c2867fd7ca2b08d19f7c6b676e1ef'
+    }
+
+    /**
+     * A sub-identity was removed from an identity and the deposit freed.
+     */
+    get asV9130(): {sub: Uint8Array, main: Uint8Array, deposit: bigint} {
+        assert(this.isV9130)
+        return this._chain.decodeEvent(this.event)
+    }
+}
+
+export class IdentitySubIdentityRevokedEvent {
+    private readonly _chain: Chain
+    private readonly event: Event
+
+    constructor(ctx: EventContext)
+    constructor(ctx: ChainContext, event: Event)
+    constructor(ctx: EventContext, event?: Event) {
+        event = event || ctx.event
+        assert(event.name === 'Identity.SubIdentityRevoked')
+        this._chain = ctx._chain
+        this.event = event
+    }
+
+    /**
+     *  A sub-identity (first arg) was cleared, and the given deposit repatriated from the
+     *  main identity account (second arg) to the sub-identity account.
+     */
+    get isV2015(): boolean {
+        return this._chain.getEventHash('Identity.SubIdentityRevoked') === 'dad2bcdca357505fa3c7832085d0db53ce6f902bd9f5b52823ee8791d351872c'
+    }
+
+    /**
+     *  A sub-identity (first arg) was cleared, and the given deposit repatriated from the
+     *  main identity account (second arg) to the sub-identity account.
+     */
+    get asV2015(): [Uint8Array, Uint8Array, bigint] {
+        assert(this.isV2015)
+        return this._chain.decodeEvent(this.event)
+    }
+
+    /**
+     * A sub-identity was cleared, and the given deposit repatriated from the
+     * main identity account to the sub-identity account.
+     */
+    get isV9130(): boolean {
+        return this._chain.getEventHash('Identity.SubIdentityRevoked') === '3ffe8c1fa99373079f0c7dbda5849194c73c2867fd7ca2b08d19f7c6b676e1ef'
+    }
+
+    /**
+     * A sub-identity was cleared, and the given deposit repatriated from the
+     * main identity account to the sub-identity account.
+     */
+    get asV9130(): {sub: Uint8Array, main: Uint8Array, deposit: bigint} {
+        assert(this.isV9130)
+        return this._chain.decodeEvent(this.event)
+    }
+}
+
 export class StakingRewardEvent {
     private readonly _chain: Chain
     private readonly event: Event

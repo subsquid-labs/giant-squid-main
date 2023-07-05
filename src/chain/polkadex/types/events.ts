@@ -72,4 +72,19 @@ export class StakingRewardedEvent {
         assert(this.isV268)
         return this._chain.decodeEvent(this.event)
     }
+
+    /**
+     * The nominator has been rewarded by this amount.
+     */
+    get isV283(): boolean {
+        return this._chain.getEventHash('Staking.Rewarded') === '9623d141834cd425342a1ff7a2b2265acd552799bcd6a0df67eb08a661e2215d'
+    }
+
+    /**
+     * The nominator has been rewarded by this amount.
+     */
+    get asV283(): {stash: Uint8Array, amount: bigint} {
+        assert(this.isV283)
+        return this._chain.decodeEvent(this.event)
+    }
 }

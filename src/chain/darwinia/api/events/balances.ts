@@ -5,8 +5,8 @@ import { ChainContext, Event } from '../../types/support'
 const Transfer = {
   decode(ctx: ChainContext, event: Event) {
     let e = new BalancesTransferEvent(ctx, event)
-    if (e.isV5300) {
-      return e.asV5300
+    if (e.isV6100) {
+      return e.asV6100
     } else {
       throw new UnknownVersionError(e)
     }

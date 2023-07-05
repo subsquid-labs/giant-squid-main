@@ -1,7 +1,7 @@
+import assert from 'assert'
 import {StoreWithCache} from '@belopash/squid-tools'
 import {DataHandlerContext, SubstrateBlock, SubstrateExtrinsic} from '@subsquid/substrate-processor'
-import {Store} from '@subsquid/typeorm-store'
-import assert from 'assert'
+import {withErrorContext} from '@subsquid/util-internal'
 
 export type ActionContext = DataHandlerContext<StoreWithCache, unknown>
 
@@ -16,12 +16,12 @@ export abstract class Action<T = unknown> {
                 }),
             }
 
-            try {
-                await action.perform(actionCtx)
-            } catch (err) {
-                ctx.log.fatal({err, block: action.block.height, extrinsic: action.extrinsic?.hash})
-                throw err
-            }
+            await action.perform(actionCtx).catch(
+                withErrorContext({
+                    block: action.block.height,
+                    extrinsicHash: action.extrinsic?.hash,
+                })
+            )
         }
     }
 
@@ -42,17 +42,17 @@ export abstract class Action<T = unknown> {
     protected abstract _perform(ctx: ActionContext): Promise<void>
 }
 
-// export class LazyAction extends Action {
-//     constructor(
-//         block: Pick<BlockHeader, 'id' | 'hash' | 'height' | 'timestamp'>,
-//         extrinsic: Pick<extrinsic, 'id' | 'hash'>,
-//         readonly cb: (ctx: ActionContext) => Promise<Action[]>
-//     ) {
-//         super(block, extrinsic, {})
-//     }
+export class LazyAction extends Action {
+    constructor(
+        readonly block: Pick<SubstrateBlock, 'id' | 'hash' | 'height' | 'timestamp'>,
+        readonly extrinsic: Pick<SubstrateExtrinsic, 'id' | 'hash'> | undefined,
+        readonly cb: (ctx: ActionContext) => Promise<Action[]>
+    ) {
+        super(block, extrinsic, {})
+    }
 
-//     protected async _perform(ctx: DataHandlerContext<StoreWithCache, {}>): Promise<void> {
-//         const actions = await this.cb(ctx)
-//         await Action.process(ctx, actions)
-//     }
-// }
+    protected async _perform(ctx: DataHandlerContext<StoreWithCache, {}>): Promise<void> {
+        const actions = await this.cb(ctx)
+        await Action.process(ctx, actions)
+    }
+}

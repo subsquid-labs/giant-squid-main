@@ -17,15 +17,15 @@ export class BalancesTransferEvent {
     /**
      * Transfer succeeded.
      */
-    get isV5300(): boolean {
-        return this._chain.getEventHash('Balances.Transfer') === '0ffdf35c495114c2d42a8bf6c241483fd5334ca0198662e14480ad040f1e3a66'
+    get isV6100(): boolean {
+        return this._chain.getEventHash('Balances.Transfer') === '23222c59f2992c12387568241620899d2d399ab9027595daca8255637f62ece3'
     }
 
     /**
      * Transfer succeeded.
      */
-    get asV5300(): {from: Uint8Array, to: Uint8Array, amount: bigint} {
-        assert(this.isV5300)
+    get asV6100(): {from: Uint8Array, to: Uint8Array, amount: bigint} {
+        assert(this.isV6100)
         return this._chain.decodeEvent(this.event)
     }
 }

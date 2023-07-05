@@ -1,6 +1,8 @@
 import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, Index as Index_, OneToMany as OneToMany_} from "typeorm"
 import {Transfer} from "./transfer.model"
 import {StakingReward} from "./stakingReward.model"
+import {Identity} from "./identity.model"
+import {SubIdentity} from "./subIdentity.model"
 
 @Entity_()
 export class Account {
@@ -20,4 +22,6 @@ export class Account {
 
     @OneToMany_(() => StakingReward, e => e.account)
     rewards!: StakingReward[]
+
+
 }

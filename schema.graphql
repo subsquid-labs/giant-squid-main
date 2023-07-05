@@ -61,7 +61,7 @@ type Identity @entity {
     id: ID!
     account: Account! @unique
     judgement: Judgement!
-    subs: [SubIdentity!] @derivedFrom(field: "identity")
+    subs: [SubIdentity!] @derivedFrom(field: "super")
     additional: [IdentityAdditionalField!]
     display: String
     legal: String
@@ -76,7 +76,7 @@ type Identity @entity {
 
 type SubIdentity @entity {
     id: ID!
-    identity: Identity
+    super: Identity
     account: Account! @unique
     name: String
 }

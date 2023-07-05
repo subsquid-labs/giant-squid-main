@@ -22,7 +22,7 @@ export class Identity {
     @Column_("varchar", {length: 10, nullable: false})
     judgement!: Judgement
 
-    @OneToMany_(() => SubIdentity, e => e.identity)
+    @OneToMany_(() => SubIdentity, e => e.super)
     subs!: SubIdentity[]
 
     @Column_("jsonb", {transformer: {to: obj => obj == null ? undefined : obj.map((val: any) => val.toJSON()), from: obj => obj == null ? undefined : marshal.fromList(obj, val => new IdentityAdditionalField(undefined, marshal.nonNull(val)))}, nullable: true})

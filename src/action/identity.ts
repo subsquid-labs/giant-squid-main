@@ -134,7 +134,7 @@ export class AddSubIdentityAction extends Action<AddSubIdentityData> {
 
         let sub = await this.data.sub()
 
-        sub.identity = identity
+        sub.super = identity
 
         await ctx.store.upsert(sub)
     }
@@ -185,7 +185,7 @@ export class RemoveSubIdentityAction extends Action<RemoveSubIdentityData> {
         const sub = await this.data.sub()
 
         sub.name = null
-        sub.identity = null
+        sub.super = null
 
         await ctx.store.upsert(sub)
     }

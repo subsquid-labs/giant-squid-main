@@ -13,7 +13,7 @@ export class SubIdentity {
 
     @Index_()
     @ManyToOne_(() => Identity, {nullable: true})
-    identity!: Identity | undefined | null
+    super!: Identity | undefined | null
 
     @Index_({unique: true})
     @OneToOne_(() => Account, {nullable: true})

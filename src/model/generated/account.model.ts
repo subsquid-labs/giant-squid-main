@@ -2,6 +2,7 @@ import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, I
 import {Transfer} from "./transfer.model"
 import {StakingReward} from "./stakingReward.model"
 import {Identity} from "./identity.model"
+import {SubIdentity} from "./subIdentity.model"
 
 @Entity_()
 export class Account {

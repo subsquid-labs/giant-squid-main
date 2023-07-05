@@ -180,7 +180,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                     new LazyAction(block, item.extrinsic, async (ctx) => {
                         const a: Action[] = []
 
-                        if ([2018825, 3409356, 5926842, 5965153].includes(block.height) && block.specId.startsWith('kusama')) {
+                        if ( block.specId.startsWith('kusama')) { //[2018825, 3409356, 5926842, 5965153].includes(block.height) &&
                             const account = ctx.store.defer(Account, identityId)
 
                             a.push(

@@ -4,7 +4,7 @@ type Account @entity {
     transfers: [Transfer!] @derivedFrom(field: "account")
     rewards: [StakingReward!] @derivedFrom(field: "account")
     identity: Identity @derivedFrom(field: "account")
-    subndentity: Identity @derivedFrom(field: "account")
+    subIndentity: SubIdentity @derivedFrom(field: "account")
 }
 
 enum TransferDirection {
@@ -54,7 +54,7 @@ enum Judgement {
     KnownGood
     OutOfDate
     LowQuality
-    Errorneous
+    Erroneous
 }
 
 type Identity @entity {
@@ -77,6 +77,6 @@ type Identity @entity {
 type SubIdentity @entity {
     id: ID!
     identity: Identity
-    account: Account @unique
+    account: Account! @unique
     name: String
 }

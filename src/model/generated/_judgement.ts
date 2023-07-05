@@ -5,5 +5,5 @@ export enum Judgement {
     KnownGood = "KnownGood",
     OutOfDate = "OutOfDate",
     LowQuality = "LowQuality",
-    Errorneous = "Errorneous",
+    Erroneous = "Erroneous",
 }

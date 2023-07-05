@@ -84,7 +84,7 @@ export class GiveJudgementAction extends Action<GiveJudgementData> {
         const identity = await this.data.identity()
 
         switch (this.data.judgement) {
-            case Judgement.Errorneous:
+            case Judgement.Erroneous:
             case Judgement.FeePaid:
             case Judgement.KnownGood:
             case Judgement.LowQuality:

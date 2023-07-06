@@ -430,6 +430,6 @@ function unwrapData(data: {__kind: string; value?: Uint8Array}) {
         case 'ShaThree256':
             return Buffer.from(data.value!).toString('hex')
         default:
-            return Buffer.from(data.value!).toString('utf-8')
+            return Buffer.from(data.value!).toString('utf-8').replace(/\u0000/g, '')
     }
 }

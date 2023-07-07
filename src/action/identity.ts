@@ -76,26 +76,14 @@ export class SetIdentityAction extends Action<SetIdentityData> {
 
 export interface GiveJudgementData {
     identity: () => Promise<Identity>
-    judgement: string
+    judgement: Judgement
 }
 
 export class GiveJudgementAction extends Action<GiveJudgementData> {
     protected async _perform(ctx: ActionContext): Promise<void> {
         const identity = await this.data.identity()
 
-        switch (this.data.judgement) {
-            case Judgement.Erroneous:
-            case Judgement.FeePaid:
-            case Judgement.KnownGood:
-            case Judgement.LowQuality:
-            case Judgement.OutOfDate:
-            case Judgement.Reasonable:
-            case Judgement.Unknown:
-                identity.judgement = this.data.judgement
-                break
-            default:
-                throw new Error(`Unknown judgement: ${this.data.judgement}`)
-        }
+        identity.judgement = this.data.judgement
 
         await ctx.store.upsert(identity)
     }

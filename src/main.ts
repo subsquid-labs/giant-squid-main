@@ -20,17 +20,6 @@ import {
 } from './action/identity'
 import {toHex} from '@subsquid/substrate-processor'
 
-export interface TransferData {
-    id: string
-    blockNumber: number
-    timestamp: Date
-    extrinsicHash?: string
-    fromId: string
-    toId: string
-    amount: bigint
-    success: boolean
-}
-
 processor.run(new TypeormDatabase(), async (_ctx) => {
     let store = StoreWithCache.create(_ctx.store)
     let ctx = {..._ctx, store}
@@ -176,11 +165,29 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                 const identityId = encodeAddress(judgementGivenData.target)
                 const identity = ctx.store.defer(Identity, identityId)
 
+                const getJudgment = () => {
+                    const kind = judgementGivenData.judgement.__kind
+                    switch (kind) {
+                        case Judgement.Erroneous:
+                        case Judgement.FeePaid:
+                        case Judgement.KnownGood:
+                        case Judgement.LowQuality:
+                        case Judgement.OutOfDate:
+                        case Judgement.Reasonable:
+                        case Judgement.Unknown:
+                            return kind as Judgement
+                        default:
+                            throw new Error(`Unknown judgement: ${kind}`)
+                    }
+                }
+                const judgement = getJudgment()
+
                 actions.push(
                     new LazyAction(block, item.extrinsic, async (ctx) => {
                         const a: Action[] = []
 
-                        if ( block.specId.startsWith('kusama')) { //[2018825, 3409356, 5926842, 5965153].includes(block.height) &&
+                        if (block.specId.startsWith('kusama')) {
+                            //[2018825, 3409356, 5926842, 5965153].includes(block.height) &&
                             const account = ctx.store.defer(Account, identityId)
 
                             a.push(
@@ -200,7 +207,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                     }),
                     new GiveJudgementAction(block, item.extrinsic, {
                         identity: () => identity.getOrFail(),
-                        judgement: judgementGivenData.judgement.__kind,
+                        judgement,
                     })
                 )
 
@@ -430,6 +437,8 @@ function unwrapData(data: {__kind: string; value?: Uint8Array}) {
         case 'ShaThree256':
             return Buffer.from(data.value!).toString('hex')
         default:
-            return Buffer.from(data.value!).toString('utf-8').replace(/\u0000/g, '')
+            return Buffer.from(data.value!)
+                .toString('utf-8')
+                .replace(/\u0000/g, '')
     }
 }

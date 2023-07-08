@@ -1,3 +1,4 @@
 export * from './transfer'
-export * from './reward'
+export * from './staking'
+export * from './identity'
 export * from './account'

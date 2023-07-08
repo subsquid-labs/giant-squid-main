@@ -25,8 +25,6 @@ export class TransferAction extends Action<TransferData> {
             success: this.data.success,
         })
 
-        await ctx.store.insert(transfer)
-
         let transferFrom = new Transfer({
             id: transfer.id + '-from',
             transfer,
@@ -39,6 +37,8 @@ export class TransferAction extends Action<TransferData> {
             account: to,
             direction: TransferDirection.To,
         })
+
+        await ctx.store.insert(transfer)
         await ctx.store.insert([transferFrom, transferTo])
     }
 }

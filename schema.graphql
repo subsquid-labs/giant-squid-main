@@ -31,17 +31,6 @@ type NativeTransfer @entity {
     success: Boolean!
 }
 
-type StakingReward @entity {
-    id: ID!
-    timestamp: DateTime!
-    blockNumber: Int! @index
-    extrinsicHash: String @index
-    account: Account!
-    amount: BigInt!
-    era: Int
-    validatorId: ID
-}
-
 type IdentityAdditionalField {
     name: String
     value: String
@@ -79,4 +68,133 @@ type SubIdentity @entity {
     super: Identity
     account: Account! @unique
     name: String
+}
+
+enum BondType {
+    Bond
+    Unbond
+    Reward
+}
+
+type StakingReward @entity {
+    id: ID!
+    timestamp: DateTime!
+    blockNumber: Int! @index
+    extrinsicHash: String @index
+    account: Account!
+    amount: BigInt!
+    era: Int
+    validatorId: ID
+    validator: EraValidator
+    staker: Staker!
+}
+
+type StakingBond @entity {
+    id: ID!
+    timestamp: DateTime!
+    blockNumber: Int! @index
+    extrinsicHash: String @index
+    account: Account!
+    amount: BigInt!
+    type: BondType!
+    staker: Staker!
+}
+
+enum StakingRole {
+    Validator
+    Nominator
+    Idle
+    Unknown
+}
+
+type ValidatorData {
+    commission: Float!
+    blocked: Boolean!
+}
+
+type NominatorData {
+    targets: [String!]!
+}
+
+union StakingData = ValidatorData | NominatorData
+
+enum PayeeType {
+    Staked
+    Stash
+    Controller
+    Account
+    None
+    Unknown
+}
+
+type Staker @entity {
+    id: ID! #stash Id
+    stash: Account! @unique
+    controller: Account
+
+    payeeType: PayeeType!
+    payee: Account
+
+    activeBond: BigInt!
+    totalReward: BigInt!
+    # totalSlash: BigInt!
+
+    role: StakingRole!
+    data: StakingData
+
+    # history: [EraStaker!] @derivedFrom(field: "staker")
+    rewards: [StakingReward!] @derivedFrom(field: "staker")
+    # slashes: [Slash!] @derivedFrom(field: "staker")
+    bonds: [StakingBond!] @derivedFrom(field: "staker")
+}
+
+type Era @entity {
+    id: ID!
+    index: Int!
+    timestamp: DateTime!
+    startedAt: Int!
+    endedAt: Int
+    total: BigInt!
+    validatorsCount: Int!
+    nominatorsCount: Int!
+    # stakers: [EraStaker] @derivedFrom(field: "era")
+}
+
+interface EraStaker @query {
+    id: ID! #era + stashId
+    staker: Staker!
+    era: Era!
+    bonded: BigInt!
+    eraReward: BigInt!
+    # eraSlash: BigInt!
+}
+
+type EraValidator implements EraStaker @entity {
+    id: ID! #era + stashId
+    staker: Staker!
+    era: Era!
+    bonded: BigInt!
+    totalBonded: BigInt!
+    eraReward: BigInt!
+    # eraSlash: BigInt!
+    commission: Int
+    nominators: [EraNomination!] @derivedFrom(field: "validator")
+}
+
+type EraNominator implements EraStaker @entity {
+    id: ID! #era + stashId
+    staker: Staker!
+    era: Era!
+    bonded: BigInt!
+    eraReward: BigInt!
+    # eraSlash: BigInt!
+    validators: [EraNomination!] @derivedFrom(field: "nominator")
+}
+
+type EraNomination @entity {
+    id: ID! #era + validatorId + nominatorId
+    era: Era!
+    nominator: EraNominator!
+    validator: EraValidator!
+    vote: BigInt!
 }

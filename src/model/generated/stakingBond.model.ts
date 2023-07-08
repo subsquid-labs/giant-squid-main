@@ -1,12 +1,12 @@
 import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, Index as Index_, ManyToOne as ManyToOne_} from "typeorm"
 import * as marshal from "./marshal"
 import {Account} from "./account.model"
-import {EraValidator} from "./eraValidator.model"
+import {BondType} from "./_bondType"
 import {Staker} from "./staker.model"
 
 @Entity_()
-export class StakingReward {
-    constructor(props?: Partial<StakingReward>) {
+export class StakingBond {
+    constructor(props?: Partial<StakingBond>) {
         Object.assign(this, props)
     }
 
@@ -31,15 +31,8 @@ export class StakingReward {
     @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
     amount!: bigint
 
-    @Column_("int4", {nullable: true})
-    era!: number | undefined | null
-
-    @Column_("text", {nullable: true})
-    validatorId!: string | undefined | null
-
-    @Index_()
-    @ManyToOne_(() => EraValidator, {nullable: true})
-    validator!: EraValidator | undefined | null
+    @Column_("varchar", {length: 6, nullable: false})
+    type!: BondType
 
     @Index_()
     @ManyToOne_(() => Staker, {nullable: true})

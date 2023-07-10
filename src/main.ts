@@ -3,18 +3,18 @@ import {processor} from './processor'
 import {StoreWithCache} from '@belopash/squid-tools'
 import {encodeAddress, getOriginAccountId, processItem} from './utils'
 import {chain} from './chain'
-import {Account, Identity, Judgement, SubIdentity} from './model'
+import {Account, Identity, Judgement, IdentitySub} from './model'
 import {Action, LazyAction} from './action/base'
 import assert from 'assert'
 import {EnsureAccount, TransferAction, RewardAction} from './action'
 import {
-    AddSubIdentityAction,
+    AddIdentitySubAction,
     ClearIdentityAction,
     EnsureIdentityAction,
-    EnsureSubIdentityAction,
+    EnsureIdentitySubAction,
     GiveJudgementAction,
     KillIdentityAction,
-    RemoveSubIdentityAction,
+    RemoveIdentitySubAction,
     RenameSubAction,
     SetIdentityAction,
 } from './action/identity'
@@ -100,7 +100,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                 const renameSubData = chain.api.calls.identity.rename_sub.decode(ctx, item.call)
 
                 const subId = encodeAddress(renameSubData.sub)
-                const sub = ctx.store.defer(SubIdentity, subId)
+                const sub = ctx.store.defer(IdentitySub, subId)
 
                 actions.push(
                     new RenameSubAction(block, item.extrinsic, {
@@ -127,7 +127,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 for (const subData of setSubsData.subs) {
                     const subId = encodeAddress(subData[0])
-                    const sub = ctx.store.defer(SubIdentity, subId)
+                    const sub = ctx.store.defer(IdentitySub, subId)
 
                     const account = ctx.store.defer(Account, subId)
 
@@ -136,12 +136,12 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                             account: () => account.get(),
                             id: subId,
                         }),
-                        new EnsureSubIdentityAction(block, item.extrinsic, {
+                        new EnsureIdentitySubAction(block, item.extrinsic, {
                             sub: () => sub.get(),
                             account: () => account.getOrFail(),
                             id: subId,
                         }),
-                        new AddSubIdentityAction(block, item.extrinsic, {
+                        new AddIdentitySubAction(block, item.extrinsic, {
                             identity: () => identity.getOrFail(),
                             sub: () => sub.getOrFail(),
                         }),
@@ -186,7 +186,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                     new LazyAction(block, item.extrinsic, async (ctx) => {
                         const a: Action[] = []
 
-                        if (block.specId.startsWith('kusama')) {
+                        if (block.specId.startsWith('kusama') || block.specId.startsWith('polkadot')) {
                             //[2018825, 3409356, 5926842, 5965153].includes(block.height) &&
                             const account = ctx.store.defer(Account, identityId)
 
@@ -277,7 +277,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                 const identity = ctx.store.defer(Identity, identityId)
 
                 const subId = encodeAddress(subAddedCallData.sub)
-                const sub = ctx.store.defer(SubIdentity, subId)
+                const sub = ctx.store.defer(IdentitySub, subId)
 
                 const account = ctx.store.defer(Account, subId)
 
@@ -286,12 +286,12 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                         account: () => account.get(),
                         id: subId,
                     }),
-                    new EnsureSubIdentityAction(block, item.extrinsic, {
+                    new EnsureIdentitySubAction(block, item.extrinsic, {
                         sub: () => sub.get(),
                         account: () => account.getOrFail(),
                         id: subId,
                     }),
-                    new AddSubIdentityAction(block, item.extrinsic, {
+                    new AddIdentitySubAction(block, item.extrinsic, {
                         identity: () => identity.getOrFail(),
                         sub: () => sub.getOrFail(),
                     }),
@@ -332,7 +332,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                         })
 
                         for (const s of i.subs) {
-                            new RemoveSubIdentityAction(block, item.extrinsic, {
+                            new RemoveIdentitySubAction(block, item.extrinsic, {
                                 sub: () => Promise.resolve(s),
                             })
                         }
@@ -372,7 +372,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                         })
 
                         for (const s of i.subs) {
-                            new RemoveSubIdentityAction(block, item.extrinsic, {
+                            new RemoveIdentitySubAction(block, item.extrinsic, {
                                 sub: () => Promise.resolve(s),
                             })
                         }
@@ -386,34 +386,34 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
                 break
             }
-            case 'Identity.SubIdentityRemoved': {
+            case 'Identity.IdentitySubRemoved': {
                 assert('calls' in chain.api)
                 assert('identity' in chain.api.events)
 
-                const subRemovedData = chain.api.events.identity.SubIdentityRemoved.decode(ctx, item.event)
+                const subRemovedData = chain.api.events.identity.IdentitySubRemoved.decode(ctx, item.event)
 
                 const subId = encodeAddress(subRemovedData.sub)
-                const sub = ctx.store.defer(SubIdentity, subId)
+                const sub = ctx.store.defer(IdentitySub, subId)
 
                 actions.push(
-                    new RemoveSubIdentityAction(block, item.event.extrinsic, {
+                    new RemoveIdentitySubAction(block, item.event.extrinsic, {
                         sub: () => sub.getOrFail(),
                     })
                 )
 
                 break
             }
-            case 'Identity.SubIdentityRevoked': {
+            case 'Identity.IdentitySubRevoked': {
                 assert('calls' in chain.api)
                 assert('identity' in chain.api.events)
 
-                const subRevokedData = chain.api.events.identity.SubIdentityRevoked.decode(ctx, item.event)
+                const subRevokedData = chain.api.events.identity.IdentitySubRevoked.decode(ctx, item.event)
 
                 const subId = encodeAddress(subRevokedData.sub)
-                const sub = ctx.store.defer(SubIdentity, subId)
+                const sub = ctx.store.defer(IdentitySub, subId)
 
                 actions.push(
-                    new RemoveSubIdentityAction(block, item.event.extrinsic, {
+                    new RemoveIdentitySubAction(block, item.event.extrinsic, {
                         sub: () => sub.getOrFail(),
                     })
                 )

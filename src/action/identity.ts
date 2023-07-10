@@ -1,12 +1,12 @@
-import {Account, Identity, IdentityAdditionalField, Judgement, SubIdentity} from '../model'
+import {Account, Identity, IdentityAdditionalField, Judgement, IdentitySub} from '../model'
 import {Action, ActionContext} from './base'
 
-export interface RenameSubIdentityData {
-    sub: () => Promise<SubIdentity>
+export interface RenameIdentitySubData {
+    sub: () => Promise<IdentitySub>
     name: string | null
 }
 
-export class RenameSubAction extends Action<RenameSubIdentityData> {
+export class RenameSubAction extends Action<RenameIdentitySubData> {
     protected async _perform(ctx: ActionContext): Promise<void> {
         const sub = await this.data.sub()
 
@@ -61,13 +61,13 @@ export class SetIdentityAction extends Action<SetIdentityData> {
         let identity = await this.data.identity()
 
         identity.display = this.data.display
-        identity.email = this.data.display
-        identity.twitter = this.data.display
-        identity.riot = this.data.display
-        identity.image = this.data.display
-        identity.web = this.data.display
-        identity.pgpFingerprint = this.data.display
-        identity.legal = this.data.display
+        identity.email = this.data.email
+        identity.twitter = this.data.twitter
+        identity.riot = this.data.riot
+        identity.image = this.data.image
+        identity.web = this.data.web
+        identity.pgpFingerprint = this.data.pgpFingerprint
+        identity.legal = this.data.legal
         identity.additional = this.data.additional.map((a) => new IdentityAdditionalField(a))
 
         await ctx.store.upsert(identity)
@@ -89,20 +89,20 @@ export class GiveJudgementAction extends Action<GiveJudgementData> {
     }
 }
 
-export interface EnsureSubIdentityData {
-    sub: () => Promise<SubIdentity | undefined>
+export interface EnsureIdentitySubData {
+    sub: () => Promise<IdentitySub | undefined>
     account: () => Promise<Account>
     id: string
 }
 
-export class EnsureSubIdentityAction extends Action<EnsureSubIdentityData> {
+export class EnsureIdentitySubAction extends Action<EnsureIdentitySubData> {
     protected async _perform(ctx: ActionContext): Promise<void> {
         const account = await this.data.account()
 
         let sub = await this.data.sub()
         if (sub != null) return
 
-        sub = new SubIdentity({
+        sub = new IdentitySub({
             id: this.data.id,
             account,
         })
@@ -111,12 +111,12 @@ export class EnsureSubIdentityAction extends Action<EnsureSubIdentityData> {
     }
 }
 
-export interface AddSubIdentityData {
+export interface AddIdentitySubData {
     identity: () => Promise<Identity>
-    sub: () => Promise<SubIdentity>
+    sub: () => Promise<IdentitySub>
 }
 
-export class AddSubIdentityAction extends Action<AddSubIdentityData> {
+export class AddIdentitySubAction extends Action<AddIdentitySubData> {
     protected async _perform(ctx: ActionContext): Promise<void> {
         const identity = await this.data.identity()
 
@@ -164,11 +164,11 @@ export class KillIdentityAction extends Action<IdentityKilledData> {
     }
 }
 
-export interface RemoveSubIdentityData {
-    sub: () => Promise<SubIdentity>
+export interface RemoveIdentitySubData {
+    sub: () => Promise<IdentitySub>
 }
 
-export class RemoveSubIdentityAction extends Action<RemoveSubIdentityData> {
+export class RemoveIdentitySubAction extends Action<RemoveIdentitySubData> {
     protected async _perform(ctx: ActionContext): Promise<void> {
         const sub = await this.data.sub()
 

@@ -2,7 +2,7 @@ import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, O
 import * as marshal from "./marshal"
 import {Account} from "./account.model"
 import {Judgement} from "./_judgement"
-import {SubIdentity} from "./subIdentity.model"
+import {IdentitySub} from "./identitySub.model"
 import {IdentityAdditionalField} from "./_identityAdditionalField"
 
 @Entity_()
@@ -22,8 +22,8 @@ export class Identity {
     @Column_("varchar", {length: 10, nullable: false})
     judgement!: Judgement
 
-    @OneToMany_(() => SubIdentity, e => e.super)
-    subs!: SubIdentity[]
+    @OneToMany_(() => IdentitySub, e => e.super)
+    subs!: IdentitySub[]
 
     @Column_("jsonb", {transformer: {to: obj => obj == null ? undefined : obj.map((val: any) => val.toJSON()), from: obj => obj == null ? undefined : marshal.fromList(obj, val => new IdentityAdditionalField(undefined, marshal.nonNull(val)))}, nullable: true})
     additional!: (IdentityAdditionalField)[] | undefined | null

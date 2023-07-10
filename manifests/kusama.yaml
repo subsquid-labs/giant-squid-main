@@ -1,6 +1,6 @@
 manifestVersion: subsquid.io/v0.1
 name: gs-main-kusama
-version: 2
+version: 3
 description: |-
   Giant Squid Explorer for Kusama chain
 build:

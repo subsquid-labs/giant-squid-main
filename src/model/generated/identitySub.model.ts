@@ -3,8 +3,8 @@ import {Identity} from "./identity.model"
 import {Account} from "./account.model"
 
 @Entity_()
-export class SubIdentity {
-    constructor(props?: Partial<SubIdentity>) {
+export class IdentitySub {
+    constructor(props?: Partial<IdentitySub>) {
         Object.assign(this, props)
     }
 

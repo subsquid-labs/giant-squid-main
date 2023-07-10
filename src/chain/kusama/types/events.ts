@@ -148,7 +148,7 @@ export class IdentityIdentityKilledEvent {
     }
 }
 
-export class IdentitySubIdentityRemovedEvent {
+export class IdentityIdentitySubRemovedEvent {
     private readonly _chain: Chain
     private readonly event: Event
 
@@ -156,7 +156,7 @@ export class IdentitySubIdentityRemovedEvent {
     constructor(ctx: ChainContext, event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
-        assert(event.name === 'Identity.SubIdentityRemoved')
+        assert(event.name === 'Identity.IdentitySubRemoved')
         this._chain = ctx._chain
         this.event = event
     }
@@ -165,7 +165,7 @@ export class IdentitySubIdentityRemovedEvent {
      *  A sub-identity (first) was removed from an identity (second) and the deposit freed.
      */
     get isV2015(): boolean {
-        return this._chain.getEventHash('Identity.SubIdentityRemoved') === 'dad2bcdca357505fa3c7832085d0db53ce6f902bd9f5b52823ee8791d351872c'
+        return this._chain.getEventHash('Identity.IdentitySubRemoved') === 'dad2bcdca357505fa3c7832085d0db53ce6f902bd9f5b52823ee8791d351872c'
     }
 
     /**
@@ -180,7 +180,7 @@ export class IdentitySubIdentityRemovedEvent {
      * A sub-identity was removed from an identity and the deposit freed.
      */
     get isV9130(): boolean {
-        return this._chain.getEventHash('Identity.SubIdentityRemoved') === '3ffe8c1fa99373079f0c7dbda5849194c73c2867fd7ca2b08d19f7c6b676e1ef'
+        return this._chain.getEventHash('Identity.IdentitySubRemoved') === '3ffe8c1fa99373079f0c7dbda5849194c73c2867fd7ca2b08d19f7c6b676e1ef'
     }
 
     /**
@@ -192,7 +192,7 @@ export class IdentitySubIdentityRemovedEvent {
     }
 }
 
-export class IdentitySubIdentityRevokedEvent {
+export class IdentityIdentitySubRevokedEvent {
     private readonly _chain: Chain
     private readonly event: Event
 
@@ -200,7 +200,7 @@ export class IdentitySubIdentityRevokedEvent {
     constructor(ctx: ChainContext, event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
-        assert(event.name === 'Identity.SubIdentityRevoked')
+        assert(event.name === 'Identity.IdentitySubRevoked')
         this._chain = ctx._chain
         this.event = event
     }
@@ -210,7 +210,7 @@ export class IdentitySubIdentityRevokedEvent {
      *  main identity account (second arg) to the sub-identity account.
      */
     get isV2015(): boolean {
-        return this._chain.getEventHash('Identity.SubIdentityRevoked') === 'dad2bcdca357505fa3c7832085d0db53ce6f902bd9f5b52823ee8791d351872c'
+        return this._chain.getEventHash('Identity.IdentitySubRevoked') === 'dad2bcdca357505fa3c7832085d0db53ce6f902bd9f5b52823ee8791d351872c'
     }
 
     /**
@@ -227,7 +227,7 @@ export class IdentitySubIdentityRevokedEvent {
      * main identity account to the sub-identity account.
      */
     get isV9130(): boolean {
-        return this._chain.getEventHash('Identity.SubIdentityRevoked') === '3ffe8c1fa99373079f0c7dbda5849194c73c2867fd7ca2b08d19f7c6b676e1ef'
+        return this._chain.getEventHash('Identity.IdentitySubRevoked') === '3ffe8c1fa99373079f0c7dbda5849194c73c2867fd7ca2b08d19f7c6b676e1ef'
     }
 
     /**

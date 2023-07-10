@@ -7,8 +7,8 @@
         "Staking.Rewarded",
         "Identity.IdentityCleared",
         "Identity.IdentityKilled",
-        "Identity.SubIdentityRemoved",
-        "Identity.SubIdentityRevoked"
+        "Identity.IdentitySubRemoved",
+        "Identity.IdentitySubRevoked"
     ],
     "calls": [
         "Balances.transfer",

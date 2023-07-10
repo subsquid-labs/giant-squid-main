@@ -1,6 +1,6 @@
 manifestVersion: subsquid.io/v0.1
 name: gs-main-polkadot
-version: 1
+version: 2
 description: |-
   Giant Squid Explorer for Polkadot chain
 build:

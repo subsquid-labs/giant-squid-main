@@ -39,7 +39,7 @@ export const processor = new SubstrateBatchProcessor()
             },
         },
     } as const)
-    .addEvent('Identity.SubIdentityRemoved', {
+    .addEvent('Identity.IdentitySubRemoved', {
         data: {
             event: {
                 args: true,
@@ -52,7 +52,7 @@ export const processor = new SubstrateBatchProcessor()
             },
         },
     } as const)
-    .addEvent('Identity.SubIdentityRevoked', {
+    .addEvent('Identity.IdentitySubRevoked', {
         data: {
             event: {
                 args: true,

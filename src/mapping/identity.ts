@@ -3,20 +3,20 @@ import {DataHandlerContext, SubstrateBlock, toHex} from '@subsquid/substrate-pro
 import {CallItem, EventItem} from '@subsquid/substrate-processor/lib/interfaces/data-selection'
 import {
     Action,
-    AddSubIdentityAction,
+    AddIdentitySubAction,
     ClearIdentityAction,
     EnsureAccount,
     EnsureIdentityAction,
-    EnsureSubIdentityAction,
+    EnsureIdentitySubAction,
     GiveJudgementAction,
     KillIdentityAction,
     LazyAction,
-    RemoveSubIdentityAction,
+    RemoveIdentitySubAction,
     RenameSubAction,
     SetIdentityAction,
 } from '../action'
 import {chain} from '../chain'
-import {Account, Identity, Judgement, SubIdentity} from '../model'
+import {Account, Identity, Judgement, IdentitySub} from '../model'
 import {encodeAddress, getOriginAccountId} from '../utils'
 import assert from 'assert'
 
@@ -67,7 +67,7 @@ export function getIdentityActions(
                     const renameSubData = chain.api.calls.identity.rename_sub.decode(ctx, item.call)
 
                     const subId = encodeAddress(renameSubData.sub)
-                    const sub = ctx.store.defer(SubIdentity, subId)
+                    const sub = ctx.store.defer(IdentitySub, subId)
 
                     actions.push(
                         new RenameSubAction(block, item.extrinsic, {
@@ -94,7 +94,7 @@ export function getIdentityActions(
 
                     for (const subData of setSubsData.subs) {
                         const subId = encodeAddress(subData[0])
-                        const sub = ctx.store.defer(SubIdentity, subId)
+                        const sub = ctx.store.defer(IdentitySub, subId)
 
                         const account = ctx.store.defer(Account, subId)
 
@@ -103,12 +103,12 @@ export function getIdentityActions(
                                 account: () => account.get(),
                                 id: subId,
                             }),
-                            new EnsureSubIdentityAction(block, item.extrinsic, {
+                            new EnsureIdentitySubAction(block, item.extrinsic, {
                                 sub: () => sub.get(),
                                 account: () => account.getOrFail(),
                                 id: subId,
                             }),
-                            new AddSubIdentityAction(block, item.extrinsic, {
+                            new AddIdentitySubAction(block, item.extrinsic, {
                                 identity: () => identity.getOrFail(),
                                 sub: () => sub.getOrFail(),
                             }),
@@ -246,7 +246,7 @@ export function getIdentityActions(
                     const identity = ctx.store.defer(Identity, identityId)
 
                     const subId = encodeAddress(subAddedCallData.sub)
-                    const sub = ctx.store.defer(SubIdentity, subId)
+                    const sub = ctx.store.defer(IdentitySub, subId)
 
                     const account = ctx.store.defer(Account, subId)
 
@@ -255,12 +255,12 @@ export function getIdentityActions(
                             account: () => account.get(),
                             id: subId,
                         }),
-                        new EnsureSubIdentityAction(block, item.extrinsic, {
+                        new EnsureIdentitySubAction(block, item.extrinsic, {
                             sub: () => sub.get(),
                             account: () => account.getOrFail(),
                             id: subId,
                         }),
-                        new AddSubIdentityAction(block, item.extrinsic, {
+                        new AddIdentitySubAction(block, item.extrinsic, {
                             identity: () => identity.getOrFail(),
                             sub: () => sub.getOrFail(),
                         }),
@@ -301,7 +301,7 @@ export function getIdentityActions(
                             })
 
                             for (const s of i.subs) {
-                                new RemoveSubIdentityAction(block, item.extrinsic, {
+                                new RemoveIdentitySubAction(block, item.extrinsic, {
                                     sub: () => Promise.resolve(s),
                                 })
                             }
@@ -341,7 +341,7 @@ export function getIdentityActions(
                             })
 
                             for (const s of i.subs) {
-                                new RemoveSubIdentityAction(block, item.extrinsic, {
+                                new RemoveIdentitySubAction(block, item.extrinsic, {
                                     sub: () => Promise.resolve(s),
                                 })
                             }
@@ -360,34 +360,34 @@ export function getIdentityActions(
         }
         case 'event': {
             switch (itemName) {
-                case 'SubIdentityRemoved': {
+                case 'IdentitySubRemoved': {
                     assert('calls' in chain.api)
                     assert('identity' in chain.api.events)
 
-                    const subRemovedData = chain.api.events.identity.SubIdentityRemoved.decode(ctx, item.event)
+                    const subRemovedData = chain.api.events.identity.IdentitySubRemoved.decode(ctx, item.event)
 
                     const subId = encodeAddress(subRemovedData.sub)
-                    const sub = ctx.store.defer(SubIdentity, subId)
+                    const sub = ctx.store.defer(IdentitySub, subId)
 
                     actions.push(
-                        new RemoveSubIdentityAction(block, item.event.extrinsic, {
+                        new RemoveIdentitySubAction(block, item.event.extrinsic, {
                             sub: () => sub.getOrFail(),
                         })
                     )
 
                     break
                 }
-                case 'SubIdentityRevoked': {
+                case 'IdentitySubRevoked': {
                     assert('calls' in chain.api)
                     assert('identity' in chain.api.events)
 
-                    const subRevokedData = chain.api.events.identity.SubIdentityRevoked.decode(ctx, item.event)
+                    const subRevokedData = chain.api.events.identity.IdentitySubRevoked.decode(ctx, item.event)
 
                     const subId = encodeAddress(subRevokedData.sub)
-                    const sub = ctx.store.defer(SubIdentity, subId)
+                    const sub = ctx.store.defer(IdentitySub, subId)
 
                     actions.push(
-                        new RemoveSubIdentityAction(block, item.event.extrinsic, {
+                        new RemoveIdentitySubAction(block, item.event.extrinsic, {
                             sub: () => sub.getOrFail(),
                         })
                     )

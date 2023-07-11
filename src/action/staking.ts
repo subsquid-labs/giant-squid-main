@@ -15,7 +15,7 @@ import {Action, ActionContext} from './base'
 export interface RewardData {
     id: string
     amount: bigint
-    account: () => Promise<Account>
+    account: () => Promise<Account | undefined>
     staker: () => Promise<Staker>
     era: () => Promise<Era> | undefined
     validator: () => Promise<EraValidator> | undefined
@@ -114,6 +114,8 @@ export interface NewEraValidatorData {
     id: string
     era: () => Promise<Era>
     staker: () => Promise<Staker>
+    total: bigint
+    own: bigint
 }
 
 export class NewEraValidatorAction extends Action<NewEraValidatorData> {
@@ -130,9 +132,13 @@ export class NewEraValidatorAction extends Action<NewEraValidatorData> {
             staker,
             commission: validatorData.commission,
             eraReward: 0n,
-            bonded: 0n,
-            totalBonded: 0n,
+            bonded: this.data.own,
+            totalBonded: this.data.total,
         })
+
+        if (validator.bonded != staker.activeBond) {
+            ctx.log.warn(`Staker bonded value noq equal value in storage (${staker.activeBond}, ${validator.bonded})`)
+        }
 
         await ctx.store.insert(validator)
     }
@@ -163,6 +169,7 @@ export class NewEraNominatorAction extends Action<NewEraNominatorData> {
 
 export interface NewEraNominationData {
     id: string
+    era: () => Promise<Era>
     validator: () => Promise<EraValidator>
     nominator: () => Promise<EraNominator>
     vote: bigint

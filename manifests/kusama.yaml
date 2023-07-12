@@ -10,7 +10,7 @@ deploy:
   processor:
     env:
       CHAIN: kusama
-    cmd: ["node", "lib/main"]
+    cmd: ["node", "lib/chain/kusama/main"]
   api:
     cmd:
       [

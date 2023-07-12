@@ -10,7 +10,7 @@ import {
     StakingBond,
     StakingReward,
 } from '../model'
-import {Action, ActionContext} from './base'
+import {Action, ActionContext} from './action'
 
 export interface RewardData {
     id: string

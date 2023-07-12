@@ -1,7 +1,7 @@
 import {toHex} from '@subsquid/substrate-processor'
 import {Account} from '../model'
 import {decodeAddress} from '../utils'
-import {Action, ActionContext} from './base'
+import {Action, ActionContext} from './action'
 
 export interface AccountData {
     account: () => Promise<Account | undefined>

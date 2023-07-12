@@ -19,7 +19,11 @@ export type EventItem = _EventItem<
 >
 
 export interface PalletEvents {
-    [k: string]: (ctx: DataHandlerContext<any, unknown>, block: SubstrateBlock, item: EventItem) => Action[] | undefined
+    readonly [k: string]: (
+        ctx: DataHandlerContext<any, unknown>,
+        block: SubstrateBlock,
+        item: EventItem
+    ) => Action[] | undefined
 }
 
 export type CallItem = _CallItem<
@@ -37,7 +41,7 @@ export type CallItem = _CallItem<
 >
 
 export interface PalletCalls {
-    [k: string]: (
+    readonly [k: string]: (
         ctx: DataHandlerContext<any, unknown>,
         block: SubstrateBlock,
         item: CallItem
@@ -45,10 +49,10 @@ export interface PalletCalls {
 }
 
 export interface Pallet {
-    events: PalletEvents
-    calls: PalletCalls
+    readonly events: PalletEvents
+    readonly calls: PalletCalls
 }
 
 export interface Runtime {
-    [k: string]: Pallet
+    readonly [k: string]: Pallet
 }

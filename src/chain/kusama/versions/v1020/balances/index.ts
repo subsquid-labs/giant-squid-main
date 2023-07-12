@@ -38,7 +38,7 @@ const events: PalletEvents = {
     },
 }
 
-export const Balances: Pallet = {
+export const PalletBalances: Pallet = {
     events,
     calls,
 }

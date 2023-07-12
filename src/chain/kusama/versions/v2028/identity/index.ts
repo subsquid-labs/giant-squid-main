@@ -9,7 +9,7 @@ import {parent} from '../parent'
 import {CallItem, Pallet, PalletCalls} from '../../../interfaces'
 
 export const calls: PalletCalls = {
-    ...parent.Identity.calls,
+    ...parent.PalletIdentity.calls,
     rename_sub: function (ctx: DataHandlerContext<StoreWithCache, unknown>, block: SubstrateBlock, item: CallItem) {
         if (!item.call.success) return
 
@@ -27,7 +27,7 @@ export const calls: PalletCalls = {
     },
 }
 
-export const Identity: Pallet = {
-    ...parent.Identity,
+export const PalletIdentity: Pallet = {
+    ...parent.PalletIdentity,
     calls,
 }

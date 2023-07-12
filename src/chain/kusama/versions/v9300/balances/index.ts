@@ -1,3 +1,3 @@
 import {parent} from '../parent'
 
-export const Balances = parent.Balances
+export const PalletBalances = parent.PalletBalances

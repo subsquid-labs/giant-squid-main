@@ -1,6 +1,6 @@
 import {Runtime} from '../../interfaces'
-import {Balances} from './balances'
+import {PalletBalances} from './balances'
 
 export const runtime: Runtime = {
-    Balances,
+    PalletBalances,
 }

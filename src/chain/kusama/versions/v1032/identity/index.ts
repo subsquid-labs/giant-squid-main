@@ -1,15 +1,15 @@
-import {StoreWithCache} from '@belopash/squid-tools'
-import {DataHandlerContext, SubstrateBlock, toHex} from '@subsquid/substrate-processor'
-import {EnsureAccount, EnsureIdentityAction, GiveJudgementAction, SetIdentityAction} from '../../../../../action'
 import {Account, Identity, Judgement} from '../../../../../model'
-import {getOriginAccountId, unwrapData} from '../../../../../utils'
+import {CallItem, PalletCalls} from '../../../interfaces'
+import {DataHandlerContext, SubstrateBlock, toHex} from '@subsquid/substrate-processor'
 import {encodeAddress} from '../../../../subsocial'
+import {EnsureAccount, EnsureIdentityAction, GiveJudgementAction, SetIdentityAction} from '../../../../../action'
+import {getOriginAccountId, unwrapData} from '../../../../../utils'
 import {IdentitySetIdentityCall} from '../../../types/calls'
 import {parent} from '../parent'
-import {CallItem, PalletCalls} from '../../../interfaces'
+import {StoreWithCache} from '@belopash/squid-tools'
 
 const calls: PalletCalls = {
-    ...parent.Identity.calls,
+    ...parent.PalletIdentity.calls,
     set_identity: function (ctx: DataHandlerContext<StoreWithCache, unknown>, block: SubstrateBlock, item: CallItem) {
         if (!item.call.success) return
 
@@ -56,7 +56,7 @@ const calls: PalletCalls = {
     },
 }
 
-export const Identity = {
-    ...parent.Identity,
+export const PalletIdentity = {
+    ...parent.PalletIdentity,
     calls,
 }

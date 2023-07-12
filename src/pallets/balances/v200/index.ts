@@ -3,22 +3,20 @@ import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
 import {EnsureAccount, TransferAction} from '../../../../../action'
 import {Account} from '../../../../../model'
 import {encodeAddress} from '../../../../subsocial'
-import {EventItem, Pallet, PalletEvents} from '../../../interfaces'
+import {EventItem, Pallet, PalletCalls, PalletEvents} from '../../../interfaces'
 import {BalancesTransferEvent} from '../../../types/events'
-import {parent} from '../parent'
 
-export const events: PalletEvents = {
-    ...parent.PalletBalances.events,
+const calls: PalletCalls = {}
+
+const events: PalletEvents = {
     Transfer: function (ctx: DataHandlerContext<StoreWithCache, unknown>, block: SubstrateBlock, item: EventItem) {
-        const data = new BalancesTransferEvent(ctx, item.event).asV1050
+        const data = ctx._chain.decodeEvent()
 
         const fromId = encodeAddress(data[0])
         const from = ctx.store.defer(Account, fromId)
 
         const toId = encodeAddress(data[1])
         const to = ctx.store.defer(Account, toId)
-
-        queue.block(block).extrinsic(extrinsic).add('').add('native_transfer', {...}).add()
 
         return [
             new EnsureAccount(block, item.event.extrinsic, {
@@ -41,6 +39,6 @@ export const events: PalletEvents = {
 }
 
 export const PalletBalances: Pallet = {
-    ...parent.PalletBalances,
     events,
+    calls,
 }

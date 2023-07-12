@@ -1,5 +1,5 @@
-import {Account, Identity, IdentityAdditionalField, Judgement, IdentitySub} from '../model'
-import {Action, ActionContext} from './base'
+import {Account, Identity, IdentityAdditionalField, IdentitySub, Judgement} from '../model'
+import {Action, ActionContext} from './action'
 
 export interface RenameIdentitySubData {
     sub: () => Promise<IdentitySub>

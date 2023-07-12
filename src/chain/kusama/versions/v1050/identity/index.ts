@@ -8,7 +8,7 @@ import {IdentityProvideJudgementCall} from '../../../types/calls'
 import {parent} from '../parent'
 
 export const calls: PalletCalls = {
-    ...parent.Identity.calls,
+    ...parent.PalletIdentity.calls,
     provide_judgement: function (
         ctx: DataHandlerContext<StoreWithCache, unknown>,
         block: SubstrateBlock,
@@ -66,7 +66,7 @@ export const calls: PalletCalls = {
     },
 }
 
-export const Identity = {
-    ...parent.Identity,
+export const PalletIdentity = {
+    ...parent.PalletIdentity,
     calls,
 }

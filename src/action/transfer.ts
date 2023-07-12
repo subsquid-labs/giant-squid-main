@@ -1,5 +1,5 @@
 import {Account, NativeTransfer, Transfer, TransferDirection} from '../model'
-import {Action, ActionContext} from './base'
+import {Action, ActionContext} from './action'
 
 export interface TransferData {
     id: string

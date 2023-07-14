@@ -1,16 +1,15 @@
+import {StoreWithCache} from '@belopash/squid-tools'
+import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
 import {Account, Identity, Judgement} from '../../../../../model'
-import {CallItem, PalletCalls} from '../../../interfaces'
-import {DataHandlerContext, SubstrateBlock, toHex} from '@subsquid/substrate-processor'
-import {encodeAddress} from '../../../../subsocial'
-import {EnsureAccount, EnsureIdentityAction, GiveJudgementAction, SetIdentityAction} from '../../../../../action'
 import {getOriginAccountId, unwrapData} from '../../../../../utils'
+import {encodeAddress} from '../../../../subsocial'
+import {CallItem, MappingContext, PalletCalls} from '../../../interfaces'
 import {IdentitySetIdentityCall} from '../../../types/calls'
 import {parent} from '../parent'
-import {StoreWithCache} from '@belopash/squid-tools'
 
 const calls: PalletCalls = {
     ...parent.PalletIdentity.calls,
-    set_identity: function (ctx: DataHandlerContext<StoreWithCache, unknown>, block: SubstrateBlock, item: CallItem) {
+    set_identity: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) {
         if (!item.call.success) return
 
         const identitySetData = new IdentitySetIdentityCall(ctx, item.call).asV1032
@@ -23,21 +22,23 @@ const calls: PalletCalls = {
 
         const account = ctx.store.defer(Account, identityId)
 
-        return [
-            new EnsureAccount(block, item.extrinsic, {
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(item.extrinsic)
+            .add('account_ensure', {
                 account: () => account.get(),
                 id: identityId,
-            }),
-            new EnsureIdentityAction(block, item.extrinsic, {
+            })
+            .add('identity_ensure', {
                 identity: () => identity.get(),
                 account: () => account.getOrFail(),
                 id: identityId,
-            }),
-            new GiveJudgementAction(block, item.extrinsic, {
+            })
+            .add('identity_judge', {
                 identity: () => identity.getOrFail(),
                 judgement: Judgement.Unknown,
-            }),
-            new SetIdentityAction(block, item.extrinsic, {
+            })
+            .add('identity_set', {
                 identity: () => identity.getOrFail(),
                 web: unwrapData(identitySetData.info.web),
                 display: unwrapData(identitySetData.info.display),
@@ -51,8 +52,7 @@ const calls: PalletCalls = {
                     name: unwrapData(a[0])!,
                     value: unwrapData(a[1]),
                 })),
-            }),
-        ]
+            })
     },
 }
 

@@ -1,19 +1,14 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
-import {Action, EnsureAccount, EnsureIdentityAction, GiveJudgementAction, LazyAction} from '../../../../../action'
+import {SubstrateBlock} from '@subsquid/substrate-processor'
 import {Account, Identity, Judgement} from '../../../../../model'
 import {encodeAddress} from '../../../../subsocial'
-import {CallItem, PalletCalls} from '../../../interfaces'
+import {CallItem, MappingContext, PalletCalls} from '../../../interfaces'
 import {IdentityProvideJudgementCall} from '../../../types/calls'
 import {parent} from '../parent'
 
 export const calls: PalletCalls = {
     ...parent.PalletIdentity.calls,
-    provide_judgement: function (
-        ctx: DataHandlerContext<StoreWithCache, unknown>,
-        block: SubstrateBlock,
-        item: CallItem
-    ) {
+    provide_judgement: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) {
         if (!item.call.success) return
 
         const judgementGivenData = new IdentityProvideJudgementCall(ctx, item.call).asV1050
@@ -38,31 +33,29 @@ export const calls: PalletCalls = {
         }
         const judgement = getJudgment()
 
-        return [
-            new LazyAction(block, item.extrinsic, async (ctx) => {
-                const a: Action[] = []
-
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(item.extrinsic)
+            .lazy(async (queue) => {
                 const account = ctx.store.defer(Account, identityId)
 
-                a.push(
-                    new EnsureAccount(block, item.extrinsic, {
+                queue
+                    .setBlock(block)
+                    .setExtrinsic(item.extrinsic)
+                    .add('account_ensure', {
                         account: () => account.get(),
                         id: identityId,
-                    }),
-                    new EnsureIdentityAction(block, item.extrinsic, {
+                    })
+                    .add('identity_ensure', {
                         identity: () => identity.get(),
                         account: () => account.getOrFail(),
                         id: identityId,
                     })
-                )
-
-                return a
-            }),
-            new GiveJudgementAction(block, item.extrinsic, {
+            })
+            .add('identity_judge', {
                 identity: () => identity.getOrFail(),
                 judgement,
-            }),
-        ]
+            })
     },
 }
 

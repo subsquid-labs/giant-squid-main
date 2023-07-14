@@ -18,6 +18,7 @@ const Actions = {
     identity_ensureSub: Identity.EnsureIdentitySubAction,
     identity_addSub: Identity.AddIdentitySubAction,
     identity_renameSub: Identity.RenameSubAction,
+    identity_removeSub: Identity.RemoveIdentitySubAction,
 
     transfer_native: Transfer.TransferAction,
 }
@@ -27,7 +28,7 @@ type CreateActionRegistry<T extends {[k: string]: ActionConstructor<Action<any>>
 }
 type ActionRegistry = CreateActionRegistry<typeof Actions>
 
-class ActionQueue {
+export class ActionQueue {
     private actions: Action[] = []
 
     private block: ActionBlock | undefined
@@ -93,7 +94,7 @@ export class LazyAction extends Action {
     }
 
     protected async _perform(ctx: DataHandlerContext<StoreWithCache, {}>): Promise<void> {
-        const queue = new ActionQueue().setBlock(this.block).setExtrinsic(this.extrinsic)
+        const queue = new ActionQueue()
         await this.cb(queue)
         await queue.process(ctx)
     }

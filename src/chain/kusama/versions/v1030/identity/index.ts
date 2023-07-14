@@ -1,28 +1,14 @@
-import assert from 'assert'
 import {StoreWithCache} from '@belopash/squid-tools'
-import {DataHandlerContext, SubstrateBlock, toHex} from '@subsquid/substrate-processor'
-import {
-    Action,
-    AddIdentitySubAction,
-    ClearIdentityAction,
-    EnsureAccount,
-    EnsureIdentityAction,
-    EnsureIdentitySubAction,
-    GiveJudgementAction,
-    KillIdentityAction,
-    LazyAction,
-    RemoveIdentitySubAction,
-    RenameSubAction,
-    SetIdentityAction,
-} from '../../../../../action'
+import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
+import assert from 'assert'
 import {Account, Identity, IdentitySub, Judgement} from '../../../../../model'
 import {encodeAddress, getOriginAccountId, unwrapData} from '../../../../../utils'
+import {CallItem, EventItem, MappingContext, Pallet, PalletCalls, PalletEvents} from '../../../interfaces'
 import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCall} from '../../../types/calls'
 import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '../../../types/events'
-import {CallItem, EventItem, Pallet, PalletCalls, PalletEvents} from '../../../interfaces'
 
 const calls: PalletCalls = {
-    set_subs: function (ctx: DataHandlerContext<StoreWithCache, unknown>, block: SubstrateBlock, item: CallItem) {
+    set_subs: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) {
         if (!item.call.success) return
 
         const setSubsData = new IdentitySetSubsCall(ctx, item.call).asV1030
@@ -33,45 +19,41 @@ const calls: PalletCalls = {
         const identityId = encodeAddress(origin)
         const identity = ctx.store.defer(Identity, identityId)
 
+        ctx.queue.setBlock(block).setExtrinsic(item.extrinsic)
         for (const subData of setSubsData.subs) {
             const subId = encodeAddress(subData[0])
             const sub = ctx.store.defer(IdentitySub, subId)
 
             const account = ctx.store.defer(Account, subId)
 
-            return [
-                new EnsureAccount(block, item.extrinsic, {
+            ctx.queue
+                .add('account_ensure', {
                     account: () => account.get(),
                     id: subId,
-                }),
-                new EnsureIdentitySubAction(block, item.extrinsic, {
+                })
+                .add('identity_ensureSub', {
                     sub: () => sub.get(),
                     account: () => account.getOrFail(),
                     id: subId,
-                }),
-                new AddIdentitySubAction(block, item.extrinsic, {
+                })
+                .add('identity_addSub', {
                     identity: () => identity.getOrFail(),
                     sub: () => sub.getOrFail(),
-                }),
-                new RenameSubAction(block, item.extrinsic, {
+                })
+                .add('identity_renameSub', {
                     sub: () => sub.getOrFail(),
                     name: unwrapData(subData[1]),
-                }),
-            ]
+                })
         }
     },
-    provide_judgement: function (
-        ctx: DataHandlerContext<StoreWithCache, unknown>,
-        block: SubstrateBlock,
-        item: CallItem
-    ) {
+    provide_judgement: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) {
         if (!item.call.success) return
 
         const judgementGivenData = new IdentityProvideJudgementCall(ctx, item.call).asV1030
         assert(judgementGivenData.target.__kind === 'AccountId')
 
         const identityId = encodeAddress(judgementGivenData.target.value)
-        const identity = ctx.store.defer(Identity, identityId)
+        const identity = ctx.store.defer(Identity, identityId, {account: true})
 
         const getJudgment = () => {
             const kind = judgementGivenData.judgement.__kind
@@ -90,33 +72,31 @@ const calls: PalletCalls = {
         }
         const judgement = getJudgment()
 
-        return [
-            new LazyAction(block, item.extrinsic, async (ctx) => {
-                const a: Action[] = []
-
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(item.extrinsic)
+            .lazy(async (queue) => {
                 const account = ctx.store.defer(Account, identityId)
 
-                a.push(
-                    new EnsureAccount(block, item.extrinsic, {
+                queue
+                    .setBlock(block)
+                    .setExtrinsic(item.extrinsic)
+                    .add('account_ensure', {
                         account: () => account.get(),
                         id: identityId,
-                    }),
-                    new EnsureIdentityAction(block, item.extrinsic, {
+                    })
+                    .add('identity_ensure', {
                         identity: () => identity.get(),
                         account: () => account.getOrFail(),
                         id: identityId,
                     })
-                )
-
-                return a
-            }),
-            new GiveJudgementAction(block, item.extrinsic, {
+            })
+            .add('identity_judge', {
                 identity: () => identity.getOrFail(),
                 judgement,
-            }),
-        ]
+            })
     },
-    set_identity: function (ctx: DataHandlerContext<StoreWithCache, unknown>, block: SubstrateBlock, item: CallItem) {
+    set_identity: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) {
         if (!item.call.success) return
 
         const identitySetData = new IdentitySetIdentityCall(ctx, item.call).asV1030
@@ -126,24 +106,25 @@ const calls: PalletCalls = {
 
         const identityId = encodeAddress(origin)
         const identity = ctx.store.defer(Identity, identityId)
-
         const account = ctx.store.defer(Account, identityId)
 
-        return [
-            new EnsureAccount(block, item.extrinsic, {
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(item.extrinsic)
+            .add('account_ensure', {
                 account: () => account.get(),
                 id: identityId,
-            }),
-            new EnsureIdentityAction(block, item.extrinsic, {
+            })
+            .add('identity_ensure', {
                 identity: () => identity.get(),
                 account: () => account.getOrFail(),
                 id: identityId,
-            }),
-            new GiveJudgementAction(block, item.extrinsic, {
+            })
+            .add('identity_judge', {
                 identity: () => identity.getOrFail(),
                 judgement: Judgement.Unknown,
-            }),
-            new SetIdentityAction(block, item.extrinsic, {
+            })
+            .add('identity_set', {
                 identity: () => identity.getOrFail(),
                 web: unwrapData(identitySetData.info.web),
                 display: unwrapData(identitySetData.info.display),
@@ -157,86 +138,69 @@ const calls: PalletCalls = {
                     name: unwrapData(a[0])!,
                     value: unwrapData(a[1]),
                 })),
-            }),
-        ]
+            })
     },
 }
 
 const events: PalletEvents = {
-    IdentityCleared: function (
-        ctx: DataHandlerContext<StoreWithCache, unknown>,
-        block: SubstrateBlock,
-        item: EventItem
-    ) {
+    IdentityCleared: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
         const data = new IdentityIdentityClearedEvent(ctx, item.event).asV1030
 
         const identityId = encodeAddress(data[0])
         const identity = ctx.store.defer(Identity, identityId, {subs: true})
 
-        return [
-            new ClearIdentityAction(block, item.event.extrinsic, {
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(item.event.extrinsic)
+            .add('identity_clear', {
                 identity: () => identity.getOrFail(),
-            }),
-            new GiveJudgementAction(block, item.event.extrinsic, {
+            })
+            .add('identity_judge', {
                 identity: () => identity.getOrFail(),
                 judgement: Judgement.Unknown,
-            }),
-            new LazyAction(block, item.event.extrinsic, async (ctx) => {
-                const a: Action[] = []
+            })
+            .lazy(async (queue) => {
+                const i = await identity.getOrFail()
 
-                const i = await ctx.store.getOrFail(Identity, {
-                    where: {id: identityId},
-                    relations: {subs: true},
-                })
+                queue.setBlock(block).setExtrinsic(item.event.extrinsic)
 
                 for (const s of i.subs) {
-                    new RemoveIdentitySubAction(block, item.event.extrinsic, {
+                    queue.add('identity_removeSub', {
                         sub: () => Promise.resolve(s),
                     })
                 }
-
-                return a
-            }),
-        ]
+            })
     },
-    IdentityKilled: function (
-        ctx: DataHandlerContext<StoreWithCache, unknown>,
-        block: SubstrateBlock,
-        item: EventItem
-    ) {
+    IdentityKilled: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
         const data = new IdentityIdentityKilledEvent(ctx, item.event).asV1030
 
         const identityId = encodeAddress(data[0])
         const identity = ctx.store.defer(Identity, identityId, {subs: true})
 
-        return [
-            new ClearIdentityAction(block, item.event.extrinsic, {
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(item.event.extrinsic)
+            .add('identity_clear', {
                 identity: () => identity.getOrFail(),
-            }),
-            new GiveJudgementAction(block, item.event.extrinsic, {
+            })
+            .add('identity_judge', {
                 identity: () => identity.getOrFail(),
                 judgement: Judgement.Unknown,
-            }),
-            new LazyAction(block, item.event.extrinsic, async (ctx) => {
-                const a: Action[] = []
+            })
+            .lazy(async (queue) => {
+                const i = await identity.getOrFail()
 
-                const i = await ctx.store.getOrFail(Identity, {
-                    where: {id: identityId},
-                    relations: {subs: true},
-                })
+                queue.setBlock(block).setExtrinsic(item.event.extrinsic)
 
                 for (const s of i.subs) {
-                    new RemoveIdentitySubAction(block, item.event.extrinsic, {
+                    queue.add('identity_removeSub', {
                         sub: () => Promise.resolve(s),
                     })
                 }
-
-                return a
-            }),
-            new KillIdentityAction(block, item.event.extrinsic, {
+            })
+            .add('identity_kill', {
                 identity: () => identity.getOrFail(),
-            }),
-        ]
+            })
     },
 }
 

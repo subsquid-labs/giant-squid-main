@@ -39,45 +39,45 @@ export function getBalancesActions(
 ) {
     const actions: Action[] = []
 
-    const itemName = item.name.split('.')[1]
-    switch (item.kind) {
-        case 'event': {
-            switch (itemName) {
-                case 'Transfer': {
-                    const data = chain.api.events.balances.Transfer.decode(ctx, item.event)
+    // const itemName = item.name.split('.')[1]
+    // switch (item.kind) {
+    //     case 'event': {
+    //         switch (itemName) {
+    //             case 'Transfer': {
+    //                 const data = chain.api.events.balances.Transfer.decode(ctx, item.event)
 
-                    const fromId = encodeAddress(data.from)
-                    const from = ctx.store.defer(Account, fromId)
+    //                 const fromId = encodeAddress(data.from)
+    //                 const from = ctx.store.defer(Account, fromId)
 
-                    const toId = encodeAddress(data.to)
-                    const to = ctx.store.defer(Account, toId)
+    //                 const toId = encodeAddress(data.to)
+    //                 const to = ctx.store.defer(Account, toId)
 
-                    actions.push(
-                        new EnsureAccount(block, item.event.extrinsic, {
-                            account: () => from.get(),
-                            id: fromId,
-                        }),
-                        new EnsureAccount(block, item.event.extrinsic, {
-                            account: () => to.get(),
-                            id: toId,
-                        }),
-                        new TransferAction(block, item.event.extrinsic, {
-                            id: item.event.id,
-                            fromId,
-                            toId,
-                            amount: data.amount,
-                            success: true,
-                        })
-                    )
-                    break
-                }
-            }
-            break
-        }
-        case 'call': {
-            break
-        }
-    }
+    //                 actions.push(
+    //                     new EnsureAccount(block, item.event.extrinsic, {
+    //                         account: () => from.get(),
+    //                         id: fromId,
+    //                     }),
+    //                     new EnsureAccount(block, item.event.extrinsic, {
+    //                         account: () => to.get(),
+    //                         id: toId,
+    //                     }),
+    //                     new TransferAction(block, item.event.extrinsic, {
+    //                         id: item.event.id,
+    //                         fromId,
+    //                         toId,
+    //                         amount: data.amount,
+    //                         success: true,
+    //                     })
+    //                 )
+    //                 break
+    //             }
+    //         }
+    //         break
+    //     }
+    //     case 'call': {
+    //         break
+    //     }
+    // }
 
     return actions
 }

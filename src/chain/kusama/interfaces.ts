@@ -1,9 +1,11 @@
 import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
-import {Action} from '../../action'
+import {Action, ActionQueue} from '../../action'
 import {
     EventItem as _EventItem,
     CallItem as _CallItem,
 } from '@subsquid/substrate-processor/lib/interfaces/data-selection'
+
+export type MappingContext<Store> = Omit<DataHandlerContext<Store, unknown>, 'blocks'> & {queue: ActionQueue}
 
 export type EventItem = _EventItem<
     string,
@@ -19,11 +21,7 @@ export type EventItem = _EventItem<
 >
 
 export interface PalletEvents {
-    readonly [k: string]: (
-        ctx: DataHandlerContext<any, unknown>,
-        block: SubstrateBlock,
-        item: EventItem
-    ) => Action[] | undefined
+    readonly [k: string]: (ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem) => void
 }
 
 export type CallItem = _CallItem<
@@ -41,11 +39,7 @@ export type CallItem = _CallItem<
 >
 
 export interface PalletCalls {
-    readonly [k: string]: (
-        ctx: DataHandlerContext<any, unknown>,
-        block: SubstrateBlock,
-        item: CallItem
-    ) => Action[] | undefined
+    readonly [k: string]: (ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem) => void
 }
 
 export interface Pallet {

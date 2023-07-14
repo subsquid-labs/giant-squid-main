@@ -1,11 +1,11 @@
 import {TypeormDatabase} from '@subsquid/typeorm-store'
-import {ProcessorContext, processor} from './processor'
+import {processor} from './processor'
 import {StoreWithCache} from '@belopash/squid-tools'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
-import {Action} from '../../action'
+import {ActionQueue} from '../../action'
 import {Runtime} from './interfaces'
 
-export function getRuntime(ctx: ProcessorContext<unknown>, block: SubstrateBlock): Runtime {
+export function getRuntime(block: SubstrateBlock): Runtime {
     const version = block.specId.split('@')[1]
     switch (version) {
         case '1020':
@@ -18,10 +18,10 @@ export function getRuntime(ctx: ProcessorContext<unknown>, block: SubstrateBlock
         case '1027':
         case '1028':
         case '1029':
-            return require('./versions/v1020')
+            return require('./versions/v1020').runtime
         case '1030':
         case '1031':
-            return require('./versions/v1030')
+            return require('./versions/v1030').runtime
         case '1032':
         case '1033':
         case '1038':
@@ -29,7 +29,7 @@ export function getRuntime(ctx: ProcessorContext<unknown>, block: SubstrateBlock
         case '1040':
         case '1042':
         case '1045':
-            return require('./versions/v1032')
+            return require('./versions/v1032').runtime
         case '1050':
         case '1051':
         case '1052':
@@ -44,7 +44,7 @@ export function getRuntime(ctx: ProcessorContext<unknown>, block: SubstrateBlock
         case '2011':
         case '2012':
         case '2013':
-            return require('./versions/v1050')
+            return require('./versions/v1050').runtime
         case '2015':
         case '2019':
         case '2022':
@@ -53,39 +53,41 @@ export function getRuntime(ctx: ProcessorContext<unknown>, block: SubstrateBlock
         case '2025':
         case '2026':
         case '2027':
-            return require('./versions/v2015')
+            return require('./versions/v2015').runtime
         case '2028':
         case '2029':
         case '2030':
         case '9010':
         case '9030':
         case '9040':
-            return require('./versions/v2028')
+            return require('./versions/v2028').runtime
         case '9050':
         case '9070':
         case '9080':
         case '9090':
         case '9100':
-            return require('./versions/v9050')
+            return require('./versions/v9050').runtime
         case '9111':
         case '9122':
-            return require('./versions/v9111')
+            return require('./versions/v9111').runtime
         case '9130':
-            return require('./versions/v9130')
+            return require('./versions/v9130').runtime
         case '9300':
-            return require('./versions/v9300')
+            return require('./versions/v9300').runtime
         case '9430':
-            return require('./versions/v9430')
+            return require('./versions/v9430').runtime
         default:
             throw new Error(`Unknown runtime version: ${version}`)
     }
 }
 
-export function getActions(ctx: ProcessorContext<StoreWithCache>): Action[] {
-    const actions: Action[] = []
+processor.run(new TypeormDatabase(), async (_ctx) => {
+    const store = StoreWithCache.create(_ctx.store)
+    const queue = new ActionQueue()
 
+    const ctx = {..._ctx, store, queue}
     for (let block of ctx.blocks) {
-        const runtime = getRuntime(ctx, block.header)
+        const runtime = getRuntime(block.header)
 
         for (const item of block.items) {
             if (item.name === '*') continue
@@ -93,29 +95,20 @@ export function getActions(ctx: ProcessorContext<StoreWithCache>): Action[] {
             const [palletName, itemName] = item.name.split('.')
 
             const pallet = runtime['Pallet' + palletName]
-            console.log(pallet)
             if (pallet == null) continue
 
             switch (item.kind) {
                 case 'event': {
                     const mapper = pallet.events[itemName]
                     if (mapper == null) continue
-
-                    const a = mapper(ctx, block.header, item)
-                    if (a != null) {
-                        actions.push(...a)
-                    }
+                    mapper(ctx, block.header, item)
 
                     break
                 }
                 case 'call': {
                     const mapper = pallet.calls[itemName]
                     if (mapper == null) continue
-
-                    const a = mapper(ctx, block.header, item)
-                    if (a != null) {
-                        actions.push(...a)
-                    }
+                    mapper(ctx, block.header, item)
 
                     break
                 }
@@ -123,15 +116,6 @@ export function getActions(ctx: ProcessorContext<StoreWithCache>): Action[] {
         }
     }
 
-    return actions
-}
-
-processor.run(new TypeormDatabase(), async (_ctx) => {
-    let store = StoreWithCache.create(_ctx.store)
-    let ctx = {..._ctx, store}
-
-    const actions = getActions(ctx)
-
-    await Action.process(ctx, actions)
+    await queue.process(ctx)
     await ctx.store.flush()
 })

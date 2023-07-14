@@ -3,13 +3,13 @@ import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
 import {EnsureAccount, TransferAction} from '../../../../../action'
 import {Account} from '../../../../../model'
 import {encodeAddress} from '../../../../subsocial'
-import {EventItem, Pallet, PalletCalls, PalletEvents} from '../../../interfaces'
+import {EventItem, MappingContext, Pallet, PalletCalls, PalletEvents} from '../../../interfaces'
 import {BalancesTransferEvent} from '../../../types/events'
 
 const calls: PalletCalls = {}
 
 const events: PalletEvents = {
-    Transfer: function (ctx: DataHandlerContext<StoreWithCache, unknown>, block: SubstrateBlock, item: EventItem) {
+    Transfer: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
         const data = new BalancesTransferEvent(ctx, item.event).asV1020
 
         const fromId = encodeAddress(data[0])
@@ -18,23 +18,24 @@ const events: PalletEvents = {
         const toId = encodeAddress(data[1])
         const to = ctx.store.defer(Account, toId)
 
-        return [
-            new EnsureAccount(block, item.event.extrinsic, {
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(item.event.extrinsic)
+            .add('account_ensure', {
                 account: () => from.get(),
                 id: fromId,
-            }),
-            new EnsureAccount(block, item.event.extrinsic, {
+            })
+            .add('account_ensure', {
                 account: () => to.get(),
                 id: toId,
-            }),
-            new TransferAction(block, item.event.extrinsic, {
+            })
+            .add('transfer_native', {
                 id: item.event.id,
                 fromId,
                 toId,
                 amount: data[2],
                 success: true,
-            }),
-        ]
+            })
     },
 }
 

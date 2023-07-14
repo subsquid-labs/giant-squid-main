@@ -1,15 +1,14 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
-import {EnsureAccount, TransferAction} from '../../../../../action'
+import {SubstrateBlock} from '@subsquid/substrate-processor'
 import {Account} from '../../../../../model'
 import {encodeAddress} from '../../../../subsocial'
-import {EventItem, Pallet, PalletEvents} from '../../../interfaces'
+import {EventItem, MappingContext, Pallet, PalletEvents} from '../../../interfaces'
 import {BalancesTransferEvent} from '../../../types/events'
 import {parent} from '../parent'
 
 export const events: PalletEvents = {
     ...parent.PalletBalances.events,
-    Transfer: function (ctx: DataHandlerContext<StoreWithCache, unknown>, block: SubstrateBlock, item: EventItem) {
+    Transfer: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
         const data = new BalancesTransferEvent(ctx, item.event).asV1050
 
         const fromId = encodeAddress(data[0])
@@ -18,25 +17,24 @@ export const events: PalletEvents = {
         const toId = encodeAddress(data[1])
         const to = ctx.store.defer(Account, toId)
 
-        queue.block(block).extrinsic(extrinsic).add('').add('native_transfer', {...}).add()
-
-        return [
-            new EnsureAccount(block, item.event.extrinsic, {
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(item.event.extrinsic)
+            .add('account_ensure', {
                 account: () => from.get(),
                 id: fromId,
-            }),
-            new EnsureAccount(block, item.event.extrinsic, {
+            })
+            .add('account_ensure', {
                 account: () => to.get(),
                 id: toId,
-            }),
-            new TransferAction(block, item.event.extrinsic, {
+            })
+            .add('transfer_native', {
                 id: item.event.id,
                 fromId,
                 toId,
                 amount: data[2],
                 success: true,
-            }),
-        ]
+            })
     },
 }
 

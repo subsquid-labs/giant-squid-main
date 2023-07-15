@@ -1,9 +1,9 @@
 import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
-import {Action, ActionQueue} from '../../action'
 import {
     EventItem as _EventItem,
     CallItem as _CallItem,
 } from '@subsquid/substrate-processor/lib/interfaces/data-selection'
+import {ActionQueue} from '../../../action'
 
 export type MappingContext<Store> = Omit<DataHandlerContext<Store, unknown>, 'blocks'> & {queue: ActionQueue}
 
@@ -20,8 +20,12 @@ export type EventItem = _EventItem<
     }
 >
 
+export interface EventMapper {
+    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem): void
+}
+
 export interface PalletEvents {
-    readonly [k: string]: (ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem) => void
+    readonly [k: string]: EventMapper
 }
 
 export type CallItem = _CallItem<
@@ -38,15 +42,34 @@ export type CallItem = _CallItem<
     }
 >
 
+export class CallMapper {
+    constructor(readonly handle: (ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem) => void) {}
+}
+
 export interface PalletCalls {
-    readonly [k: string]: (ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem) => void
+    readonly [k: string]: CallMapper
+}
+
+export interface PalletConfig {
+    // readonly events: PalletEvents
+    // readonly calls: PalletCalls
 }
 
 export interface Pallet {
-    readonly events: PalletEvents
-    readonly calls: PalletCalls
+    readonly events: Record<string, EventMapper>
+    readonly calls: Record<string, CallMapper>
 }
 
 export interface Runtime {
     readonly [k: string]: Pallet
 }
+
+// export class Runtime<C extends RuntimeConfig> {
+//     constructor(private config: C) {}
+
+//     getPallet<N extends keyof C>(name: N): C[N] {
+//         return this.config[name]
+//     }
+// }
+
+export * from './types'

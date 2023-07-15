@@ -1,21 +1,22 @@
-import {StoreWithCache} from '@belopash/squid-tools'
-import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
-import {EnsureAccount, TransferAction} from '../../../../../action'
-import {Account} from '../../../../../model'
-import {encodeAddress} from '../../../../subsocial'
-import {EventItem, MappingContext, Pallet, PalletCalls, PalletEvents} from '../../../interfaces'
+import {SubstrateBlock} from '@subsquid/substrate-processor'
+import {Decodable, Encodable, EventItem, EventMapper, MappingContext} from '../../../interfaces'
 import {BalancesTransferEvent} from '../../../types/events'
+import {Account} from '../../../../../model'
 
-const calls: PalletCalls = {}
+export class BalancesTransferMapperV1020 implements EventMapper {
+    constructor(
+        readonly palletConfig: {
+            AccountId: Encodable
+        }
+    ) {}
 
-const events: PalletEvents = {
-    Transfer: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
+    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem) {
         const data = new BalancesTransferEvent(ctx, item.event).asV1020
 
-        const fromId = encodeAddress(data[0])
+        const fromId = this.palletConfig.AccountId.encode(data[0])
         const from = ctx.store.defer(Account, fromId)
 
-        const toId = encodeAddress(data[1])
+        const toId = this.palletConfig.AccountId.encode(data[1])
         const to = ctx.store.defer(Account, toId)
 
         ctx.queue
@@ -36,10 +37,5 @@ const events: PalletEvents = {
                 amount: data[2],
                 success: true,
             })
-    },
-}
-
-export const PalletBalances: Pallet = {
-    events,
-    calls,
+    }
 }

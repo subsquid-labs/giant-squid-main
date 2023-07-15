@@ -5,7 +5,7 @@ import {SubstrateBlock} from '@subsquid/substrate-processor'
 import {ActionQueue} from '../../action'
 import {Runtime} from './interfaces'
 
-export function getRuntime(block: SubstrateBlock): Runtime {
+export function getRuntime(block: SubstrateBlock): Runtime<any> {
     const version = block.specId.split('@')[1]
     switch (version) {
         case '1020':
@@ -18,10 +18,10 @@ export function getRuntime(block: SubstrateBlock): Runtime {
         case '1027':
         case '1028':
         case '1029':
-            return require('./versions/v1020').runtime
+            return require('./runtime/v1020').runtime
         case '1030':
         case '1031':
-            return require('./versions/v1030').runtime
+            return require('./runtime/v1030').runtime
         case '1032':
         case '1033':
         case '1038':
@@ -29,7 +29,7 @@ export function getRuntime(block: SubstrateBlock): Runtime {
         case '1040':
         case '1042':
         case '1045':
-            return require('./versions/v1032').runtime
+            return require('./runtime/v1032').runtime
         case '1050':
         case '1051':
         case '1052':
@@ -44,7 +44,7 @@ export function getRuntime(block: SubstrateBlock): Runtime {
         case '2011':
         case '2012':
         case '2013':
-            return require('./versions/v1050').runtime
+            return require('./runtime/v1050').runtime
         case '2015':
         case '2019':
         case '2022':
@@ -53,29 +53,29 @@ export function getRuntime(block: SubstrateBlock): Runtime {
         case '2025':
         case '2026':
         case '2027':
-            return require('./versions/v2015').runtime
+            return require('./runtime/v2015').runtime
         case '2028':
         case '2029':
         case '2030':
         case '9010':
         case '9030':
         case '9040':
-            return require('./versions/v2028').runtime
+            return require('./runtime/v2028').runtime
         case '9050':
         case '9070':
         case '9080':
         case '9090':
         case '9100':
-            return require('./versions/v9050').runtime
+            return require('./runtime/v9050').runtime
         case '9111':
         case '9122':
-            return require('./versions/v9111').runtime
+            return require('./runtime/v9111').runtime
         case '9130':
-            return require('./versions/v9130').runtime
+            return require('./runtime/v9130').runtime
         case '9300':
-            return require('./versions/v9300').runtime
+            return require('./runtime/v9300').runtime
         case '9430':
-            return require('./versions/v9430').runtime
+            return require('./runtime/v9430').runtime
         default:
             throw new Error(`Unknown runtime version: ${version}`)
     }
@@ -94,21 +94,21 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
             const [palletName, itemName] = item.name.split('.')
 
-            const pallet = runtime['Pallet' + palletName]
+            const pallet = runtime.getPallet(palletName)
             if (pallet == null) continue
 
             switch (item.kind) {
                 case 'event': {
-                    const mapper = pallet.events[itemName]
+                    const mapper = pallet.getEvent(itemName)
                     if (mapper == null) continue
-                    mapper(ctx, block.header, item)
+                    mapper.handle(ctx, block.header, item)
 
                     break
                 }
                 case 'call': {
-                    const mapper = pallet.calls[itemName]
+                    const mapper = pallet.getCall[itemName]
                     if (mapper == null) continue
-                    mapper(ctx, block.header, item)
+                    mapper.handle(ctx, block.header, item)
 
                     break
                 }

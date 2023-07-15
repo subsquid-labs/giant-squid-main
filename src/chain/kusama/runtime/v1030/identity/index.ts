@@ -3,12 +3,12 @@ import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
 import assert from 'assert'
 import {Account, Identity, IdentitySub, Judgement} from '../../../../../model'
 import {encodeAddress, getOriginAccountId, unwrapData} from '../../../../../utils'
-import {CallItem, EventItem, MappingContext, Pallet, PalletCalls, PalletEvents} from '../../../interfaces'
+import {CallItem, CallMapper, EventItem, EventMapper, MappingContext, Pallet} from '../../../interfaces'
 import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCall} from '../../../types/calls'
 import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '../../../types/events'
 
-const calls: PalletCalls = {
-    set_subs: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) {
+const calls = {
+    set_subs: new CallMapper((ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) => {
         if (!item.call.success) return
 
         const setSubsData = new IdentitySetSubsCall(ctx, item.call).asV1030
@@ -45,8 +45,8 @@ const calls: PalletCalls = {
                     name: unwrapData(subData[1]),
                 })
         }
-    },
-    provide_judgement: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) {
+    }),
+    provide_judgement: new CallMapper((ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) => {
         if (!item.call.success) return
 
         const judgementGivenData = new IdentityProvideJudgementCall(ctx, item.call).asV1030
@@ -95,8 +95,8 @@ const calls: PalletCalls = {
                 identity: () => identity.getOrFail(),
                 judgement,
             })
-    },
-    set_identity: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) {
+    }),
+    set_identity: new CallMapper((ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem) => {
         if (!item.call.success) return
 
         const identitySetData = new IdentitySetIdentityCall(ctx, item.call).asV1030
@@ -139,11 +139,11 @@ const calls: PalletCalls = {
                     value: unwrapData(a[1]),
                 })),
             })
-    },
+    }),
 }
 
-const events: PalletEvents = {
-    IdentityCleared: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
+const events = {
+    IdentityCleared: new EventMapper((ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) => {
         const data = new IdentityIdentityClearedEvent(ctx, item.event).asV1030
 
         const identityId = encodeAddress(data[0])
@@ -170,8 +170,8 @@ const events: PalletEvents = {
                     })
                 }
             })
-    },
-    IdentityKilled: function (ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
+    }),
+    IdentityKilled: new EventMapper((ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) => {
         const data = new IdentityIdentityKilledEvent(ctx, item.event).asV1030
 
         const identityId = encodeAddress(data[0])
@@ -201,10 +201,10 @@ const events: PalletEvents = {
             .add('identity_kill', {
                 identity: () => identity.getOrFail(),
             })
-    },
+    }),
 }
 
-export const PalletIdentity: Pallet = {
+export const PalletIdentity = new Pallet({
     events,
     calls,
-}
+})

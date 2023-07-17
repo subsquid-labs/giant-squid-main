@@ -3,7 +3,7 @@ import {Action, ActionContext} from './action'
 
 export interface RenameIdentitySubData {
     sub: () => Promise<IdentitySub>
-    name: string | null
+    name: string | undefined
 }
 
 export class RenameSubAction extends Action<RenameIdentitySubData> {
@@ -42,17 +42,17 @@ export class EnsureIdentityAction extends Action<EnsureIdentityData> {
 
 export interface SetIdentityData {
     identity: () => Promise<Identity>
-    display: string | null
-    email: string | null
-    twitter: string | null
-    riot: string | null
-    image: string | null
-    web: string | null
-    pgpFingerprint: string | null
-    legal: string | null
+    display: string | undefined
+    email: string | undefined
+    twitter: string | undefined
+    riot: string | undefined
+    image: string | undefined
+    web: string | undefined
+    pgpFingerprint: string | undefined
+    legal: string | undefined
     additional: {
-        name: string | null
-        value: string | null
+        name: string | undefined
+        value: string | undefined
     }[]
 }
 

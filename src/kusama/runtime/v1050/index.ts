@@ -1,8 +1,23 @@
 import {Runtime} from '../../interfaces'
-import {PalletBalances} from './balances'
-import {PalletIdentity} from './pallet/identity'
+import {balances, identity, system} from './pallet'
+import {AccountId32} from './primitive'
+
+const prefix = 1
+
+const System = new system.Pallet({
+    AccountId: AccountId32.withPrefix(prefix),
+})
+
+const Balances = new balances.Pallet({
+    ...System.config,
+})
+
+const Identity = new identity.Pallet({
+    ...System.config,
+})
 
 export const runtime: Runtime = {
-    PalletBalances,
-    PalletIdentity,
+    Balances,
+    Identity,
+    System,
 }

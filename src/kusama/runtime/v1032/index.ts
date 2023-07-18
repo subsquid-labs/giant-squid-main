@@ -19,4 +19,5 @@ const Identity = new identity.Pallet({
 export const runtime: Runtime = {
     Balances,
     Identity,
+    System,
 }

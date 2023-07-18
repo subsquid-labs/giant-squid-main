@@ -1,5 +1,0 @@
-export * from './config'
-export * from './events'
-export * from './calls'
-export * from './pallet'
-export * from './types'

@@ -5,10 +5,6 @@
         "Balances.Transfer",
         "Identity.IdentityCleared",
         "Identity.IdentityKilled",
-<<<<<<< Updated upstream
-        "Identity.IdentitySubRemoved",
-        "Identity.IdentitySubRevoked"
-=======
         "Identity.IdentitySubRemoved",
         "Identity.IdentitySubRevoked",
         "Staking.Bonded",
@@ -20,7 +16,6 @@
         "Staking.Slashed",
         "Staking.Unbonded",
         "Staking.Withdrawn"
->>>>>>> Stashed changes
     ],
     "calls": [
         "Balances.force_transfer",

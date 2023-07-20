@@ -1,14 +1,10 @@
-import {CallMapper, EventMapper, IPallet} from '../../../interfaces'
+import {Pallet} from '../../../interfaces'
 import {Config, TransferEventMapper} from '../../v1020/pallet/balances'
 
 export {Config, TransferEventMapper}
 
-export class Pallet implements IPallet<Config> {
-    constructor(readonly config: Config) {}
+export const pallet = new Pallet<Config>()
 
-    readonly events: Record<string, EventMapper> = {
-        Transfer: new TransferEventMapper(this.config),
-    }
-
-    readonly calls: Record<string, CallMapper> = {}
+pallet.events = {
+    Transfer: new TransferEventMapper(pallet),
 }

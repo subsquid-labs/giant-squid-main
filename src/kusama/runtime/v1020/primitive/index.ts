@@ -1,8 +1,9 @@
 import {encode} from '@subsquid/ss58'
-import {Encodable, Serializable} from '../../../interfaces'
+import {Display, Enum, Serialize} from '../../../interfaces'
 import {toHex} from '@subsquid/substrate-processor'
+import * as metadata from '@metadata/v1020'
 
-export abstract class AccountId32 implements Encodable, Serializable<string> {
+export abstract class AccountId32 implements InstanceType<Display<string> & Serialize<string>> {
     protected abstract prefix: number
 
     constructor(private value: Uint8Array) {}
@@ -15,7 +16,7 @@ export abstract class AccountId32 implements Encodable, Serializable<string> {
         return AccountId32WithPrefix
     }
 
-    encode(): string {
+    format(): string {
         return encode({
             bytes: this.value,
             prefix: this.prefix,
@@ -26,3 +27,5 @@ export abstract class AccountId32 implements Encodable, Serializable<string> {
         return toHex(this.value)
     }
 }
+
+export class Address extends Enum<metadata.LookupSource> {}

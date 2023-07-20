@@ -1,50 +1,47 @@
 import {Account} from '@gs/model'
 import {BalancesTransferEvent} from '@metadata/events'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
-import {CallMapper, EventItem, EventMapper, IPallet, MappingContext} from '../../../interfaces'
+import {EventItem, EventMapper, Pallet, MappingContext} from '../../../interfaces'
 import * as system from './system'
+import {StoreWithCache} from '@belopash/squid-tools'
 
 export interface Config extends system.Config {}
 
-export class TransferEventMapper implements EventMapper {
-    constructor(readonly config: Config) {}
+export const pallet = new Pallet<Config>()
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem) {
+export class TransferEventMapper extends EventMapper<typeof pallet> {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
         const data = new BalancesTransferEvent(ctx, item.event).asV1020
 
-        const fromId = new this.config.AccountId(data[0]).encode()
-        const from = ctx.store.defer(Account, fromId)
+        const fromId = new this.config.AccountId(data[0])
+        const from = ctx.store.defer(Account, fromId.format())
 
-        const toId = new this.config.AccountId(data[1]).encode()
-        const to = ctx.store.defer(Account, toId)
+        const toId = new this.config.AccountId(data[1])
+        const to = ctx.store.defer(Account, toId.format())
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.event.extrinsic)
             .add('account_ensure', {
                 account: () => from.get(),
-                id: fromId,
+                id: fromId.format(),
+                publicKey: fromId.serialize(),
             })
             .add('account_ensure', {
                 account: () => to.get(),
-                id: toId,
+                id: toId.format(),
+                publicKey: toId.serialize(),
             })
-            .add('transfer_native', {
+            .add('balances_transfer', {
                 id: item.event.id,
-                fromId,
-                toId,
+                from: () => from.getOrFail(),
+                to: () => to.getOrFail(),
                 amount: data[2],
                 success: true,
             })
     }
 }
 
-export class Pallet implements IPallet<Config> {
-    constructor(readonly config: Config) {}
-
-    readonly events: Record<string, EventMapper> = {
-        Transfer: new TransferEventMapper(this.config),
-    }
-
-    readonly calls: Record<string, CallMapper> = {}
+pallet.events = {
+    Transfer: new TransferEventMapper(pallet),
 }

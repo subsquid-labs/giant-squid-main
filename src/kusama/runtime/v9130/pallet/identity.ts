@@ -44,7 +44,7 @@ export class Pallet implements IPallet<Config> {
 export class IdentityClearEventMapper implements EventMapper {
     constructor(readonly config: Config) {}
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem): void {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new IdentityIdentityClearedEvent(ctx, item.event).asV9130
 
         const identityId = new this.config.AccountId(data.who).encode()
@@ -77,7 +77,7 @@ export class IdentityClearEventMapper implements EventMapper {
 export class IdentityKillEventMapper implements EventMapper {
     constructor(readonly config: Config) {}
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem): void {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new IdentityIdentityKilledEvent(ctx, item.event).asV9130
 
         const identityId = new this.config.AccountId(data.who).encode()

@@ -1,29 +1,34 @@
-export interface Type<T, R> {
-    new (value: T): R
+export interface Type<T> {
+    new (value: T): unknown
 }
 
-export interface Encodable {
-    encode(): string
+export interface Display<T> {
+    new (...args: any): {
+        format(): T
+    }
 }
 
-export interface Decodable {
-    decode(): Uint8Array
+export interface Serialize<T> {
+    new (...args: any): {
+        serialize(): T
+    }
 }
 
-export interface Deserializable<T> {
-    deserialize(): T
+type StaticLookup_Source = any
+
+export interface StaticLookup<Target> {
+    lookup(s: StaticLookup_Source): Target
+    unlookup(t: Target): StaticLookup_Source
 }
 
-export interface Serializable<T> {
-    serialize(): T
-}
+type EnumEntry<K extends string, V> = {__kind: K; value?: V}
 
-export abstract class Enum<U extends {__kind: string; value?: any}> {
-    constructor(protected value: U) {}
+export abstract class Enum<U extends EnumEntry<string, any>> {
+    constructor(protected value: any) {}
 
     match<
         S extends {
-            [K in U['__kind']]?: (value: Extract<U, {__kind: K}>['value']) => any
+            [K in U['__kind']]?: (value: Extract<U, EnumEntry<K, any>>['value']) => any
         } & {
             _?: () => any
         }

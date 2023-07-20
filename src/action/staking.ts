@@ -6,6 +6,7 @@ import {
     EraNomination,
     EraNominator,
     EraValidator,
+    PayeeType,
     Staker,
     StakingBond,
     StakingReward,
@@ -190,3 +191,78 @@ export class NewEraNominationAction extends Action<NewEraNominationData> {
         await ctx.store.insert(nomination)
     }
 }
+
+export interface EnsureStakerData {
+    id: string
+    staker: () => Promise<Staker | undefined>
+    stash: () => Promise<Account>
+}
+
+export class EnsureStakerAction extends Action<EnsureStakerData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        let staker = await this.data.staker()
+        if (staker != null) return
+
+        const stash = await this.data.stash()
+
+        staker = new Staker({
+            id: this.data.id,
+            stash,
+            activeBond: 0n,
+            totalReward: 0n,
+        })
+
+        await ctx.store.insert(staker)
+    }
+}
+
+export interface SetControllerData {
+    staker: () => Promise<Staker>
+    constroller: () => Promise<Account>
+}
+
+export class SetControllerAction extends Action<SetControllerData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+
+        staker.controller = await this.data.constroller()
+
+        if (staker.payeeType === PayeeType.Controller) {
+            staker.payee = staker.controller
+        }
+
+        await ctx.store.upsert(staker)
+    }
+}
+
+export interface SetPayeeData {
+    staker: () => Promise<Staker>
+    type: PayeeType
+    payee: () => Promise<Account> | undefined
+}
+
+export class SetPayeeAction extends Action<SetPayeeData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+
+        staker.payeeType = this.data.type
+        staker.payee = await this.data.payee()
+
+        await ctx.store.upsert(staker)
+    }
+}
+
+// export interface ChangeBondData {
+//     staker: () => Promise<Staker>
+//     amount: bigint
+// }
+
+// export class ChangeBondAction extends Action<ChangeBondData> {
+//     protected async _perform(ctx: ActionContext): Promise<void> {
+//         const staker = await this.data.staker()
+
+//         staker.activeBond += this.data.amount
+
+//         await ctx.store.upsert(staker)
+//     }
+// }

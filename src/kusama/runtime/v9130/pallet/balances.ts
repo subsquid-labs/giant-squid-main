@@ -19,7 +19,7 @@ export class Pallet implements IPallet<Config> {
 export class TransferEventMapper implements EventMapper {
     constructor(readonly config: Config) {}
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem) {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
         const data = new BalancesTransferEvent(ctx, item.event).asV9130
 
         const fromId = new this.config.AccountId(data.from).encode()

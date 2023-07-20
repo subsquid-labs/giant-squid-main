@@ -21,8 +21,9 @@ export class Staker {
     @JoinColumn_()
     stash!: Account
 
-    @Index_()
-    @ManyToOne_(() => Account, {nullable: true})
+    @Index_({unique: true})
+    @OneToOne_(() => Account, {nullable: true})
+    @JoinColumn_()
     controller!: Account | undefined | null
 
     @Column_("varchar", {length: 10, nullable: false})

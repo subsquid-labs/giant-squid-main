@@ -6,6 +6,7 @@ import * as Account from './account'
 import {Action, ActionBlock, ActionConstructor, ActionContext, ActionData, ActionExtrinsic} from './action'
 import * as Identity from './identity'
 import * as Transfer from './transfer'
+import * as Staking from './staking'
 
 const Actions = {
     account_ensure: Account.EnsureAccount,
@@ -20,7 +21,14 @@ const Actions = {
     identity_renameSub: Identity.RenameSubAction,
     identity_removeSub: Identity.RemoveIdentitySubAction,
 
-    transfer_native: Transfer.TransferAction,
+    balances_transfer: Transfer.TransferAction,
+
+    staking_reward: Staking.RewardAction,
+    staking_bond: Staking.BondAction,
+
+    staker_ensure: Staking.EnsureStakerAction,
+    staker_setController: Staking.SetControllerAction,
+    staker_setPayee: Staking.SetPayeeAction,
 }
 
 type CreateActionRegistry<T extends {[k: string]: ActionConstructor<Action<any>>}> = {

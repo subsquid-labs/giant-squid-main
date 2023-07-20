@@ -1,9 +1,11 @@
+import {StoreWithCache} from '@belopash/squid-tools'
 import {ActionQueue} from '@gs/action'
 import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
 import {
     CallItem as _CallItem,
     EventItem as _EventItem,
 } from '@subsquid/substrate-processor/lib/interfaces/data-selection'
+import assert from 'assert'
 
 export type MappingContext<Store> = Omit<DataHandlerContext<Store, unknown>, 'blocks'> & {queue: ActionQueue}
 
@@ -20,12 +22,14 @@ export type EventItem = _EventItem<
     }
 >
 
-export interface EventMapper {
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem): void
-}
+export abstract class EventMapper<P extends Pallet<any>> {
+    constructor(protected pallet: P) {}
 
-export interface PalletEvents {
-    readonly [k: string]: EventMapper
+    protected get config(): P extends Pallet<infer C> ? C : never {
+        return this.pallet.config
+    }
+
+    abstract handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void
 }
 
 export type CallItem = _CallItem<
@@ -42,35 +46,51 @@ export type CallItem = _CallItem<
     }
 >
 
-export interface CallMapper {
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem): void
+export abstract class CallMapper<P extends Pallet<any>> {
+    constructor(protected pallet: P) {}
+
+    protected get config(): P extends Pallet<infer C> ? C : never {
+        return this.pallet.config
+    }
+
+    abstract handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void
 }
 
-export interface PalletCalls {
-    readonly [k: string]: CallMapper
-}
+export class Pallet<C extends {}> {
+    private _config: C | undefined
 
-export interface PalletConfig {
-    // readonly events: PalletEvents
-    // readonly calls: PalletCalls
-}
+    get config(): C {
+        assert(this._config != null, 'config is not defined')
+        return this._config
+    }
 
-export interface IPallet<C extends {}> {
-    readonly config: C
-    readonly events: Record<string, EventMapper>
-    readonly calls: Record<string, CallMapper>
+    set config(c: C) {
+        this._config = c
+    }
+
+    private _events: Record<string, EventMapper<this>> | undefined
+
+    get events() {
+        return this._events ?? {}
+    }
+
+    set events(map: Record<string, EventMapper<this>>) {
+        this._events = map
+    }
+
+    private _calls: Record<string, CallMapper<this>> | undefined
+
+    get calls() {
+        return this._calls ?? {}
+    }
+
+    set calls(map: Record<string, CallMapper<this>>) {
+        this._calls = map
+    }
 }
 
 export interface Runtime {
     readonly [k: string]: Pallet<any>
 }
-
-// export class Runtime<C extends RuntimeConfig> {
-//     constructor(private config: C) {}
-
-//     getPallet<N extends keyof C>(name: N): C[N] {
-//         return this.config[name]
-//     }
-// }
 
 export * from './types'

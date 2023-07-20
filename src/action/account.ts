@@ -1,11 +1,11 @@
 import {toHex} from '@subsquid/substrate-processor'
 import {Account} from '../model'
-import {decodeAddress} from '../utils'
 import {Action, ActionContext} from './action'
 
 export interface AccountData {
     account: () => Promise<Account | undefined>
     id: string
+    publicKey: string
 }
 
 export class EnsureAccount extends Action<AccountData> {
@@ -15,7 +15,7 @@ export class EnsureAccount extends Action<AccountData> {
 
         account = new Account({
             id: this.data.id,
-            publicKey: toHex(decodeAddress(this.data.id)),
+            publicKey: this.data.publicKey,
         })
 
         await ctx.store.insert(account)

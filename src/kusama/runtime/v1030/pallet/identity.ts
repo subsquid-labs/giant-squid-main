@@ -1,7 +1,9 @@
+import {StoreWithCache} from '@belopash/squid-tools'
 import {Account, Identity, IdentitySub, Judgement} from '@gs/model'
 import {getOriginAccountId} from '@gs/util'
 import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCall} from '@metadata/calls'
 import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '@metadata/events'
+import * as metadata from '@metadata/v1030'
 import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
 import assert from 'assert'
 import {
@@ -10,31 +12,17 @@ import {
     Enum,
     EventItem,
     EventMapper,
-    IPallet,
     MappingContext,
-    Serializable,
+    Pallet,
+    Serialize,
 } from '../../../interfaces'
 import * as system from './system'
-import * as metadata from '@metadata/v1030'
 
 export interface Config extends system.Config {}
 
-export class Pallet implements IPallet<Config> {
-    constructor(readonly config: Config) {}
+export const pallet = new Pallet<Config>()
 
-    readonly events: Record<string, EventMapper> = {
-        IdentityClear: new IdentityClearEventMapper(this.config),
-        IdentityKill: new IdentityKillEventMapper(this.config),
-    }
-
-    readonly calls: Record<string, CallMapper> = {
-        set_subs: new SetSubsCallMapper(this.config),
-        provide_judgment: new ProvideJudgmentCallMapper(this.config),
-        set_identity: new SetIdentityCallMapper(this.config),
-    }
-}
-
-export class Data extends Enum<metadata.Data> implements Serializable<string | undefined> {
+export class Data extends Enum<metadata.Data> implements InstanceType<Serialize<string | undefined>> {
     constructor(value: metadata.Data) {
         super(value)
     }
@@ -168,10 +156,8 @@ export class IdentityInfo {
     }
 }
 
-export class SetSubsCallMapper implements CallMapper {
-    constructor(readonly config: Config) {}
-
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem): void {
+export class SetSubsCallMapper extends CallMapper<typeof pallet> {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
         const setSubsData = new IdentitySetSubsCall(ctx, item.call).asV1030
@@ -179,25 +165,26 @@ export class SetSubsCallMapper implements CallMapper {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const identityId = new this.config.AccountId(origin).encode()
-        const identity = ctx.store.defer(Identity, identityId)
+        const identityId = new this.config.AccountId(origin)
+        const identity = ctx.store.defer(Identity, identityId.format())
 
         ctx.queue.setBlock(block).setExtrinsic(item.extrinsic)
         for (const subData of setSubsData.subs) {
-            const subId = new this.config.AccountId(subData[0]).encode()
-            const sub = ctx.store.defer(IdentitySub, subId)
+            const subId = new this.config.AccountId(subData[0])
+            const sub = ctx.store.defer(IdentitySub, subId.format())
 
-            const account = ctx.store.defer(Account, subId)
+            const account = ctx.store.defer(Account, subId.format())
 
             ctx.queue
                 .add('account_ensure', {
                     account: () => account.get(),
-                    id: subId,
+                    id: subId.format(),
+                    publicKey: subId.serialize(),
                 })
                 .add('identity_ensureSub', {
                     sub: () => sub.get(),
                     account: () => account.getOrFail(),
-                    id: subId,
+                    id: subId.format(),
                 })
                 .add('identity_addSub', {
                     identity: () => identity.getOrFail(),
@@ -211,17 +198,15 @@ export class SetSubsCallMapper implements CallMapper {
     }
 }
 
-export class ProvideJudgmentCallMapper implements CallMapper {
-    constructor(readonly config: Config) {}
-
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem): void {
+export class ProvideJudgmentCallMapper extends CallMapper<typeof pallet> {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
         const judgementGivenData = new IdentityProvideJudgementCall(ctx, item.call).asV1030
         assert(judgementGivenData.target.__kind === 'AccountId')
 
-        const identityId = new this.config.AccountId(judgementGivenData.target.value).encode()
-        const identity = ctx.store.defer(Identity, identityId, {account: true})
+        const identityId = new this.config.AccountId(judgementGivenData.target.value)
+        const identity = ctx.store.defer(Identity, identityId.format(), {account: true})
 
         const judgement = new IdentityJudgement(judgementGivenData.judgement).match({
             Erroneous: () => Judgement.Erroneous,
@@ -237,19 +222,20 @@ export class ProvideJudgmentCallMapper implements CallMapper {
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
             .lazy(async (queue) => {
-                const account = ctx.store.defer(Account, identityId)
+                const account = ctx.store.defer(Account, identityId.format())
 
                 queue
                     .setBlock(block)
                     .setExtrinsic(item.extrinsic)
                     .add('account_ensure', {
                         account: () => account.get(),
-                        id: identityId,
+                        id: identityId.format(),
+                        publicKey: identityId.serialize(),
                     })
                     .add('identity_ensure', {
                         identity: () => identity.get(),
                         account: () => account.getOrFail(),
-                        id: identityId,
+                        id: identityId.format(),
                     })
             })
             .add('identity_judge', {
@@ -259,10 +245,8 @@ export class ProvideJudgmentCallMapper implements CallMapper {
     }
 }
 
-export class SetIdentityCallMapper implements CallMapper {
-    constructor(readonly config: Config) {}
-
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem): void {
+export class SetIdentityCallMapper extends CallMapper<typeof pallet> {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
         const identitySetData = new IdentitySetIdentityCall(ctx, item.call).asV1030
@@ -270,9 +254,9 @@ export class SetIdentityCallMapper implements CallMapper {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const identityId = new this.config.AccountId(origin).encode()
-        const identity = ctx.store.defer(Identity, identityId)
-        const account = ctx.store.defer(Account, identityId)
+        const identityId = new this.config.AccountId(origin)
+        const identity = ctx.store.defer(Identity, identityId.format())
+        const account = ctx.store.defer(Account, identityId.format())
 
         const info = new IdentityInfo(identitySetData.info)
         ctx.queue
@@ -280,12 +264,13 @@ export class SetIdentityCallMapper implements CallMapper {
             .setExtrinsic(item.extrinsic)
             .add('account_ensure', {
                 account: () => account.get(),
-                id: identityId,
+                id: identityId.format(),
+                publicKey: identityId.serialize(),
             })
             .add('identity_ensure', {
                 identity: () => identity.get(),
                 account: () => account.getOrFail(),
-                id: identityId,
+                id: identityId.format(),
             })
             .add('identity_judge', {
                 identity: () => identity.getOrFail(),
@@ -311,13 +296,17 @@ export class SetIdentityCallMapper implements CallMapper {
     }
 }
 
-export class IdentityClearEventMapper implements EventMapper {
-    constructor(readonly config: Config) {}
+pallet.calls = {
+    set_subs: new SetSubsCallMapper(pallet),
+    provide_judgment: new ProvideJudgmentCallMapper(pallet),
+    set_identity: new SetIdentityCallMapper(pallet),
+}
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem): void {
+export class IdentityClearEventMapper extends EventMapper<typeof pallet> {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new IdentityIdentityClearedEvent(ctx, item.event).asV1030
 
-        const identityId = new this.config.AccountId(data[0]).encode()
+        const identityId = new this.config.AccountId(data[0]).format()
         const identity = ctx.store.defer(Identity, identityId, {subs: true})
 
         ctx.queue
@@ -344,13 +333,11 @@ export class IdentityClearEventMapper implements EventMapper {
     }
 }
 
-export class IdentityKillEventMapper implements EventMapper {
-    constructor(readonly config: Config) {}
-
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: EventItem): void {
+export class IdentityKillEventMapper extends EventMapper<typeof pallet> {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new IdentityIdentityKilledEvent(ctx, item.event).asV1030
 
-        const identityId = new this.config.AccountId(data[0]).encode()
+        const identityId = new this.config.AccountId(data[0]).format()
         const identity = ctx.store.defer(Identity, identityId, {subs: true})
 
         ctx.queue
@@ -378,4 +365,9 @@ export class IdentityKillEventMapper implements EventMapper {
                 identity: () => identity.getOrFail(),
             })
     }
+}
+
+pallet.events = {
+    IdentityClear: new IdentityClearEventMapper(pallet),
+    IdentityKill: new IdentityKillEventMapper(pallet),
 }

@@ -44,7 +44,7 @@ export class Pallet implements IPallet<Config> {
 export class RenameSubCallMapper implements CallMapper {
     constructor(readonly config: Config) {}
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem): void {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
         const renameSubData = new IdentityRenameSubCall(ctx, item.call).asV9111
@@ -66,7 +66,7 @@ export class RenameSubCallMapper implements CallMapper {
 export class AddSubCallMapper implements CallMapper {
     constructor(readonly config: Config) {}
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem): void {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
         const subAddedCallData = new IdentityAddSubCall(ctx, item.call).asV9111
@@ -109,7 +109,7 @@ export class AddSubCallMapper implements CallMapper {
 export class ProvideJudgmentCallMapper implements CallMapper {
     constructor(readonly config: Config) {}
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem): void {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
         const judgementGivenData = new IdentityProvideJudgementCall(ctx, item.call).asV9111

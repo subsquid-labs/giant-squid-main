@@ -3,8 +3,12 @@ type Account @entity {
     publicKey: ID! @index
     transfers: [Transfer!] @derivedFrom(field: "account")
     rewards: [StakingReward!] @derivedFrom(field: "account")
+
     identity: Identity @derivedFrom(field: "account")
     sub: IdentitySub @derivedFrom(field: "account")
+
+    stashOf: Staker @derivedFrom(field: "stash")
+    controllerOf: Staker @derivedFrom(field: "controller")
 }
 
 enum TransferDirection {
@@ -130,7 +134,7 @@ enum PayeeType {
 type Staker @entity {
     id: ID! #stash Id
     stash: Account! @unique
-    controller: Account
+    controller: Account @unique
 
     payeeType: PayeeType!
     payee: Account

@@ -40,7 +40,7 @@ export class Pallet implements IPallet<Config> {
 export class ProvideJudgmentCallMapper implements CallMapper {
     constructor(readonly config: Config) {}
 
-    handle(ctx: MappingContext<any>, block: SubstrateBlock, item: CallItem): void {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
         const judgementGivenData = new IdentityProvideJudgementCall(ctx, item.call).asV1050

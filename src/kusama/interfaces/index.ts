@@ -47,7 +47,7 @@ export type CallItem = _CallItem<
 >
 
 export abstract class CallMapper<P extends Pallet<any>> {
-    constructor(protected pallet: P) {}
+    constructor(protected pallet: P, readonly result?: boolean) {}
 
     protected get config(): P extends Pallet<infer C> ? C : never {
         return this.pallet.config

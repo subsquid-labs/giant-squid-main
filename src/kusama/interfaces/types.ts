@@ -14,17 +14,15 @@ export interface Serialize<T> {
     }
 }
 
-type StaticLookup_Source = any
-
-export interface StaticLookup<Target> {
-    lookup(s: StaticLookup_Source): Target
-    unlookup(t: Target): StaticLookup_Source
+export interface StaticLookup<Source, Target> {
+    lookup(s: Source): Target
+    unlookup(t: Target): Source
 }
 
 type EnumEntry<K extends string, V> = {__kind: K; value?: V}
 
 export abstract class Enum<U extends EnumEntry<string, any>> {
-    constructor(protected value: any) {}
+    constructor(protected value: U) {}
 
     match<
         S extends {

@@ -1,7 +1,7 @@
 import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, Index as Index_, ManyToOne as ManyToOne_} from "typeorm"
 import * as marshal from "./marshal"
 import {Account} from "./account.model"
-import {EraValidator} from "./eraValidator.model"
+import {StakingEraValidator} from "./stakingEraValidator.model"
 import {Staker} from "./staker.model"
 
 @Entity_()
@@ -38,8 +38,8 @@ export class StakingReward {
     validatorId!: string | undefined | null
 
     @Index_()
-    @ManyToOne_(() => EraValidator, {nullable: true})
-    validator!: EraValidator | undefined | null
+    @ManyToOne_(() => StakingEraValidator, {nullable: true})
+    validator!: StakingEraValidator | undefined | null
 
     @Index_()
     @ManyToOne_(() => Staker, {nullable: true})

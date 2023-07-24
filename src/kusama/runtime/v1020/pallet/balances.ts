@@ -1,5 +1,5 @@
 import {Account} from '@gs/model'
-import {BalancesTransferEvent} from '@metadata/events'
+import {BalancesTransferEvent} from '@metadata/kusama/events'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
 import {EventItem, EventMapper, Pallet, MappingContext} from '../../../interfaces'
 import * as system from './system'

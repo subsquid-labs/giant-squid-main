@@ -1,7 +1,7 @@
 import {encode} from '@subsquid/ss58'
 import {Display, Enum, Serialize} from '../../../interfaces'
 import {toHex} from '@subsquid/substrate-processor'
-import * as metadata from '@metadata/v1020'
+import * as metadata from '@metadata/kusama/v1020'
 
 export abstract class AccountId32 implements InstanceType<Display<string> & Serialize<string>> {
     protected abstract prefix: number

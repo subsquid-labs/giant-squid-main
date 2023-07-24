@@ -9,7 +9,7 @@ deploy:
     postgres:
   processor:
     env:
-      CHAIN: kusama
+      RPC_WSS: wss://kusama.api.onfinality.io/public-ws
     cmd: ["node", "lib/kusama/main"]
   api:
     cmd:

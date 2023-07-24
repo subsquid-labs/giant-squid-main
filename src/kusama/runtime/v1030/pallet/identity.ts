@@ -1,9 +1,9 @@
 import {StoreWithCache} from '@belopash/squid-tools'
 import {Account, Identity, IdentitySub, Judgement} from '@gs/model'
 import {getOriginAccountId} from '@gs/util'
-import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCall} from '@metadata/calls'
-import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '@metadata/events'
-import * as metadata from '@metadata/v1030'
+import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCall} from '@metadata/kusama/calls'
+import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '@metadata/kusama/events'
+import * as metadata from '@metadata/kusama/v1030'
 import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
 import assert from 'assert'
 import {
@@ -68,53 +68,6 @@ export class Data extends Enum<metadata.Data> implements InstanceType<Serialize<
             Raw31: (b) => this.serializeRaw(b),
             Raw32: (b) => this.serializeRaw(b),
         })
-        // switch (this.value.__kind) {
-        //     case 'None':
-        //         return undefined
-        //     case 'BlakeTwo256':
-        //     case 'Keccak256':
-        //     case 'Sha256':
-        //     case 'ShaThree256':
-        //         return Buffer.from(this.value.value).toString('hex')
-        //     case 'Raw0':
-        //     case 'Raw1':
-        //     case 'Raw2':
-        //     case 'Raw3':
-        //     case 'Raw4':
-        //     case 'Raw5':
-        //     case 'Raw6':
-        //     case 'Raw7':
-        //     case 'Raw8':
-        //     case 'Raw9':
-        //     case 'Raw10':
-        //     case 'Raw11':
-        //     case 'Raw12':
-        //     case 'Raw13':
-        //     case 'Raw14':
-        //     case 'Raw15':
-        //     case 'Raw16':
-        //     case 'Raw17':
-        //     case 'Raw18':
-        //     case 'Raw19':
-        //     case 'Raw20':
-        //     case 'Raw21':
-        //     case 'Raw22':
-        //     case 'Raw23':
-        //     case 'Raw24':
-        //     case 'Raw25':
-        //     case 'Raw26':
-        //     case 'Raw27':
-        //     case 'Raw28':
-        //     case 'Raw29':
-        //     case 'Raw30':
-        //     case 'Raw31':
-        //     case 'Raw32':
-        //         Buffer.from(this.value.value)
-        //             .toString('utf-8')
-        //             .replace(/\u0000/g, '')
-        //     default:
-        //         throw new Error(`Unexpected case: ${this.value.__kind}`)
-        // }
     }
 
     private serializeRaw(buffer: Uint8Array) {
@@ -221,12 +174,10 @@ export class ProvideJudgmentCallMapper extends CallMapper<typeof pallet> {
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
-            .lazy(async (queue) => {
+            .lazy(async () => {
                 const account = ctx.store.defer(Account, identityId.format())
 
-                queue
-                    .setBlock(block)
-                    .setExtrinsic(item.extrinsic)
+                ctx.queue
                     .add('account_ensure', {
                         account: () => account.get(),
                         id: identityId.format(),
@@ -319,13 +270,11 @@ export class IdentityClearEventMapper extends EventMapper<typeof pallet> {
                 identity: () => identity.getOrFail(),
                 judgement: Judgement.Unknown,
             })
-            .lazy(async (queue) => {
+            .lazy(async () => {
                 const i = await identity.getOrFail()
 
-                queue.setBlock(block).setExtrinsic(item.event.extrinsic)
-
                 for (const s of i.subs) {
-                    queue.add('identity_removeSub', {
+                    ctx.queue.add('identity_removeSub', {
                         sub: () => Promise.resolve(s),
                     })
                 }
@@ -350,13 +299,11 @@ export class IdentityKillEventMapper extends EventMapper<typeof pallet> {
                 identity: () => identity.getOrFail(),
                 judgement: Judgement.Unknown,
             })
-            .lazy(async (queue) => {
+            .lazy(async () => {
                 const i = await identity.getOrFail()
 
-                queue.setBlock(block).setExtrinsic(item.event.extrinsic)
-
                 for (const s of i.subs) {
-                    queue.add('identity_removeSub', {
+                    ctx.queue.add('identity_removeSub', {
                         sub: () => Promise.resolve(s),
                     })
                 }

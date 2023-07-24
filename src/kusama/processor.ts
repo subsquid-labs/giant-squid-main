@@ -19,9 +19,12 @@ const eventData = {
 export const processor = new SubstrateBatchProcessor()
     .setDataSource({
         archive: lookupArchive('kusama'),
-        chain: process.env.RPC_KUSAMA_WSS,
+        chain: 'wss://kusama.api.onfinality.io/public-ws',
     })
     .addEvent('Balances.Transfer', {
+        data: {event: eventData},
+    })
+    .addEvent('Session.NewSession', {
         data: {event: eventData},
     })
     .addEvent('Staking.Reward', {
@@ -56,6 +59,49 @@ export const processor = new SubstrateBatchProcessor()
     })
     .addCall('Identity.kill_identity', {
         data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.bond', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.bond_extra', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.unbond', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.withdraw_unbonded', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.force_unstake', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.set_controller', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.force_payee', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.validate', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.nominate', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.chill', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.force_no_eras', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.force_new_era', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .addCall('Staking.force_new_era_always', {
+        data: {call: callData, extrinsic: extrinsicData},
+    })
+    .setBlockRange({
+        from: 0,
+        // to: 277_710,
     })
 
 export type Item = BatchProcessorItem<typeof processor>

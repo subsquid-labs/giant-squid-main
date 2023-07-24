@@ -2,24 +2,30 @@ import assert from 'assert'
 import {
     Account,
     BondType,
-    Era,
-    EraNomination,
-    EraNominator,
-    EraValidator,
+    StakingEra,
+    StakingEraNomination,
+    StakingEraNominator,
+    StakingEraValidator,
     PayeeType,
     Staker,
     StakingBond,
     StakingReward,
-} from '../model'
-import {Action, ActionContext} from './action'
+    StakingRole,
+    StakingUnlockChunk,
+    StakingEraStatus,
+    StakingData,
+    ValidatorData,
+    NominatorData,
+} from '@gs/model'
+import {Action, ActionContext, Awaitable} from './action'
 
 export interface RewardData {
     id: string
     amount: bigint
-    account: () => Promise<Account | undefined>
-    staker: () => Promise<Staker>
-    era: () => Promise<Era> | undefined
-    validator: () => Promise<EraValidator> | undefined
+    account: () => Awaitable<Account | undefined>
+    staker: () => Awaitable<Staker>
+    era: () => Awaitable<StakingEra> | undefined
+    validator: () => Awaitable<StakingEraValidator> | undefined
 }
 
 export class RewardAction extends Action<RewardData> {
@@ -53,8 +59,8 @@ export interface BondData {
     id: string
     amount: bigint
     type: BondType
-    staker: () => Promise<Staker>
-    account: () => Promise<Account>
+    staker: () => Awaitable<Staker>
+    account: () => Awaitable<Account>
 }
 
 export class BondAction extends Action<BondData> {
@@ -97,7 +103,7 @@ export interface NewEraData {
 
 export class NewEraAction extends Action<NewEraData> {
     protected async _perform(ctx: ActionContext): Promise<void> {
-        const era = new Era({
+        const era = new StakingEra({
             id: this.data.id,
             index: this.data.index,
             startedAt: this.block.height,
@@ -105,16 +111,32 @@ export class NewEraAction extends Action<NewEraData> {
             nominatorsCount: 0,
             validatorsCount: 0,
             total: 0n,
+            status: StakingEraStatus.Active,
         })
 
         await ctx.store.insert(era)
     }
 }
 
+export interface EndEraData {
+    era: () => Awaitable<StakingEra>
+}
+
+export class EndEraAction extends Action<EndEraData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const era = await this.data.era()
+
+        era.status = StakingEraStatus.Ended
+        era.endedAt = this.block.height
+
+        await ctx.store.upsert(era)
+    }
+}
+
 export interface NewEraValidatorData {
     id: string
-    era: () => Promise<Era>
-    staker: () => Promise<Staker>
+    era: () => Awaitable<StakingEra>
+    staker: () => Awaitable<Staker>
     total: bigint
     own: bigint
 }
@@ -124,10 +146,10 @@ export class NewEraValidatorAction extends Action<NewEraValidatorData> {
         const staker = await this.data.staker()
         const era = await this.data.era()
 
-        assert(staker.data?.isTypeOf === 'ValidatorData')
+        assert(staker.data instanceof ValidatorData, `Staker ${staker.id} has to be validator`)
         const validatorData = staker.data
 
-        const validator = new EraValidator({
+        const validator = new StakingEraValidator({
             id: this.data.id,
             era,
             staker,
@@ -139,16 +161,23 @@ export class NewEraValidatorAction extends Action<NewEraValidatorData> {
 
         if (validator.bonded != staker.activeBond) {
             ctx.log.warn(`Staker bonded value noq equal value in storage (${staker.activeBond}, ${validator.bonded})`)
+            staker.activeBond = validator.bonded
+            await ctx.store.upsert(staker)
         }
 
         await ctx.store.insert(validator)
+
+        era.validatorsCount += 1
+        era.total += validator.totalBonded
+
+        await ctx.store.upsert(era)
     }
 }
 
 export interface NewEraNominatorData {
     id: string
-    era: () => Promise<Era>
-    staker: () => Promise<Staker>
+    era: () => Awaitable<StakingEra>
+    staker: () => Awaitable<Staker>
 }
 
 export class NewEraNominatorAction extends Action<NewEraNominatorData> {
@@ -156,7 +185,7 @@ export class NewEraNominatorAction extends Action<NewEraNominatorData> {
         const staker = await this.data.staker()
         const era = await this.data.era()
 
-        const nominator = new EraNominator({
+        const nominator = new StakingEraNominator({
             id: this.data.id,
             era,
             staker,
@@ -165,14 +194,18 @@ export class NewEraNominatorAction extends Action<NewEraNominatorData> {
         })
 
         await ctx.store.insert(nominator)
+
+        era.nominatorsCount += 1
+
+        await ctx.store.upsert(era)
     }
 }
 
 export interface NewEraNominationData {
     id: string
-    era: () => Promise<Era>
-    validator: () => Promise<EraValidator>
-    nominator: () => Promise<EraNominator>
+    era: () => Awaitable<StakingEra>
+    validator: () => Awaitable<StakingEraValidator>
+    nominator: () => Awaitable<StakingEraNominator>
     vote: bigint
 }
 
@@ -181,7 +214,7 @@ export class NewEraNominationAction extends Action<NewEraNominationData> {
         const validator = await this.data.validator()
         const nominator = await this.data.nominator()
 
-        const nomination = new EraNomination({
+        const nomination = new StakingEraNomination({
             id: this.data.id,
             validator,
             nominator,
@@ -194,8 +227,8 @@ export class NewEraNominationAction extends Action<NewEraNominationData> {
 
 export interface EnsureStakerData {
     id: string
-    staker: () => Promise<Staker | undefined>
-    stash: () => Promise<Account>
+    staker: () => Awaitable<Staker | undefined>
+    stash: () => Awaitable<Account>
 }
 
 export class EnsureStakerAction extends Action<EnsureStakerData> {
@@ -210,6 +243,8 @@ export class EnsureStakerAction extends Action<EnsureStakerData> {
             stash,
             activeBond: 0n,
             totalReward: 0n,
+            payeeType: PayeeType.None,
+            role: StakingRole.Unknown,
         })
 
         await ctx.store.insert(staker)
@@ -217,8 +252,8 @@ export class EnsureStakerAction extends Action<EnsureStakerData> {
 }
 
 export interface SetControllerData {
-    staker: () => Promise<Staker>
-    constroller: () => Promise<Account>
+    staker: () => Awaitable<Staker>
+    constroller: () => Awaitable<Account>
 }
 
 export class SetControllerAction extends Action<SetControllerData> {
@@ -236,9 +271,9 @@ export class SetControllerAction extends Action<SetControllerData> {
 }
 
 export interface SetPayeeData {
-    staker: () => Promise<Staker>
+    staker: () => Awaitable<Staker>
     type: PayeeType
-    payee: () => Promise<Account> | undefined
+    payee: () => Awaitable<Account> | undefined
 }
 
 export class SetPayeeAction extends Action<SetPayeeData> {
@@ -252,8 +287,133 @@ export class SetPayeeAction extends Action<SetPayeeData> {
     }
 }
 
+export interface KillStakerData {
+    staker: () => Awaitable<Staker>
+}
+
+export class KillStakerAction extends Action<KillStakerData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+
+        staker.isKilled = true
+        staker.controller = null
+        staker.payeeType = PayeeType.None
+        staker.payee = null
+        staker.activeBond = 0n
+        staker.role = StakingRole.Unknown
+        staker.data = null
+
+        await ctx.store.upsert(staker)
+    }
+}
+
+export interface StakerValidateData {
+    staker: () => Awaitable<Staker>
+    commission: number
+}
+
+export class StakerValidateAction extends Action<StakerValidateData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+
+        staker.role = StakingRole.Validator
+        staker.data = new ValidatorData({
+            commission: this.data.commission,
+            blocked: false,
+        })
+
+        await ctx.store.upsert(staker)
+    }
+}
+
+export interface StakerNominateData {
+    staker: () => Awaitable<Staker>
+    targets: string[]
+}
+
+export class StakerNominateAction extends Action<StakerNominateData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+
+        staker.role = StakingRole.Nominator
+        staker.data = new NominatorData({
+            targets: this.data.targets,
+        })
+
+        await ctx.store.upsert(staker)
+    }
+}
+
+export interface StakerIdleData {
+    staker: () => Awaitable<Staker>
+}
+
+export class StakerIdleAction extends Action<StakerIdleData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+
+        staker.role = StakingRole.Idle
+        staker.data = null
+
+        await ctx.store.upsert(staker)
+    }
+}
+
+export interface ReviveStakerData {
+    staker: () => Awaitable<Staker>
+}
+
+export class ReviveStakerAction extends Action<ReviveStakerData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+
+        staker.isKilled = false
+
+        await ctx.store.upsert(staker)
+    }
+}
+
+export interface CreateUnlockChunkData {
+    id: string
+    staker: () => Awaitable<Staker>
+    amount: bigint
+    lockedUntilEra: number
+}
+
+export class CreateUnlockChunkAction extends Action<CreateUnlockChunkData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+
+        const chunk = new StakingUnlockChunk({
+            id: this.data.id,
+            blockNumber: this.block.height,
+            timestamp: new Date(this.block.timestamp),
+            staker,
+            amount: this.data.amount,
+            lockedUntilEra: this.data.lockedUntilEra,
+            withdrawn: false,
+        })
+
+        await ctx.store.insert(chunk)
+    }
+}
+
+export interface WithdrawUnlockChunkData {
+    chunk: () => Awaitable<StakingUnlockChunk>
+}
+
+export class WithdrawUnlockChunkAction extends Action<WithdrawUnlockChunkData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const chunk = await this.data.chunk()
+
+        chunk.withdrawn = true
+
+        await ctx.store.upsert(chunk)
+    }
+}
+
 // export interface ChangeBondData {
-//     staker: () => Promise<Staker>
+//     staker: () => Awaitable<Staker>
 //     amount: bigint
 // }
 

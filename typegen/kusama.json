@@ -1,12 +1,13 @@
 {
-    "outDir": "../src/chain/kusama/types",
+    "outDir": "../src/metadata/kusama",
     "specVersions": "https://kusama.archive.subsquid.io/graphql",
     "events": [
         "Balances.Transfer",
         "Identity.IdentityCleared",
         "Identity.IdentityKilled",
-        "Identity.IdentitySubRemoved",
-        "Identity.IdentitySubRevoked",
+        "Identity.SubIdentityRemoved",
+        "Identity.SubIdentityRevoked",
+        "Session.NewSession",
         "Staking.Bonded",
         "Staking.EraPaid",
         "Staking.PayoutStarted",
@@ -32,18 +33,31 @@
         "Staking.bond_extra",
         "Staking.bond",
         "Staking.chill",
+        "Staking.force_new_era_always",
+        "Staking.force_new_era",
+        "Staking.force_no_eras",
+        "Staking.force_unstake",
         "Staking.kick",
         "Staking.nominate",
         "Staking.payout_stakers",
         "Staking.set_controller",
         "Staking.set_payee",
         "Staking.unbond",
-        "Staking.validate"
+        "Staking.validate",
+        "Staking.withdraw_unbonded"
     ],
     "storage": [
         "Session.Validators",
         "Staking.ActiveEra",
+        "Staking.CurrentElected",
         "Staking.CurrentEra",
-        "Staking.ErasStakers"
+        "Staking.CurrentEraStartSessionIndex",
+        "Staking.ErasStakers",
+        "Staking.ForceEra",
+        "Staking.Stakers"
+    ],
+    "constants": [
+        "Staking.BondingDuration",
+        "Staking.SessionsPerEra"
     ]
 }

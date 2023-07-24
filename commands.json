@@ -5,10 +5,17 @@
         "description": "delete all build artifacts",
         "cmd": ["npx", "--yes", "rimraf", "lib"]
       },
+      "compile": {
+        "hidden": true,
+        "cmd": ["tsc"]
+      },
+      "alias": {
+        "hidden": true,
+        "cmd": ["tsc-alias"]
+      },
       "build": {
         "description": "Build the squid project",
-        "deps": ["clean"],
-        "cmd": ["tsc"]
+        "deps": ["clean", "compile", "alias"]
       },
       "up": {
         "description": "Start a PG database",

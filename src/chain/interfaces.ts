@@ -9,7 +9,7 @@ import type gmordie from './gmordie/api'
 import type hydradx from './hydradx/api'
 import type karura from './karura/api'
 import type khala from './khala/api'
-import type kusama from './kusama/api'
+// import type kusama from './kusama/api'
 import type moonbeam from './moonbeam/api'
 import type moonriver from './moonriver/api'
 import type phala from './phala/api'
@@ -30,7 +30,7 @@ export type ChainApi =
   | typeof hydradx
   | typeof karura
   | typeof khala
-  | typeof kusama
+  // | typeof kusama
   | typeof moonbeam
   | typeof moonriver
   | typeof phala

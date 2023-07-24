@@ -1,12 +1,10 @@
-import assert from 'assert'
-import {StoreWithCache} from '@belopash/squid-tools'
-import {DataHandlerContext} from '@subsquid/substrate-processor'
 import {withErrorContext} from '@subsquid/util-internal'
+import assert from 'assert'
 import * as Account from './account'
-import {Action, ActionBlock, ActionConstructor, ActionContext, ActionData, ActionExtrinsic} from './action'
+import {Action, ActionBlock, ActionConstructor, ActionContext, ActionData, ActionExtrinsic, Awaitable} from './action'
 import * as Identity from './identity'
-import * as Transfer from './transfer'
 import * as Staking from './staking'
+import * as Transfer from './transfer'
 
 const Actions = {
     account_ensure: Account.EnsureAccount,
@@ -25,10 +23,22 @@ const Actions = {
 
     staking_reward: Staking.RewardAction,
     staking_bond: Staking.BondAction,
+    staking_createUnlockChunk: Staking.CreateUnlockChunkAction,
+    staking_withdrawUnlockChunk: Staking.WithdrawUnlockChunkAction,
+    staking_newEra: Staking.NewEraAction,
+    staking_endEra: Staking.EndEraAction,
+    staking_newEraValidator: Staking.NewEraValidatorAction,
+    staking_newEraNominator: Staking.NewEraNominatorAction,
+    staking_newEraNomination: Staking.NewEraNominationAction,
 
     staker_ensure: Staking.EnsureStakerAction,
     staker_setController: Staking.SetControllerAction,
     staker_setPayee: Staking.SetPayeeAction,
+    staker_kill: Staking.KillStakerAction,
+    staker_revive: Staking.ReviveStakerAction,
+    staker_validate: Staking.StakerValidateAction,
+    staker_nominate: Staking.StakerNominateAction,
+    staker_idle: Staking.StakerIdleAction,
 }
 
 type CreateActionRegistry<T extends {[k: string]: ActionConstructor<Action<any>>}> = {
@@ -57,13 +67,13 @@ export class ActionQueue {
     add<A extends keyof ActionRegistry>(action: A, data: ActionData<ActionRegistry[A]>): this {
         assert(this.block != null)
 
-        const a = new Actions[action](this.block, this.extrinsic, data)
+        const a = new Actions[action](this.block, this.extrinsic, data as any) // TODO: find if there is a proper way to pass typed parameter
         this.actions.push(a)
 
         return this
     }
 
-    lazy(cb: (queue: ActionQueue) => Promise<void>) {
+    lazy(cb: () => Awaitable<void>) {
         assert(this.block != null)
 
         const a = new LazyAction(this.block, this.extrinsic, cb)
@@ -73,16 +83,20 @@ export class ActionQueue {
     }
 
     async process(ctx: ActionContext) {
-        for (const action of this.actions) {
+        return await this.processActions(ctx, this.actions)
+    }
+
+    private async processActions(ctx: ActionContext, actions: Action[]) {
+        for (const action of actions) {
             const actionCtx = {
                 ...ctx,
-                log: ctx.log.child('actions', {
+                log: ctx.log.child('action', {
                     block: action.block.height,
                     extrinsic: action.extrinsic?.hash,
                 }),
             }
 
-            await action.perform(actionCtx).catch(
+            await this.processAction(actionCtx, action).catch(
                 withErrorContext({
                     block: action.block.height,
                     extrinsicHash: action.extrinsic?.hash,
@@ -90,20 +104,41 @@ export class ActionQueue {
             )
         }
     }
+
+    private async processAction(ctx: ActionContext, action: Action) {
+        if (action instanceof LazyAction) {
+            await this.processLazyAction(ctx, action)
+        } else {
+            await action.perform(ctx)
+        }
+    }
+
+    private async processLazyAction(ctx: ActionContext, action: LazyAction) {
+        const saved = {block: this.block, extrinsic: this.extrinsic, actions: this.actions}
+        try {
+            this.block = action.block
+            this.extrinsic = action.extrinsic
+            this.actions = []
+            await action.perform(ctx)
+            await this.processActions(ctx, this.actions)
+        } finally {
+            this.block = saved.block
+            this.extrinsic = saved.extrinsic
+            this.actions = saved.actions
+        }
+    }
 }
 
-export class LazyAction extends Action {
+class LazyAction extends Action<unknown> {
     constructor(
         readonly block: ActionBlock,
         readonly extrinsic: ActionExtrinsic | undefined,
-        readonly cb: (queue: ActionQueue) => Promise<void>
+        readonly cb: () => Awaitable<void>
     ) {
         super(block, extrinsic, {})
     }
 
-    protected async _perform(ctx: DataHandlerContext<StoreWithCache, {}>): Promise<void> {
-        const queue = new ActionQueue()
-        await this.cb(queue)
-        await queue.process(ctx)
+    protected async _perform(): Promise<void> {
+        await this.cb()
     }
 }

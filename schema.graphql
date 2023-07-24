@@ -89,7 +89,7 @@ type StakingReward @entity {
     amount: BigInt!
     era: Int
     validatorId: ID
-    validator: EraValidator
+    validator: StakingEraValidator
     staker: Staker!
 }
 
@@ -102,6 +102,16 @@ type StakingBond @entity {
     amount: BigInt!
     type: BondType!
     staker: Staker!
+}
+
+type StakingUnlockChunk @entity {
+    id: ID!
+    timestamp: DateTime!
+    blockNumber: Int! @index
+    staker: Staker!
+    lockedUntilEra: Int!
+    amount: BigInt!
+    withdrawn: Boolean!
 }
 
 enum StakingRole {
@@ -146,16 +156,27 @@ type Staker @entity {
     role: StakingRole!
     data: StakingData
 
+    unlocking: [StakingUnlockChunk!] @derivedFrom(field: "staker")
+
     # history: [EraStaker!] @derivedFrom(field: "staker")
     rewards: [StakingReward!] @derivedFrom(field: "staker")
     # slashes: [Slash!] @derivedFrom(field: "staker")
     bonds: [StakingBond!] @derivedFrom(field: "staker")
+
+    isKilled: Boolean!
 }
 
-type Era @entity {
+enum StakingEraStatus {
+    Planned
+    Active
+    Ended
+}
+
+type StakingEra @entity {
     id: ID!
     index: Int!
     timestamp: DateTime!
+    status: StakingEraStatus!
     startedAt: Int!
     endedAt: Int
     total: BigInt!
@@ -164,41 +185,41 @@ type Era @entity {
     # stakers: [EraStaker] @derivedFrom(field: "era")
 }
 
-interface EraStaker @query {
+interface StakingEraStaker @query {
     id: ID! #era + stashId
     staker: Staker!
-    era: Era!
+    era: StakingEra!
     bonded: BigInt!
     eraReward: BigInt!
     # eraSlash: BigInt!
 }
 
-type EraValidator implements EraStaker @entity {
+type StakingEraValidator implements StakingEraStaker @entity {
     id: ID! #era + stashId
     staker: Staker!
-    era: Era!
+    era: StakingEra!
     bonded: BigInt!
     totalBonded: BigInt!
     eraReward: BigInt!
     # eraSlash: BigInt!
     commission: Int
-    nominators: [EraNomination!] @derivedFrom(field: "validator")
+    nominators: [StakingEraNomination!] @derivedFrom(field: "validator")
 }
 
-type EraNominator implements EraStaker @entity {
+type StakingEraNominator implements StakingEraStaker @entity {
     id: ID! #era + stashId
     staker: Staker!
-    era: Era!
+    era: StakingEra!
     bonded: BigInt!
     eraReward: BigInt!
     # eraSlash: BigInt!
-    validators: [EraNomination!] @derivedFrom(field: "nominator")
+    validators: [StakingEraNomination!] @derivedFrom(field: "nominator")
 }
 
-type EraNomination @entity {
+type StakingEraNomination @entity {
     id: ID! #era + validatorId + nominatorId
-    era: Era!
-    nominator: EraNominator!
-    validator: EraValidator!
+    era: StakingEra!
+    nominator: StakingEraNominator!
+    validator: StakingEraValidator!
     vote: BigInt!
 }

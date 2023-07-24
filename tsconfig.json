@@ -10,6 +10,21 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "skipLibCheck": true,
+    // "baseUrl": "./src",
+    "paths": {
+      "@gs/action": [
+        "./src/action",
+      ],
+      "@gs/model": [
+        "./src/model",
+      ],
+      "@gs/util": [
+        "./src/utils",
+      ],
+      "@metadata/*": [
+        "./src/metadata/*"
+      ]
+    },
   },
   "include": [
     "src"

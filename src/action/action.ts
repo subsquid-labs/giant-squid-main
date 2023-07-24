@@ -2,6 +2,8 @@ import assert from 'assert'
 import {DataHandlerContext, SubstrateBlock, SubstrateExtrinsic} from '@subsquid/substrate-processor'
 import {StoreWithCache} from '@belopash/squid-tools'
 
+export type Awaitable<T> = T | PromiseLike<T>
+
 export type ActionContext = DataHandlerContext<StoreWithCache, unknown>
 export type ActionBlock = Pick<SubstrateBlock, 'id' | 'hash' | 'height' | 'timestamp'>
 export type ActionExtrinsic = Pick<SubstrateExtrinsic, 'id' | 'hash'>

@@ -4,6 +4,7 @@ import {Account} from "./account.model"
 import {PayeeType} from "./_payeeType"
 import {StakingRole} from "./_stakingRole"
 import {StakingData, fromJsonStakingData} from "./_stakingData"
+import {StakingUnlockChunk} from "./stakingUnlockChunk.model"
 import {StakingReward} from "./stakingReward.model"
 import {StakingBond} from "./stakingBond.model"
 
@@ -45,9 +46,15 @@ export class Staker {
     @Column_("jsonb", {transformer: {to: obj => obj == null ? undefined : obj.toJSON(), from: obj => obj == null ? undefined : fromJsonStakingData(obj)}, nullable: true})
     data!: StakingData | undefined | null
 
+    @OneToMany_(() => StakingUnlockChunk, e => e.staker)
+    unlocking!: StakingUnlockChunk[]
+
     @OneToMany_(() => StakingReward, e => e.staker)
     rewards!: StakingReward[]
 
     @OneToMany_(() => StakingBond, e => e.staker)
     bonds!: StakingBond[]
+
+    @Column_("bool", {nullable: false})
+    isKilled!: boolean
 }

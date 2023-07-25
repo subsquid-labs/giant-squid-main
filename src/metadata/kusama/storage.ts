@@ -2,6 +2,7 @@ import assert from 'assert'
 import {Block, BlockContext, Chain, ChainContext, Option, Result, StorageBase} from './support'
 import * as v1020 from './v1020'
 import * as v1050 from './v1050'
+import * as v1058 from './v1058'
 
 export class SessionValidatorsStorage extends StorageBase {
     protected getPrefix() {
@@ -171,6 +172,38 @@ export interface StakingCurrentEraStorageV1050 {
     get(): Promise<(number | undefined)>
 }
 
+export class StakingCurrentEraPointsEarnedStorage extends StorageBase {
+    protected getPrefix() {
+        return 'Staking'
+    }
+
+    protected getName() {
+        return 'CurrentEraPointsEarned'
+    }
+
+    /**
+     *  Rewards for the current era. Using indices of current elected set.
+     */
+    get isV1020(): boolean {
+        return this.getTypeHash() === 'c9c80f076e65b760730b101fa65c97291c622cd82a2926ed3f662fce619cc3d1'
+    }
+
+    /**
+     *  Rewards for the current era. Using indices of current elected set.
+     */
+    get asV1020(): StakingCurrentEraPointsEarnedStorageV1020 {
+        assert(this.isV1020)
+        return this as any
+    }
+}
+
+/**
+ *  Rewards for the current era. Using indices of current elected set.
+ */
+export interface StakingCurrentEraPointsEarnedStorageV1020 {
+    get(): Promise<v1020.EraPoints>
+}
+
 export class StakingCurrentEraStartSessionIndexStorage extends StorageBase {
     protected getPrefix() {
         return 'Staking'
@@ -294,6 +327,96 @@ export class StakingForceEraStorage extends StorageBase {
  */
 export interface StakingForceEraStorageV1020 {
     get(): Promise<v1020.Forcing>
+}
+
+export class StakingLedgerStorage extends StorageBase {
+    protected getPrefix() {
+        return 'Staking'
+    }
+
+    protected getName() {
+        return 'Ledger'
+    }
+
+    /**
+     *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+     */
+    get isV1020(): boolean {
+        return this.getTypeHash() === 'c27b3ed6dad75f65e118399ee7274c494565332d8c67cc85aef297dd1092284b'
+    }
+
+    /**
+     *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+     */
+    get asV1020(): StakingLedgerStorageV1020 {
+        assert(this.isV1020)
+        return this as any
+    }
+
+    /**
+     *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+     */
+    get isV1050(): boolean {
+        return this.getTypeHash() === 'acb0ae5b3ecc4c620a929a6d33a493f14d936906f24812ba68afe18beaf2314a'
+    }
+
+    /**
+     *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+     */
+    get asV1050(): StakingLedgerStorageV1050 {
+        assert(this.isV1050)
+        return this as any
+    }
+
+    /**
+     *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+     */
+    get isV1058(): boolean {
+        return this.getTypeHash() === '838ac827cb2532f983c68467cfa97afcccf6147fb96e61e136394060880b64a4'
+    }
+
+    /**
+     *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+     */
+    get asV1058(): StakingLedgerStorageV1058 {
+        assert(this.isV1058)
+        return this as any
+    }
+}
+
+/**
+ *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+ */
+export interface StakingLedgerStorageV1020 {
+    get(key: Uint8Array): Promise<(v1020.StakingLedger | undefined)>
+    getAll(): Promise<v1020.StakingLedger[]>
+    getMany(keys: Uint8Array[]): Promise<(v1020.StakingLedger | undefined)[]>
+}
+
+/**
+ *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+ */
+export interface StakingLedgerStorageV1050 {
+    get(key: Uint8Array): Promise<(v1050.StakingLedger | undefined)>
+    getAll(): Promise<v1050.StakingLedger[]>
+    getMany(keys: Uint8Array[]): Promise<(v1050.StakingLedger | undefined)[]>
+}
+
+/**
+ *  Map from all (unlocked) "controller" accounts to the info regarding the staking.
+ */
+export interface StakingLedgerStorageV1058 {
+    get(key: Uint8Array): Promise<(v1058.StakingLedger | undefined)>
+    getAll(): Promise<v1058.StakingLedger[]>
+    getMany(keys: Uint8Array[]): Promise<(v1058.StakingLedger | undefined)[]>
+    getKeys(): Promise<Uint8Array[]>
+    getKeys(key: Uint8Array): Promise<Uint8Array[]>
+    getKeysPaged(pageSize: number): AsyncIterable<Uint8Array[]>
+    getKeysPaged(pageSize: number, key: Uint8Array): AsyncIterable<Uint8Array[]>
+    getPairs(): Promise<[k: Uint8Array, v: v1058.StakingLedger][]>
+    getPairs(key: Uint8Array): Promise<[k: Uint8Array, v: v1058.StakingLedger][]>
+    getPairsPaged(pageSize: number): AsyncIterable<[k: Uint8Array, v: v1058.StakingLedger][]>
+    getPairsPaged(pageSize: number, key: Uint8Array): AsyncIterable<[k: Uint8Array, v: v1058.StakingLedger][]>
 }
 
 export class StakingStakersStorage extends StorageBase {

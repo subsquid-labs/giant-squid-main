@@ -4,8 +4,8 @@ import {Account} from "./account.model"
 import {Staker} from "./staker.model"
 
 @Entity_()
-export class StakingBond {
-    constructor(props?: Partial<StakingBond>) {
+export class StakingSlash {
+    constructor(props?: Partial<StakingSlash>) {
         Object.assign(this, props)
     }
 

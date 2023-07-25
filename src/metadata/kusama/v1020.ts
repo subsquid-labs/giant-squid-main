@@ -1005,6 +1005,11 @@ export interface ValidatorPrefs {
     commission: number
 }
 
+export interface EraPoints {
+    total: number
+    individual: number[]
+}
+
 export type Forcing = Forcing_NotForcing | Forcing_ForceNew | Forcing_ForceNone | Forcing_ForceAlways
 
 export interface Forcing_NotForcing {
@@ -1023,10 +1028,22 @@ export interface Forcing_ForceAlways {
     __kind: 'ForceAlways'
 }
 
+export interface StakingLedger {
+    stash: Uint8Array
+    total: bigint
+    active: bigint
+    unlocking: UnlockChunk[]
+}
+
 export interface Exposure {
     total: bigint
     own: bigint
     others: IndividualExposure[]
+}
+
+export interface UnlockChunk {
+    value: bigint
+    era: number
 }
 
 export interface IndividualExposure {

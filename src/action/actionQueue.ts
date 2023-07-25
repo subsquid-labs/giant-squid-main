@@ -22,8 +22,10 @@ const Actions = {
     balances_transfer: Transfer.TransferAction,
 
     staking_reward: Staking.RewardAction,
+    staking_slash: Staking.SlashAction,
     staking_bond: Staking.BondAction,
     staking_createUnlockChunk: Staking.CreateUnlockChunkAction,
+    staking_updateUnlockChunk: Staking.UpdateUnlockChunkAction,
     staking_withdrawUnlockChunk: Staking.WithdrawUnlockChunkAction,
     staking_newEra: Staking.NewEraAction,
     staking_endEra: Staking.EndEraAction,

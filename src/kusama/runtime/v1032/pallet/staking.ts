@@ -18,7 +18,7 @@ import {
     // ForceNewEraAlwaysCall,
     // ForceNewEraCall,
     // ForceNoErasCall,
-} from '../../v1020/pallet/staking'
+} from '../../v1030/pallet/staking'
 
 export {
     BondCallMapper,

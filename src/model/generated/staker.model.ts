@@ -6,6 +6,7 @@ import {StakingRole} from "./_stakingRole"
 import {StakingData, fromJsonStakingData} from "./_stakingData"
 import {StakingUnlockChunk} from "./stakingUnlockChunk.model"
 import {StakingReward} from "./stakingReward.model"
+import {StakingSlash} from "./stakingSlash.model"
 import {StakingBond} from "./stakingBond.model"
 
 @Entity_()
@@ -38,7 +39,13 @@ export class Staker {
     activeBond!: bigint
 
     @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
+    totalBond!: bigint
+
+    @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
     totalReward!: bigint
+
+    @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
+    totalSlash!: bigint
 
     @Column_("varchar", {length: 9, nullable: false})
     role!: StakingRole
@@ -51,6 +58,9 @@ export class Staker {
 
     @OneToMany_(() => StakingReward, e => e.staker)
     rewards!: StakingReward[]
+
+    @OneToMany_(() => StakingSlash, e => e.staker)
+    slashes!: StakingSlash[]
 
     @OneToMany_(() => StakingBond, e => e.staker)
     bonds!: StakingBond[]

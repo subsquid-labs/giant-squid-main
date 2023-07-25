@@ -22,16 +22,16 @@ export function getRuntime(block: SubstrateBlock): Runtime {
             return require('./runtime/v1020').runtime
         case '1030':
         case '1031':
-        default:
             return require('./runtime/v1030').runtime
-            // case '1032':
-            // case '1033':
-            // case '1038':
-            // case '1039':
-            // case '1040':
-            // case '1042':
-            // case '1045':
-            //     return require('./runtime/v1032').runtime
+        case '1032':
+        case '1033':
+        case '1038':
+        case '1039':
+        case '1040':
+        case '1042':
+        case '1045':
+        default:
+            return require('./runtime/v1032').runtime
             // case '1050':
             // case '1051':
             // case '1052':

@@ -65,7 +65,20 @@ export interface Exposure {
     others: IndividualExposure[]
 }
 
+export interface StakingLedger {
+    stash: Uint8Array
+    total: bigint
+    active: bigint
+    unlocking: UnlockChunk[]
+    lastReward: (number | undefined)
+}
+
 export interface IndividualExposure {
     who: Uint8Array
     value: bigint
+}
+
+export interface UnlockChunk {
+    value: bigint
+    era: number
 }

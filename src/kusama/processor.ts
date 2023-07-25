@@ -27,6 +27,9 @@ export const processor = new SubstrateBatchProcessor()
     .addEvent('Session.NewSession', {
         data: {event: eventData},
     })
+    .addEvent('Staking.Slash', {
+        data: {event: eventData},
+    })
     .addEvent('Staking.Reward', {
         data: {event: eventData},
     })

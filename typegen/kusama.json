@@ -54,7 +54,9 @@
         "Staking.CurrentEraStartSessionIndex",
         "Staking.ErasStakers",
         "Staking.ForceEra",
-        "Staking.Stakers"
+        "Staking.Stakers",
+        "Staking.CurrentEraPointsEarned",
+        "Staking.Ledger"
     ],
     "constants": [
         "Staking.BondingDuration",

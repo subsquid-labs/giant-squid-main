@@ -1,7 +1,6 @@
 import assert from 'assert'
 import {
     Account,
-    BondType,
     StakingEra,
     StakingEraNomination,
     StakingEraNominator,
@@ -16,6 +15,7 @@ import {
     StakingData,
     ValidatorData,
     NominatorData,
+    StakingSlash,
 } from '@gs/model'
 import {Action, ActionContext, Awaitable} from './action'
 
@@ -55,10 +55,38 @@ export class RewardAction extends Action<RewardData> {
     }
 }
 
+export interface SlashData {
+    id: string
+    amount: bigint
+    account: () => Awaitable<Account | undefined>
+    staker: () => Awaitable<Staker>
+}
+
+export class SlashAction extends Action<SlashData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const staker = await this.data.staker()
+        const account = await this.data.account()
+
+        const slash = new StakingSlash({
+            id: this.data.id,
+            blockNumber: this.block.height,
+            timestamp: new Date(this.block.timestamp),
+            extrinsicHash: this.extrinsic?.hash,
+            account,
+            staker,
+            amount: this.data.amount,
+        })
+
+        staker.totalSlash += slash.amount
+
+        await ctx.store.insert(slash)
+        await ctx.store.upsert(staker)
+    }
+}
+
 export interface BondData {
     id: string
     amount: bigint
-    type: BondType
     staker: () => Awaitable<Staker>
     account: () => Awaitable<Account>
 }
@@ -76,20 +104,9 @@ export class BondAction extends Action<BondData> {
             staker,
             account,
             amount: this.data.amount,
-            type: this.data.type,
         })
 
-        switch (this.data.type) {
-            case BondType.Bond:
-            case BondType.Reward:
-                staker.activeBond += this.data.amount
-                break
-            case BondType.Unbond:
-                staker.activeBond -= this.data.amount
-                break
-            default:
-                throw new Error(`Unexpected bond type: ${this.data.type}`)
-        }
+        staker.activeBond += this.data.amount
 
         await ctx.store.insert(bond)
         await ctx.store.upsert(staker)
@@ -178,6 +195,7 @@ export interface NewEraNominatorData {
     id: string
     era: () => Awaitable<StakingEra>
     staker: () => Awaitable<Staker>
+    bonded: bigint
 }
 
 export class NewEraNominatorAction extends Action<NewEraNominatorData> {
@@ -190,8 +208,14 @@ export class NewEraNominatorAction extends Action<NewEraNominatorData> {
             era,
             staker,
             eraReward: 0n,
-            bonded: 0n,
+            bonded: this.data.bonded,
         })
+
+        if (nominator.bonded != staker.activeBond) {
+            ctx.log.warn(`Staker bonded value noq equal value in storage (${staker.activeBond}, ${nominator.bonded})`)
+            staker.activeBond = nominator.bonded
+            await ctx.store.upsert(staker)
+        }
 
         await ctx.store.insert(nominator)
 
@@ -242,7 +266,9 @@ export class EnsureStakerAction extends Action<EnsureStakerData> {
             id: this.data.id,
             stash,
             activeBond: 0n,
+            totalBond: 0n,
             totalReward: 0n,
+            totalSlash: 0n,
             payeeType: PayeeType.None,
             role: StakingRole.Unknown,
         })
@@ -395,6 +421,21 @@ export class CreateUnlockChunkAction extends Action<CreateUnlockChunkData> {
         })
 
         await ctx.store.insert(chunk)
+    }
+}
+
+export interface UpdateUnlockChunkData {
+    chunk: () => Awaitable<StakingUnlockChunk>
+    value: bigint
+}
+
+export class UpdateUnlockChunkAction extends Action<UpdateUnlockChunkData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const chunk = await this.data.chunk()
+
+        chunk.amount = this.data.value
+
+        await ctx.store.upsert(chunk)
     }
 }
 

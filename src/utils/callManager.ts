@@ -1,19 +1,20 @@
 import { Chain } from "@subsquid/substrate-processor/lib/chain";
 import assert from "assert";
 import { createHash } from "crypto";
+import * as storage from "@subsquid/substrate-processor/lib/util/storage"
 
 // TODO: write context type
 type Context = any
 
 type Block = string
-type Request<Args extends any[]> = [string, any, ...Args]
-type BatchRequest = [Request<any[]>, ...Request<any[]>[]]
-type Cache = Map<string, any[]>
+type CallArgs<Args extends any[]> = [string, string, ...Args]
+type BatchCallArgs = [CallArgs<any[]>, ...CallArgs<any[]>[]]
+type CallResult = any[]
 
 export class CallCache {
     private static managers: WeakMap<Chain, CallCache> = new WeakMap()
-    private deferred: Map<Block, BatchRequest> = new Map()
-    private cache: Map<Block, Cache> = new Map()
+    private deferred: Map<Block, BatchCallArgs> = new Map()
+    private cache: Map<Block, Map<string, CallResult>> = new Map()
 
     static get(ctx: Context): CallCache {
         let manager = this.managers.get(ctx._chain)
@@ -27,7 +28,7 @@ export class CallCache {
 
     private constructor(private chain: Chain) {}
 
-    defer<Args extends any[]>(block: Block, req: Request<Args>) {
+    defer<Args extends any[]>(block: Block, req: CallArgs<Args>) {
         let _deferred = this.deferred.get(block)
         if (_deferred == null) {
             this.deferred.set(block, [req])
@@ -38,7 +39,7 @@ export class CallCache {
         return new CallDeferredValue(this, block, req)
     }
 
-    async call<Args extends any[], R>(block: Block, req: Request<Args>): Promise<R> {
+    async call<Args extends any[], R>(block: Block, req: CallArgs<Args>): Promise<R> {
         await this.load(block)
 
         const hash = createRequestHash(req)
@@ -54,23 +55,20 @@ export class CallCache {
         return res as R
     }
 
-    async batchCall<Batch extends BatchRequest>(block: Block, batch: Batch): Promise<any[]> {
-        const client = this.chain.client;
+    async batchCall<Batch extends BatchCallArgs>(block: Block, batch: Batch): Promise<any[]> {
+        const hashes = batch.map(createRequestHash)
 
-        const rawHashes = batch.map(createRequestHash)
-        const calls = new Map<string, Request<any[]>>()
-        for (let i = 0; i < batch.length; i++) {
-            calls.set(rawHashes[i], batch[i])
-        }
-
-        // TODO: make batches from request method and keys
-        const response = new Map<string, any[]>
-        for (let [key, value] of calls) {
-            response.set(key, await client.call(value[0], value[2]))
+        const response = new Map<string, CallResult>
+        {
+            let i = 0
+            for (let call of batch) {
+                response.set(hashes[i], await this.chain.queryStorage(block, ...call))
+                i++
+            }
         }
 
         for (let i = 0; i < batch.length; i++) {
-            const hash = rawHashes[i]
+            const hash = hashes[i]
             const result = response.get(hash)
             assert(result != null)
 
@@ -93,21 +91,15 @@ export class CallCache {
     }
 }
 
-function createRequestHash(req: Request<any[]>) {
-    let [method, fieldArgs, ...keyList] = req;
+function createRequestHash(req: CallArgs<any[]>) {
+    let [prefix, name, ...keys] = req;
     const hash = createHash('sha256')
-    hash.update(
-        JSON.stringify({
-            method,
-            fieldArgs,
-            keyList
-        })
-    )
-    return hash.digest().toString('hex')
+    hash.update(JSON.stringify({keys}))
+    return storage.getNameHash(prefix) + storage.getNameHash(name) + hash.digest().toString('hex')
 }
 
 export class CallDeferredValue<T> {
-    constructor(private manager: CallCache, private block: Block, private opts: Request<any[]>) {}
+    constructor(private manager: CallCache, private block: Block, private opts: CallArgs<any[]>) {}
 
     async get(): Promise<T> {
         return this.manager.call(this.block, this.opts)

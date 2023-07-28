@@ -1,5 +1,12 @@
 import {lookupArchive} from '@subsquid/archive-registry'
-import {DataHandlerContext, BatchProcessorItem, SubstrateBatchProcessor} from '@subsquid/substrate-processor'
+import {
+    DataHandlerContext,
+    BatchProcessorItem,
+    SubstrateBatchProcessor,
+    BatchProcessorCallItem,
+    BatchProcessorEventItem,
+    SubstrateBlock,
+} from '@subsquid/substrate-processor'
 
 const extrinsicData = {
     hash: true,
@@ -107,5 +114,24 @@ export const processor = new SubstrateBatchProcessor()
         // to: 277_710,
     })
 
+type Simplify<T> = {[K in keyof T]: T[K]} & {}
+type RemoveWildcard<T> = Exclude<T, {name: '*'}>
 export type Item = BatchProcessorItem<typeof processor>
+export type EventItem = RemoveWildcard<BatchProcessorEventItem<typeof processor>>
+export type CallItem = RemoveWildcard<BatchProcessorCallItem<typeof processor>>
 export type ProcessorContext<Store> = DataHandlerContext<Store, Item>
+
+export type Call = Simplify<
+    Omit<CallItem['call'], 'name'> & {
+        name: string
+    }
+>
+export type Extrinsic = Simplify<CallItem['extrinsic']>
+export type Event = Simplify<
+    Omit<EventItem['event'], 'name' | 'call' | 'extrinsic'> & {
+        name: string
+        call?: Call
+        extrinsic?: Extrinsic
+    }
+>
+export type Block = SubstrateBlock

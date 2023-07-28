@@ -20,7 +20,7 @@ import * as system from './system'
 
 export interface Config extends system.Config {}
 
-export const pallet = new Pallet<Config>()
+export class PalletIdentity<C extends Config = Config> extends Pallet<C> {}
 
 export class Data extends Enum<metadata.Data> implements InstanceType<Serialize<string | undefined>> {
     constructor(value: metadata.Data) {
@@ -109,7 +109,7 @@ export class IdentityInfo {
     }
 }
 
-export class SetSubsCallMapper extends CallMapper<typeof pallet> {
+export class SetSubsCallMapper extends CallMapper<PalletIdentity> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
@@ -151,7 +151,7 @@ export class SetSubsCallMapper extends CallMapper<typeof pallet> {
     }
 }
 
-export class ProvideJudgmentCallMapper extends CallMapper<typeof pallet> {
+export class ProvideJudgmentCallMapper extends CallMapper<PalletIdentity> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
@@ -196,7 +196,7 @@ export class ProvideJudgmentCallMapper extends CallMapper<typeof pallet> {
     }
 }
 
-export class SetIdentityCallMapper extends CallMapper<typeof pallet> {
+export class SetIdentityCallMapper extends CallMapper<PalletIdentity> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         if (!item.call.success) return
 
@@ -247,13 +247,7 @@ export class SetIdentityCallMapper extends CallMapper<typeof pallet> {
     }
 }
 
-pallet.calls = {
-    set_subs: new SetSubsCallMapper(pallet),
-    provide_judgment: new ProvideJudgmentCallMapper(pallet),
-    set_identity: new SetIdentityCallMapper(pallet),
-}
-
-export class IdentityClearEventMapper extends EventMapper<typeof pallet> {
+export class IdentityClearEventMapper extends EventMapper<PalletIdentity> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new IdentityIdentityClearedEvent(ctx, item.event).asV1030
 
@@ -282,7 +276,7 @@ export class IdentityClearEventMapper extends EventMapper<typeof pallet> {
     }
 }
 
-export class IdentityKillEventMapper extends EventMapper<typeof pallet> {
+export class IdentityKillEventMapper extends EventMapper<PalletIdentity> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new IdentityIdentityKilledEvent(ctx, item.event).asV1030
 
@@ -314,7 +308,17 @@ export class IdentityKillEventMapper extends EventMapper<typeof pallet> {
     }
 }
 
+const pallet = new PalletIdentity()
+
+pallet.calls = {
+    set_subs: new SetSubsCallMapper(pallet),
+    provide_judgment: new ProvideJudgmentCallMapper(pallet),
+    set_identity: new SetIdentityCallMapper(pallet),
+}
+
 pallet.events = {
     IdentityClear: new IdentityClearEventMapper(pallet),
     IdentityKill: new IdentityKillEventMapper(pallet),
 }
+
+export default pallet

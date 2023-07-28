@@ -3,4 +3,6 @@ import {Config} from '../../v1020/pallet/system'
 
 export {Config}
 
-export const pallet = new Pallet<Config>()
+const pallet = new Pallet<Config>()
+
+export default pallet

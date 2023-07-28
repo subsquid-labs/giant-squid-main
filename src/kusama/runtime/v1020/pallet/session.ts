@@ -18,7 +18,6 @@ export class SessionPallet extends Pallet<Config> {
         this.handlers.newSession.push(handlers.newSession)
     }
 
-    
     newSession(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number) {
         for (const handler of this.handlers.newSession) {
             handler(ctx, block, sessionIndex)
@@ -26,15 +25,17 @@ export class SessionPallet extends Pallet<Config> {
     }
 }
 
-export const pallet = new SessionPallet()
-
-export class NewSessionEventMapper extends EventMapper<typeof pallet> {
+export class NewSessionEventMapper extends EventMapper<SessionPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new SessionNewSessionEvent(ctx, item.event).asV1020
         this.pallet.newSession(ctx, block, data)
     }
 }
 
-pallet.events = {
-    NewSession: new NewSessionEventMapper(pallet),
+const pallet_session = new SessionPallet()
+
+pallet_session.events = {
+    NewSession: new NewSessionEventMapper(pallet_session),
 }
+
+export default pallet_session

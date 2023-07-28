@@ -4,7 +4,6 @@ import {SubstrateBlock} from '@subsquid/substrate-processor'
 import {TypeormDatabase} from '@subsquid/typeorm-store'
 import {Runtime} from './interfaces'
 import {processor} from './processor'
-import {StakingCurrentEraStorage} from '@metadata/kusama/storage'
 
 export function getRuntime(block: SubstrateBlock): Runtime {
     const version = block.specId.split('@')[1]

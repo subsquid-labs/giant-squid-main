@@ -1,24 +1,26 @@
 import {BlockData, decodeHex, SubstrateBlock, toHex} from '@subsquid/substrate-processor'
 import {encode, decode, registry} from '@subsquid/ss58'
-import {chain} from '../chain'
+// import {chain} from '../chain'
 
 export function encodeAddress(address: Uint8Array) {
-    if (chain.config.prefix) {
-        return encode({
-            bytes: address,
-            prefix: chain.config.prefix,
-        })
-    } else {
-        return toHex(address)
-    }
+    // if (chain.config.prefix) {
+    //     return encode({
+    //         bytes: address,
+    //         prefix: chain.config.prefix,
+    //     })
+    // } else {
+    //     return toHex(address)
+    // }
+    throw new Error()
 }
 
 export function decodeAddress(address: string) {
-    if (chain.config.prefix) {
-        return decode(address).bytes
-    } else {
-        return Uint8Array.from(decodeHex(address))
-    }
+    // if (chain.config.prefix) {
+    //     return decode(address).bytes
+    // } else {
+    //     return Uint8Array.from(decodeHex(address))
+    // }
+    throw new Error()
 }
 
 export function getOriginAccountId(origin: any): Uint8Array | undefined {

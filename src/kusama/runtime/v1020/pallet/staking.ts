@@ -38,7 +38,7 @@ import * as MathBI from 'extra-bigint'
 import {getOriginAccountId} from '../../../../utils/misc'
 import {CallItem, CallMapper, Enum, EventItem, EventMapper, MappingContext, Pallet} from '../../../interfaces'
 import {Address} from '../primitive'
-import * as session from './session'
+import pallet_session from './session'
 import * as system from './system'
 
 export class RewardDestination extends Enum<metadata.RewardDestination> {}
@@ -46,7 +46,7 @@ export class Forcing extends Enum<metadata.Forcing> {}
 
 export interface Config extends system.Config {}
 
-export class StakingPallet extends Pallet<Config> {
+export class StakingPallet<C extends Config = Config> extends Pallet<C> {
     newSession(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number) {
         ctx.queue
             .setBlock(block)
@@ -201,9 +201,7 @@ export class StakingPallet extends Pallet<Config> {
     // }
 }
 
-export const pallet = new StakingPallet()
-
-export class BondCallMapper extends CallMapper<typeof pallet> {
+export class BondCallMapper extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingBondCall(ctx, item.call).asV1020
 
@@ -278,7 +276,7 @@ export class BondCallMapper extends CallMapper<typeof pallet> {
     }
 }
 
-export class BondExtraCall extends CallMapper<typeof pallet> {
+export class BondExtraCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingBondExtraCall(ctx, item.call).asV1020
 
@@ -302,7 +300,7 @@ export class BondExtraCall extends CallMapper<typeof pallet> {
     }
 }
 
-export class UnbondCall extends CallMapper<typeof pallet> {
+export class UnbondCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingUnbondCall(ctx, item.call).asV1020
 
@@ -345,7 +343,7 @@ export class UnbondCall extends CallMapper<typeof pallet> {
     }
 }
 
-export class ForceUnstakeCall extends CallMapper<typeof pallet> {
+export class ForceUnstakeCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingForceUnstakeCall(ctx, item.call).asV1020
 
@@ -373,7 +371,7 @@ export class ForceUnstakeCall extends CallMapper<typeof pallet> {
     }
 }
 
-export class WithdrawUnbondedCall extends CallMapper<typeof pallet> {
+export class WithdrawUnbondedCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingWithdrawUnbondedCall(ctx, item.call).asV1020
 
@@ -415,7 +413,7 @@ export class WithdrawUnbondedCall extends CallMapper<typeof pallet> {
     }
 }
 
-export class SetControllerCall extends CallMapper<typeof pallet> {
+export class SetControllerCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingSetControllerCall(ctx, item.call).asV1020
 
@@ -444,7 +442,7 @@ export class SetControllerCall extends CallMapper<typeof pallet> {
     }
 }
 
-export class SetPayeeCall extends CallMapper<typeof pallet> {
+export class SetPayeeCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingSetPayeeCall(ctx, item.call).asV1020
 
@@ -516,7 +514,7 @@ export class SetPayeeCall extends CallMapper<typeof pallet> {
     }
 }
 
-export class ValidateCall extends CallMapper<typeof pallet> {
+export class ValidateCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingValidateCall(ctx, item.call).asV1020
 
@@ -548,7 +546,7 @@ export class ValidateCall extends CallMapper<typeof pallet> {
 
 // const brokenNominations = ['0000009689-000006-72916-000001', '0000278674-000003-913cb', '0000318994-000003-7205c']
 
-export class NominateCall extends CallMapper<typeof pallet> {
+export class NominateCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingNominateCall(ctx, item.call).asV1020
 
@@ -586,7 +584,7 @@ export class NominateCall extends CallMapper<typeof pallet> {
     }
 }
 
-export class ChillCall extends CallMapper<typeof pallet> {
+export class ChillCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingChillCall(ctx, item.call).asV1020
 
@@ -616,13 +614,19 @@ export class ChillCall extends CallMapper<typeof pallet> {
     }
 }
 
-export class RewardEvent extends EventMapper<typeof pallet> {
+export class RewardEvent extends EventMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new StakingRewardEvent(ctx, item.event).asV1020
+
+        // ctx.queue.lazy(async () => {
+        //     const era = await ctx.store.getOrFail(StakingEra, {where: {}, order: {index: 'DESC'}})
+
+        //     ctx.queue.add()
+        // })
     }
 }
 
-export class SlashEvent extends EventMapper<typeof pallet> {
+export class SlashEvent extends EventMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new StakingSlashEvent(ctx, item.event).asV1020
 
@@ -683,45 +687,49 @@ export class SlashEvent extends EventMapper<typeof pallet> {
     }
 }
 
-// export class ForceNoErasCall extends CallMapper<typeof pallet> {
+// export class ForceNoErasCall extends CallMapper<StakingPallet> {
 //     handle(ctx: MappingContext<StoreWithCache>): void {
 //         pallet.setForceEra(ctx, new Forcing({__kind: 'ForceNone'}))
 //     }
 // }
 
-// export class ForceNewEraCall extends CallMapper<typeof pallet> {
+// export class ForceNewEraCall extends CallMapper<StakingPallet> {
 //     handle(ctx: MappingContext<StoreWithCache>): void {
 //         pallet.setForceEra(ctx, new Forcing({__kind: 'ForceNew'}))
 //     }
 // }
 
-// export class ForceNewEraAlwaysCall extends CallMapper<typeof pallet> {
+// export class ForceNewEraAlwaysCall extends CallMapper<StakingPallet> {
 //     handle(ctx: MappingContext<StoreWithCache>): void {
 //         pallet.setForceEra(ctx, new Forcing({__kind: 'ForceAlways'}))
 //     }
 // }
 
-pallet.calls = {
-    bond: new BondCallMapper(pallet, true),
-    bond_extra: new BondExtraCall(pallet, true),
-    unbond: new UnbondCall(pallet, true),
-    withdraw_unbonded: new WithdrawUnbondedCall(pallet, true),
-    force_unstake: new ForceUnstakeCall(pallet, true),
-    set_controller: new SetControllerCall(pallet, true),
-    set_payee: new SetPayeeCall(pallet, true),
-    validate: new ValidateCall(pallet, true),
-    nominate: new NominateCall(pallet, true),
-    chill: new ChillCall(pallet, true),
+const pallet_staking = new StakingPallet()
+
+pallet_staking.calls = {
+    bond: new BondCallMapper(pallet_staking, true),
+    bond_extra: new BondExtraCall(pallet_staking, true),
+    unbond: new UnbondCall(pallet_staking, true),
+    withdraw_unbonded: new WithdrawUnbondedCall(pallet_staking, true),
+    force_unstake: new ForceUnstakeCall(pallet_staking, true),
+    set_controller: new SetControllerCall(pallet_staking, true),
+    set_payee: new SetPayeeCall(pallet_staking, true),
+    validate: new ValidateCall(pallet_staking, true),
+    nominate: new NominateCall(pallet_staking, true),
+    chill: new ChillCall(pallet_staking, true),
     // force_no_eras: new ForceNoErasCall(pallet, true),
     // force_new_era: new ForceNewEraCall(pallet, true),
     // force_new_era_always: new ForceNewEraAlwaysCall(pallet, true),
 }
 
-pallet.events = {
-    Reward: new RewardEvent(pallet),
-    Slash: new SlashEvent(pallet),
+pallet_staking.events = {
+    Reward: new RewardEvent(pallet_staking),
+    Slash: new SlashEvent(pallet_staking),
 }
 
-session.pallet.sessionManager = {
-    newSession: (...args) => pallet.newSession(...args),
+pallet_session.sessionManager = {
+    newSession: (...args) => pallet_staking.newSession(...args),
 }
+
+export default pallet_staking

@@ -149,6 +149,20 @@ export class EndEraAction extends Action<EndEraData> {
         await ctx.store.upsert(era)
     }
 }
+export interface SetEraRewardData {
+    era: () => Awaitable<StakingEra>
+    reward: bigint
+}
+
+export class SetEraRewardAction extends Action<SetEraRewardData> {
+    protected async _perform(ctx: ActionContext): Promise<void> {
+        const era = await this.data.era()
+
+        era.status = StakingEraStatus.Ended
+
+        await ctx.store.upsert(era)
+    }
+}
 
 export interface NewEraValidatorData {
     id: string

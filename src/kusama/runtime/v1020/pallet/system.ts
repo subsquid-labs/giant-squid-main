@@ -6,4 +6,8 @@ export interface Config {
     Lookup: StaticLookup<Address, InstanceType<Config['AccountId']>>
 }
 
-export const pallet = new Pallet<Config>()
+export class PalletSystem<C extends Config> extends Pallet<C> {}
+
+const pallet_system = new PalletSystem()
+
+export default pallet_system

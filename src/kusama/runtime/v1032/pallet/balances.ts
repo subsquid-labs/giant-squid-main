@@ -1,9 +1,8 @@
-import {Pallet} from '../../../interfaces'
-import {Config, TransferEventMapper} from '../../v1030/pallet/balances'
+import {Config, TransferEventMapper, PalletBalances} from '../../v1030/pallet/balances'
 
-export {Config, TransferEventMapper}
+export {Config, TransferEventMapper, PalletBalances}
 
-export const pallet = new Pallet<Config>()
+export const pallet = new PalletBalances<Config>()
 
 pallet.events = {
     Transfer: new TransferEventMapper(pallet),

@@ -1,6 +1,10 @@
 import {Runtime} from '../../interfaces'
+import pallet_balances from './pallet/balances'
+import pallet_indecies from './pallet/indecies'
+import pallet_session from './pallet/session'
+import pallet_staking from './pallet/staking'
+import pallet_system from './pallet/system'
 import {AccountId32} from './primitive'
-import {pallet_balances, pallet_session, pallet_indecies, pallet_staking, pallet_system} from './pallet'
 
 const prefix = 2
 

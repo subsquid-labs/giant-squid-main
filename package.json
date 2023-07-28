@@ -5,7 +5,7 @@
     "node": ">=16"
   },
   "scripts": {
-    "build": "rm -rf lib && tsc"
+    "build": "rm -rf lib && tsc && tsc-alias"
   },
   "dependencies": {
     "@belopash/squid-tools": "^0.2.0",

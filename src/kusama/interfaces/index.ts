@@ -1,26 +1,12 @@
 import {StoreWithCache} from '@belopash/squid-tools'
 import {ActionQueue} from '@gs/action'
 import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
-import {
-    CallItem as _CallItem,
-    EventItem as _EventItem,
-} from '@subsquid/substrate-processor/lib/interfaces/data-selection'
 import assert from 'assert'
+import {CallItem, EventItem} from '../processor'
+
+export {CallItem, EventItem}
 
 export type MappingContext<Store> = Omit<DataHandlerContext<Store, unknown>, 'blocks'> & {queue: ActionQueue}
-
-export type EventItem = _EventItem<
-    string,
-    {
-        event: {
-            name: string
-            args: true
-            extrinsic: {
-                hash: true
-            }
-        }
-    }
->
 
 export abstract class EventMapper<P extends Pallet<any>> {
     constructor(protected pallet: P) {}
@@ -31,20 +17,6 @@ export abstract class EventMapper<P extends Pallet<any>> {
 
     abstract handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void
 }
-
-export type CallItem = _CallItem<
-    string,
-    {
-        call: {
-            name: string
-            args: true
-            origin: true
-        }
-        extrinsic: {
-            hash: true
-        }
-    }
->
 
 export abstract class CallMapper<P extends Pallet<any>> {
     constructor(protected pallet: P, readonly result?: boolean) {}
@@ -94,3 +66,4 @@ export interface Runtime {
 }
 
 export * from './types'
+export {Call, Event, Block, Extrinsic} from '../processor'

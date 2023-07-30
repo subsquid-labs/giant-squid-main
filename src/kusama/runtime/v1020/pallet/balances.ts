@@ -7,25 +7,6 @@ import * as pallet_system from './system'
 
 export interface Config extends pallet_system.Config {}
 
-export class TransferEventMapper extends EventMapper<PalletBalances> {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
-        const data = new BalancesTransferEvent(ctx, item.event).asV1020
-
-        const from = new this.config.AccountId(data[0])
-        const to = new this.config.AccountId(data[1])
-
-        this.pallet.transfer(ctx, {
-            block,
-            extrinsic: item.event.extrinsic,
-            id: item.event.id,
-            from,
-            to,
-            amount: data[2],
-            success: true,
-        })
-    }
-}
-
 export class PalletBalances<C extends Config = Config> extends Pallet<C> {
     transfer(
         ctx: MappingContext<StoreWithCache>,
@@ -42,29 +23,57 @@ export class PalletBalances<C extends Config = Config> extends Pallet<C> {
         const fromId = data.from.format()
         const toId = data.to.format()
 
-        const from = ctx.store.defer(Account, fromId)
-        const to = ctx.store.defer(Account, toId)
+        const fromDeferred = ctx.store.defer(Account, fromId)
+        const toDeferred = ctx.store.defer(Account, toId)
 
         ctx.queue
             .setBlock(data.block)
             .setExtrinsic(data.extrinsic)
-            .add('account_ensure', {
-                account: () => from.get(),
-                id: fromId,
-                publicKey: data.from.serialize(),
+            .lazy(async () => {
+                const from = fromDeferred.get()
+                if (from == null) {
+                    ctx.queue.add('account_create', {
+                        id: fromId,
+                        publicKey: data.from.serialize(),
+                    })
+                }
+
+                const to = toDeferred.get()
+                if (to == null) {
+                    ctx.queue.add('account_create', {
+                        id: toId,
+                        publicKey: data.to.serialize(),
+                    })
+                }
             })
-            .add('account_ensure', {
-                account: () => to.get(),
-                id: toId,
-                publicKey: data.to.serialize(),
+            .lazy(async () => {
+                ctx.queue.add('balances_transfer', {
+                    id: data.id,
+                    fromId,
+                    toId,
+                    amount: data.amount,
+                    success: data.success,
+                })
             })
-            .add('balances_transfer', {
-                id: data.id,
-                from: () => from.getOrFail(),
-                to: () => to.getOrFail(),
-                amount: data.amount,
-                success: data.success,
-            })
+    }
+}
+
+export class TransferEventMapper extends EventMapper<PalletBalances> {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
+        const data = new BalancesTransferEvent(ctx, item.event).asV1020
+
+        const from = new this.config.AccountId(data[0])
+        const to = new this.config.AccountId(data[1])
+
+        this.pallet.transfer(ctx, {
+            block,
+            extrinsic: item.event.extrinsic,
+            id: item.event.id,
+            from,
+            to,
+            amount: data[2],
+            success: true,
+        })
     }
 }
 

@@ -1,4 +1,4 @@
-import {UnknownVersionError} from '../../../../utils'
+import {UnknownVersionError} from '@gs/util/errors'
 import {StakingRewardedEvent, StakingRewardEvent} from '../../types/events'
 import {ChainContext, Event} from '../../types/support'
 

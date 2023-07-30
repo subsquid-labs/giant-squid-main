@@ -84,7 +84,7 @@ export class BalancesTransferAllCall {
      * 
      * NOTE: This function only attempts to transfer _transferable_ balances. This means that
      * any locked, reserved, or existential deposits (when `keep_alive` is `true`), will not be
-     * transferred by this function. To ensure that this function results in a killed account,
+     * transferred by this function. To create that this function results in a killed account,
      * you might need to prepare the account by removing any reference counters, storage
      * deposits, etc...
      * 
@@ -105,7 +105,7 @@ export class BalancesTransferAllCall {
      * 
      * NOTE: This function only attempts to transfer _transferable_ balances. This means that
      * any locked, reserved, or existential deposits (when `keep_alive` is `true`), will not be
-     * transferred by this function. To ensure that this function results in a killed account,
+     * transferred by this function. To create that this function results in a killed account,
      * you might need to prepare the account by removing any reference counters, storage
      * deposits, etc...
      * 

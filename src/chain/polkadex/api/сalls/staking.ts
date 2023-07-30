@@ -1,4 +1,4 @@
-import {UnknownVersionError} from '../../../../utils'
+import {UnknownVersionError} from '@gs/util/errors'
 import {StakingPayoutStakersCall} from '../../types/calls'
 import {Call, ChainContext} from '../../types/support'
 

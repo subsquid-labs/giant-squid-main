@@ -98,7 +98,7 @@ export class BalancesTransferCall {
      * 
      *  Related functions:
      * 
-     *    - `ensure_can_withdraw` is always called internally but has a bounded complexity.
+     *    - `create_can_withdraw` is always called internally but has a bounded complexity.
      *    - Transferring balances to accounts that did not exist before will cause
      *       `T::OnNewAccount::on_new_account` to be called.
      *    - Removing enough funds from an account will trigger `T::DustRemoval::on_unbalanced`.
@@ -131,7 +131,7 @@ export class BalancesTransferCall {
      * 
      *  Related functions:
      * 
-     *    - `ensure_can_withdraw` is always called internally but has a bounded complexity.
+     *    - `create_can_withdraw` is always called internally but has a bounded complexity.
      *    - Transferring balances to accounts that did not exist before will cause
      *       `T::OnNewAccount::on_new_account` to be called.
      *    - Removing enough funds from an account will trigger `T::DustRemoval::on_unbalanced`.
@@ -166,7 +166,7 @@ export class BalancesTransferCall {
      * 
      * Related functions:
      * 
-     *   - `ensure_can_withdraw` is always called internally but has a bounded complexity.
+     *   - `create_can_withdraw` is always called internally but has a bounded complexity.
      *   - Transferring balances to accounts that did not exist before will cause
      *     `T::OnNewAccount::on_new_account` to be called.
      *   - Removing enough funds from an account will trigger `T::DustRemoval::on_unbalanced`.
@@ -198,7 +198,7 @@ export class BalancesTransferCall {
      * 
      * Related functions:
      * 
-     *   - `ensure_can_withdraw` is always called internally but has a bounded complexity.
+     *   - `create_can_withdraw` is always called internally but has a bounded complexity.
      *   - Transferring balances to accounts that did not exist before will cause
      *     `T::OnNewAccount::on_new_account` to be called.
      *   - Removing enough funds from an account will trigger `T::DustRemoval::on_unbalanced`.
@@ -232,7 +232,7 @@ export class BalancesTransferAllCall {
      * 
      *  NOTE: This function only attempts to transfer _transferable_ balances. This means that
      *  any locked, reserved, or existential deposits (when `keep_alive` is `true`), will not be
-     *  transferred by this function. To ensure that this function results in a killed account,
+     *  transferred by this function. To create that this function results in a killed account,
      *  you might need to prepare the account by removing any reference counters, storage
      *  deposits, etc...
      * 
@@ -256,7 +256,7 @@ export class BalancesTransferAllCall {
      * 
      *  NOTE: This function only attempts to transfer _transferable_ balances. This means that
      *  any locked, reserved, or existential deposits (when `keep_alive` is `true`), will not be
-     *  transferred by this function. To ensure that this function results in a killed account,
+     *  transferred by this function. To create that this function results in a killed account,
      *  you might need to prepare the account by removing any reference counters, storage
      *  deposits, etc...
      * 
@@ -281,7 +281,7 @@ export class BalancesTransferAllCall {
      * 
      * NOTE: This function only attempts to transfer _transferable_ balances. This means that
      * any locked, reserved, or existential deposits (when `keep_alive` is `true`), will not be
-     * transferred by this function. To ensure that this function results in a killed account,
+     * transferred by this function. To create that this function results in a killed account,
      * you might need to prepare the account by removing any reference counters, storage
      * deposits, etc...
      * 
@@ -304,7 +304,7 @@ export class BalancesTransferAllCall {
      * 
      * NOTE: This function only attempts to transfer _transferable_ balances. This means that
      * any locked, reserved, or existential deposits (when `keep_alive` is `true`), will not be
-     * transferred by this function. To ensure that this function results in a killed account,
+     * transferred by this function. To create that this function results in a killed account,
      * you might need to prepare the account by removing any reference counters, storage
      * deposits, etc...
      * 

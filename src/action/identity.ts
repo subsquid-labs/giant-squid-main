@@ -1,14 +1,14 @@
-import {Account, Identity, IdentityAdditionalField, IdentitySub, Judgement} from '../model'
+import {Account, Identity, IdentityAdditionalField, IdentitySub, Judgement} from '@gs/model'
 import {Action, ActionContext} from './action'
 
 export interface RenameIdentitySubData {
-    sub: () => Promise<IdentitySub>
+    subId: string
     name: string | undefined
 }
 
 export class RenameSubAction extends Action<RenameIdentitySubData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        const sub = await this.data.sub()
+    async perform(ctx: ActionContext): Promise<void> {
+        const sub = await ctx.store.getOrFail(IdentitySub, this.data.subId)
 
         sub.name = this.data.name
 
@@ -16,20 +16,16 @@ export class RenameSubAction extends Action<RenameIdentitySubData> {
     }
 }
 
-export interface EnsureIdentityData {
-    identity: () => Promise<Identity | undefined>
+export interface CreateIdentityData {
     id: string
-    account: () => Promise<Account>
+    accountId: string
 }
 
-export class EnsureIdentityAction extends Action<EnsureIdentityData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        let identity = await this.data.identity()
-        if (identity != null) return
+export class CreateIdentityAction extends Action<CreateIdentityData> {
+    async perform(ctx: ActionContext): Promise<void> {
+        const account = await ctx.store.getOrFail(Account, this.data.accountId)
 
-        const account = await this.data.account()
-
-        identity = new Identity({
+        const identity = new Identity({
             id: this.data.id,
             account,
             isKilled: false,
@@ -41,7 +37,7 @@ export class EnsureIdentityAction extends Action<EnsureIdentityData> {
 }
 
 export interface SetIdentityData {
-    identity: () => Promise<Identity>
+    identityId: string
     display: string | undefined
     email: string | undefined
     twitter: string | undefined
@@ -57,8 +53,8 @@ export interface SetIdentityData {
 }
 
 export class SetIdentityAction extends Action<SetIdentityData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        let identity = await this.data.identity()
+    async perform(ctx: ActionContext): Promise<void> {
+        const identity = await ctx.store.getOrFail(Identity, this.data.identityId)
 
         identity.display = this.data.display
         identity.email = this.data.email
@@ -75,13 +71,13 @@ export class SetIdentityAction extends Action<SetIdentityData> {
 }
 
 export interface GiveJudgementData {
-    identity: () => Promise<Identity>
+    identityId: string
     judgement: Judgement
 }
 
 export class GiveJudgementAction extends Action<GiveJudgementData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        const identity = await this.data.identity()
+    async perform(ctx: ActionContext): Promise<void> {
+        const identity = await ctx.store.getOrFail(Identity, this.data.identityId)
 
         identity.judgement = this.data.judgement
 
@@ -89,20 +85,16 @@ export class GiveJudgementAction extends Action<GiveJudgementData> {
     }
 }
 
-export interface EnsureIdentitySubData {
-    sub: () => Promise<IdentitySub | undefined>
-    account: () => Promise<Account>
+export interface CreateIdentitySubData {
     id: string
+    accountId: string
 }
 
-export class EnsureIdentitySubAction extends Action<EnsureIdentitySubData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        const account = await this.data.account()
+export class CreateIdentitySubAction extends Action<CreateIdentitySubData> {
+    async perform(ctx: ActionContext): Promise<void> {
+        const account = await ctx.store.getOrFail(Account, this.data.accountId)
 
-        let sub = await this.data.sub()
-        if (sub != null) return
-
-        sub = new IdentitySub({
+        const sub = new IdentitySub({
             id: this.data.id,
             account,
         })
@@ -112,15 +104,14 @@ export class EnsureIdentitySubAction extends Action<EnsureIdentitySubData> {
 }
 
 export interface AddIdentitySubData {
-    identity: () => Promise<Identity>
-    sub: () => Promise<IdentitySub>
+    identityId: string
+    subId: string
 }
 
 export class AddIdentitySubAction extends Action<AddIdentitySubData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        const identity = await this.data.identity()
-
-        let sub = await this.data.sub()
+    async perform(ctx: ActionContext): Promise<void> {
+        const identity = await ctx.store.getOrFail(Identity, this.data.identityId)
+        const sub = await ctx.store.getOrFail(IdentitySub, this.data.subId)
 
         sub.super = identity
 
@@ -129,12 +120,12 @@ export class AddIdentitySubAction extends Action<AddIdentitySubData> {
 }
 
 export interface ClearIdentityData {
-    identity: () => Promise<Identity>
+    identityId: string
 }
 
 export class ClearIdentityAction extends Action<ClearIdentityData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        const identity = await this.data.identity()
+    async perform(ctx: ActionContext): Promise<void> {
+        const identity = await ctx.store.getOrFail(Identity, this.data.identityId)
 
         identity.display = null
         identity.email = null
@@ -151,12 +142,12 @@ export class ClearIdentityAction extends Action<ClearIdentityData> {
 }
 
 export interface IdentityKilledData {
-    identity: () => Promise<Identity>
+    identityId: string
 }
 
 export class KillIdentityAction extends Action<IdentityKilledData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        const identity = await this.data.identity()
+    async perform(ctx: ActionContext): Promise<void> {
+        const identity = await ctx.store.getOrFail(Identity, this.data.identityId)
 
         identity.isKilled = true
 
@@ -165,12 +156,12 @@ export class KillIdentityAction extends Action<IdentityKilledData> {
 }
 
 export interface RemoveIdentitySubData {
-    sub: () => Promise<IdentitySub>
+    subId: string
 }
 
 export class RemoveIdentitySubAction extends Action<RemoveIdentitySubData> {
-    protected async _perform(ctx: ActionContext): Promise<void> {
-        const sub = await this.data.sub()
+    async perform(ctx: ActionContext): Promise<void> {
+        const sub = await ctx.store.getOrFail(IdentitySub, this.data.subId)
 
         sub.name = null
         sub.super = null

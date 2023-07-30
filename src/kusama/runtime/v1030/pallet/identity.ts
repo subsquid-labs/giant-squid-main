@@ -1,6 +1,6 @@
 import {StoreWithCache} from '@belopash/squid-tools'
 import {Account, Identity, IdentitySub, Judgement} from '@gs/model'
-import {getOriginAccountId} from '@gs/util'
+import {getOriginAccountId} from '@gs/util/misc'
 import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCall} from '@metadata/kusama/calls'
 import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '@metadata/kusama/events'
 import * as metadata from '@metadata/kusama/v1030'
@@ -118,33 +118,48 @@ export class SetSubsCallMapper extends CallMapper<PalletIdentity> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const identityId = new this.config.AccountId(origin)
-        const identity = ctx.store.defer(Identity, identityId.format())
+        const accountAddress = new this.config.AccountId(origin)
+        const accountId = accountAddress.format()
+        ctx.store.defer(Account, accountId)
+
+        const identityId = accountId
+        ctx.store.defer(Identity, identityId)
 
         ctx.queue.setBlock(block).setExtrinsic(item.extrinsic)
-        for (const subData of setSubsData.subs) {
-            const subId = new this.config.AccountId(subData[0])
-            const sub = ctx.store.defer(IdentitySub, subId.format())
 
-            const account = ctx.store.defer(Account, subId.format())
+        for (const subData of setSubsData.subs) {
+            const subAccountAddress = new this.config.AccountId(subData[0])
+
+            const subAccountId = subAccountAddress.format()
+            const subAccountDeferred = ctx.store.defer(Account, subAccountId)
+
+            const subId = subAccountId
+            const subDeferred = ctx.store.defer(IdentitySub, subId)
 
             ctx.queue
-                .add('account_ensure', {
-                    account: () => account.get(),
-                    id: subId.format(),
-                    publicKey: subId.serialize(),
-                })
-                .add('identity_ensureSub', {
-                    sub: () => sub.get(),
-                    account: () => account.getOrFail(),
-                    id: subId.format(),
+                .lazy(async () => {
+                    const sub = await subDeferred.get()
+                    if (sub == null) {
+                        const subAccount = await subAccountDeferred.get()
+                        if (subAccount == null) {
+                            ctx.queue.add('account_create', {
+                                id: subAccountId,
+                                publicKey: subAccountAddress.serialize(),
+                            })
+                        }
+
+                        ctx.queue.add('identity_createSub', {
+                            id: subId,
+                            accountId: subAccountId,
+                        })
+                    }
                 })
                 .add('identity_addSub', {
-                    identity: () => identity.getOrFail(),
-                    sub: () => sub.getOrFail(),
+                    identityId,
+                    subId,
                 })
                 .add('identity_renameSub', {
-                    sub: () => sub.getOrFail(),
+                    subId,
                     name: new Data(subData[1]).serialize(),
                 })
         }
@@ -158,8 +173,12 @@ export class ProvideJudgmentCallMapper extends CallMapper<PalletIdentity> {
         const judgementGivenData = new IdentityProvideJudgementCall(ctx, item.call).asV1030
         assert(judgementGivenData.target.__kind === 'AccountId')
 
-        const identityId = new this.config.AccountId(judgementGivenData.target.value)
-        const identity = ctx.store.defer(Identity, identityId.format(), {account: true})
+        const accountAddress = new this.config.AccountId(judgementGivenData.target.value)
+        const accountId = accountAddress.format()
+        const accountDeferred = ctx.store.defer(Account, accountId)
+
+        const identityId = accountId
+        const identityDeferred = ctx.store.defer(Identity, identityId)
 
         const judgement = new IdentityJudgement(judgementGivenData.judgement).match({
             Erroneous: () => Judgement.Erroneous,
@@ -175,22 +194,23 @@ export class ProvideJudgmentCallMapper extends CallMapper<PalletIdentity> {
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
             .lazy(async () => {
-                const account = ctx.store.defer(Account, identityId.format())
-
-                ctx.queue
-                    .add('account_ensure', {
-                        account: () => account.get(),
-                        id: identityId.format(),
-                        publicKey: identityId.serialize(),
-                    })
-                    .add('identity_ensure', {
-                        identity: () => identity.get(),
-                        account: () => account.getOrFail(),
-                        id: identityId.format(),
-                    })
+                const identity = await identityDeferred.get()
+                if (identity == null) {
+                    const account = await accountDeferred.get()
+                    if (account == null) {
+                        ctx.queue.add('account_create', {
+                            id: accountId,
+                            publicKey: accountAddress.serialize(),
+                        })
+                    }
+                }
+                ctx.queue.add('identity_create', {
+                    id: identityId,
+                    accountId,
+                })
             })
             .add('identity_judge', {
-                identity: () => identity.getOrFail(),
+                identityId,
                 judgement,
             })
     }
@@ -205,30 +225,40 @@ export class SetIdentityCallMapper extends CallMapper<PalletIdentity> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const identityId = new this.config.AccountId(origin)
-        const identity = ctx.store.defer(Identity, identityId.format())
-        const account = ctx.store.defer(Account, identityId.format())
+        const accountAddress = new this.config.AccountId(origin)
+        const accountId = accountAddress.format()
+        const accountDeferred = ctx.store.defer(Account, accountId)
+
+        const identityId = accountId
+        const identityDeferred = ctx.store.defer(Identity, identityId)
 
         const info = new IdentityInfo(identitySetData.info)
+
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
-            .add('account_ensure', {
-                account: () => account.get(),
-                id: identityId.format(),
-                publicKey: identityId.serialize(),
-            })
-            .add('identity_ensure', {
-                identity: () => identity.get(),
-                account: () => account.getOrFail(),
-                id: identityId.format(),
+            .lazy(async () => {
+                const identity = await identityDeferred.get()
+                if (identity == null) {
+                    const account = await accountDeferred.get()
+                    if (account == null) {
+                        ctx.queue.add('account_create', {
+                            id: accountId,
+                            publicKey: accountAddress.serialize(),
+                        })
+                    }
+                }
+                ctx.queue.add('identity_create', {
+                    id: identityId,
+                    accountId,
+                })
             })
             .add('identity_judge', {
-                identity: () => identity.getOrFail(),
+                identityId,
                 judgement: Judgement.Unknown,
             })
             .add('identity_set', {
-                identity: () => identity.getOrFail(),
+                identityId,
                 web: info.web.serialize(),
                 display: info.display.serialize(),
                 legal: info.legal.serialize(),
@@ -251,25 +281,26 @@ export class IdentityClearEventMapper extends EventMapper<PalletIdentity> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new IdentityIdentityClearedEvent(ctx, item.event).asV1030
 
-        const identityId = new this.config.AccountId(data[0]).format()
-        const identity = ctx.store.defer(Identity, identityId, {subs: true})
+        const accountId = new this.config.AccountId(data[0]).format()
+        const identityId = accountId
+        ctx.store.defer(Identity, identityId)
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.event.extrinsic)
             .add('identity_clear', {
-                identity: () => identity.getOrFail(),
+                identityId,
             })
             .add('identity_judge', {
-                identity: () => identity.getOrFail(),
+                identityId,
                 judgement: Judgement.Unknown,
             })
             .lazy(async () => {
-                const i = await identity.getOrFail()
+                const subs = await ctx.store.find(IdentitySub, {where: {super: {id: identityId}}})
 
-                for (const s of i.subs) {
+                for (const s of subs) {
                     ctx.queue.add('identity_removeSub', {
-                        sub: () => Promise.resolve(s),
+                        subId: s.id,
                     })
                 }
             })
@@ -280,30 +311,31 @@ export class IdentityKillEventMapper extends EventMapper<PalletIdentity> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new IdentityIdentityKilledEvent(ctx, item.event).asV1030
 
-        const identityId = new this.config.AccountId(data[0]).format()
-        const identity = ctx.store.defer(Identity, identityId, {subs: true})
+        const accountId = new this.config.AccountId(data[0]).format()
+        const identityId = accountId
+        ctx.store.defer(Identity, identityId, {subs: true})
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.event.extrinsic)
             .add('identity_clear', {
-                identity: () => identity.getOrFail(),
+                identityId,
             })
             .add('identity_judge', {
-                identity: () => identity.getOrFail(),
+                identityId,
                 judgement: Judgement.Unknown,
             })
             .lazy(async () => {
-                const i = await identity.getOrFail()
+                const subs = await ctx.store.find(IdentitySub, {where: {super: {id: identityId}}})
 
-                for (const s of i.subs) {
+                for (const s of subs) {
                     ctx.queue.add('identity_removeSub', {
-                        sub: () => Promise.resolve(s),
+                        subId: s.id,
                     })
                 }
             })
             .add('identity_kill', {
-                identity: () => identity.getOrFail(),
+                identityId,
             })
     }
 }

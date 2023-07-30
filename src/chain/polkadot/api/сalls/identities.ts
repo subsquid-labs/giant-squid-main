@@ -1,4 +1,4 @@
-import {DataNotDecodableError, UnknownVersionError} from '../../../../utils'
+import {DataNotDecodableError, UnknownVersionError} from '@gs/util/errors'
 import {IdentityClearIdentityCall} from '../../types/calls'
 import {
     IdentityAddSubCall,

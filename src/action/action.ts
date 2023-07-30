@@ -19,11 +19,5 @@ export abstract class Action<T = any> {
 
     constructor(readonly block: ActionBlock, readonly extrinsic: ActionExtrinsic | undefined, readonly data: T) {}
 
-    async perform(ctx: ActionContext): Promise<void> {
-        assert(!this.performed)
-        await this._perform(ctx)
-        this.performed = true
-    }
-
-    protected abstract _perform(ctx: ActionContext): Promise<void>
+    abstract perform(ctx: ActionContext): Promise<void>
 }

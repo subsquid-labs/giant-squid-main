@@ -1,6 +1,6 @@
 import {StoreWithCache} from '@belopash/squid-tools'
 import {Account, Identity, Judgement} from '@gs/model'
-import {getOriginAccountId} from '@gs/util'
+import {getOriginAccountId} from '@gs/util/misc'
 import {IdentitySetIdentityCall} from '@metadata/kusama/calls'
 import * as metadata from '@metadata/kusama/v1032'
 import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
@@ -44,37 +44,45 @@ export const pallet = new Pallet<Config>()
 
 export class SetIdentityCallMapper extends CallMapper<typeof pallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-        if (!item.call.success) return
-
         const identitySetData = new IdentitySetIdentityCall(ctx, item.call).asV1032
 
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const identityId = new this.config.AccountId(origin)
-        const identity = ctx.store.defer(Identity, identityId.format())
-        const account = ctx.store.defer(Account, identityId.format())
+        const accountAddress = new this.config.AccountId(origin)
+        const accountId = accountAddress.format()
+        const accountDeferred = ctx.store.defer(Account, accountId)
+
+        const identityId = accountId
+        const identityDeferred = ctx.store.defer(Identity, identityId)
 
         const info = new IdentityInfo(identitySetData.info)
+
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
-            .add('account_ensure', {
-                account: () => account.get(),
-                id: identityId.format(),
-                publicKey: identityId.serialize(),
-            })
-            .add('identity_ensure', {
-                identity: () => identity.get(),
-                account: () => account.getOrFail(),
-                id: identityId.format(),
+            .lazy(async () => {
+                const identity = await identityDeferred.get()
+                if (identity == null) {
+                    const account = await accountDeferred.get()
+                    if (account == null) {
+                        ctx.queue.add('account_create', {
+                            id: accountId,
+                            publicKey: accountAddress.serialize(),
+                        })
+                    }
+                }
+                ctx.queue.add('identity_create', {
+                    id: identityId,
+                    accountId,
+                })
             })
             .add('identity_judge', {
-                identity: () => identity.getOrFail(),
+                identityId,
                 judgement: Judgement.Unknown,
             })
             .add('identity_set', {
-                identity: () => identity.getOrFail(),
+                identityId,
                 web: info.web.serialize(),
                 display: info.display.serialize(),
                 legal: info.legal.serialize(),
@@ -94,7 +102,7 @@ export class SetIdentityCallMapper extends CallMapper<typeof pallet> {
 }
 
 pallet.calls = {
-    set_subs: new SetSubsCallMapper(pallet),
+    set_subs: new SetSubsCallMapper(pallet, true),
     provide_judgment: new ProvideJudgmentCallMapper(pallet, true),
     set_identity: new SetIdentityCallMapper(pallet, true),
 }

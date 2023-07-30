@@ -1,14 +1,7 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {
-    Account,
-    PayeeType,
-    Staker,
-    StakingEra,
-    StakingEraNominator,
-    StakingEraValidator,
-    StakingSlash,
-    StakingUnlockChunk,
-} from '@gs/model'
+import {Account, PayeeType, Staker, StakingEra, StakingUnlockChunk} from '@gs/model'
+import {createEraId, createEraNominationId, createEraStakerId} from '@gs/util/id'
+import {getOriginAccountId} from '@gs/util/misc'
 import {
     StakingBondCall,
     StakingBondExtraCall,
@@ -35,16 +28,15 @@ import * as metadata from '@metadata/kusama/v1020'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
 import assert from 'assert'
 import * as MathBI from 'extra-bigint'
-import {getOriginAccountId} from '../../../../utils/misc'
 import {CallItem, CallMapper, Enum, EventItem, EventMapper, MappingContext, Pallet} from '../../../interfaces'
 import {Address} from '../primitive'
 import pallet_session from './session'
-import * as system from './system'
+import * as pallet_system from './system'
 
 export class RewardDestination extends Enum<metadata.RewardDestination> {}
 export class Forcing extends Enum<metadata.Forcing> {}
 
-export interface Config extends system.Config {}
+export interface Config extends pallet_system.Config {}
 
 export class StakingPallet<C extends Config = Config> extends Pallet<C> {
     newSession(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number) {
@@ -82,24 +74,22 @@ export class StakingPallet<C extends Config = Config> extends Pallet<C> {
             .setBlock(block)
             .setExtrinsic(undefined)
             .lazy(async () => {
-                const currentEra = await new StakingCurrentEraStorage(ctx, block).asV1020.get()
+                const currentEraIndex = await new StakingCurrentEraStorage(ctx, block).asV1020.get()
 
                 const prevEra = await ctx.store.get(StakingEra, {where: {}, order: {index: 'DESC'}})
-                assert(prevEra?.index != currentEra)
+                assert(prevEra?.index == null || prevEra.index < currentEraIndex)
 
                 if (prevEra != null) {
                     ctx.queue.add('staking_endEra', {
-                        era: () => prevEra,
+                        eraId: prevEra.id,
                     })
                 }
 
-                const eraId = currentEra.toString()
+                const eraId = createEraId(currentEraIndex)
                 ctx.queue.add('staking_newEra', {
                     id: eraId,
-                    index: currentEra,
+                    index: currentEraIndex,
                 })
-
-                const era = ctx.store.defer(StakingEra, eraId)
 
                 const validatorAddresses = await new StakingCurrentElectedStorage(ctx, block).asV1020.get()
                 const validatorsInfo = await new StakingStakersStorage(ctx, block).asV1020.getMany(validatorAddresses)
@@ -108,31 +98,33 @@ export class StakingPallet<C extends Config = Config> extends Pallet<C> {
                 const nominators = new Map<string, {id: string; bonded: bigint}>()
                 const nominations = new Map<string, {validatorId: string; nominatorId: string; vote: bigint}>()
                 for (let i = 0; i < validatorAddresses.length; i++) {
-                    const validatorId = new this.config.AccountId(validatorAddresses[i])
+                    const validatorAddress = new this.config.AccountId(validatorAddresses[i])
                     const validatorInfo = validatorsInfo[i]
 
-                    const eraValidatorId = `${eraId}-${validatorId.format()}`
+                    const validatorId = validatorAddress.format()
+                    const eraValidatorId = createEraStakerId(eraId, validatorId)
                     validators.set(eraValidatorId, {
-                        id: validatorId.format(),
+                        id: validatorId,
                         bonded: validatorInfo.own,
                         total: validatorInfo.total,
                     })
 
                     for (let nomination of validatorInfo.others) {
-                        const nominatorId = new this.config.AccountId(nomination.who)
+                        const nominatorAddress = new this.config.AccountId(nomination.who)
 
-                        const eraNominatorId = `${currentEra}-${nominatorId.format()}`
+                        const nominatorId = nominatorAddress.format()
+                        const eraNominatorId = createEraStakerId(eraId, nominatorId)
                         let nominator = nominators.get(eraNominatorId)
                         if (nominator == null) {
                             nominator = {
-                                id: nominatorId.format(),
+                                id: nominatorId,
                                 bonded: 0n,
                             }
                             nominators.set(eraNominatorId, nominator)
                         }
                         nominator.bonded += nomination.value
 
-                        const eraNominationId = `${currentEra}-${validatorId.format()}-${nominatorId.format()}`
+                        const eraNominationId = createEraNominationId(eraId, validatorId, nominatorId)
                         nominations.set(eraNominationId, {
                             validatorId: eraValidatorId,
                             nominatorId: eraNominatorId,
@@ -142,37 +134,30 @@ export class StakingPallet<C extends Config = Config> extends Pallet<C> {
                 }
 
                 for (const [id, validator] of validators) {
-                    const staker = ctx.store.defer(Staker, validator.id)
-
                     ctx.queue.add('staking_newEraValidator', {
                         id,
-                        era: () => era.getOrFail(),
-                        staker: () => staker.getOrFail(),
+                        eraId,
+                        stakerId: validator.id,
                         total: validator.total,
                         own: validator.bonded,
                     })
                 }
 
                 for (const [id, nominator] of nominators) {
-                    const staker = ctx.store.defer(Staker, nominator.id)
-
                     ctx.queue.add('staking_newEraNominator', {
                         id,
-                        era: () => era.getOrFail(),
-                        staker: () => staker.getOrFail(),
+                        eraId,
+                        stakerId: nominator.id,
                         bonded: nominator.bonded,
                     })
                 }
 
                 for (const [id, nomination] of nominations) {
-                    const validator = ctx.store.defer(StakingEraValidator, nomination.validatorId)
-                    const nominator = ctx.store.defer(StakingEraNominator, nomination.nominatorId)
-
                     ctx.queue.add('staking_newEraNomination', {
                         id,
-                        era: () => era.getOrFail(),
-                        validator: () => validator.getOrFail(),
-                        nominator: () => nominator.getOrFail(),
+                        eraId,
+                        validatorId: nomination.validatorId,
+                        nominatorId: nomination.nominatorId,
                         vote: nomination.vote,
                     })
                 }
@@ -208,69 +193,87 @@ export class BondCallMapper extends CallMapper<StakingPallet> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const stashId = new this.config.AccountId(origin)
-        const stash = ctx.store.defer(Account, stashId.format())
+        const stashAddress = new this.config.AccountId(origin)
+        const stashId = stashAddress.format()
+        const stashDeferred = ctx.store.defer(Account, stashId)
 
-        const controllerId = this.config.Lookup.lookup(new Address(data.controller))
-        const controller = ctx.store.defer(Account, controllerId.format())
+        const controllerAddress = this.config.Lookup.lookup(new Address(data.controller))
+        const controllerId = controllerAddress.format()
+        const controllerDeferred = ctx.store.defer(Account, controllerId)
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
-            .add('account_ensure', {
-                account: () => stash.get(),
-                id: stashId.format(),
-                publicKey: stashId.serialize(),
-            })
-            .add('account_ensure', {
-                account: () => controller.get(),
-                id: controllerId.format(),
-                publicKey: controllerId.serialize(),
+            .lazy(async () => {
+                const stash = await stashDeferred.get()
+                if (stash == null) {
+                    ctx.queue.add('account_create', {
+                        id: stashId,
+                        publicKey: stashAddress.serialize(),
+                    })
+                }
+
+                const controller = await controllerDeferred.get()
+                if (controller == null) {
+                    ctx.queue.add('account_create', {
+                        id: controllerId,
+                        publicKey: controllerAddress.serialize(),
+                    })
+                }
             })
 
-        const {payeeType, payee} = new RewardDestination(data.payee).match({
-            None: () => ({payeeType: PayeeType.None, payee: undefined}),
-            Stash: () => ({payeeType: PayeeType.Stash, payee: stash}),
-            Staked: () => ({payeeType: PayeeType.Stash, payee: stash}),
-            Controller: () => ({payeeType: PayeeType.Controller, payee: controller}),
+        const {payeeType, payeeId} = new RewardDestination(data.payee).match({
+            None: () => ({payeeType: PayeeType.None, payeeId: undefined}),
+            Stash: () => ({payeeType: PayeeType.Stash, payeeId: stashId}),
+            Staked: () => ({payeeType: PayeeType.Stash, payeeId: stashId}),
+            Controller: () => ({payeeType: PayeeType.Controller, payeeId: controllerId}),
             Account: (account) => {
-                const accountId = new this.config.AccountId(account)
-                const payee = ctx.store.defer(Account, accountId.format())
+                const accountAddress = new this.config.AccountId(account)
+                const payeeId = accountAddress.format()
+                const payeeDeferred = ctx.store.defer(Account, payeeId)
 
-                ctx.queue.add('account_ensure', {
-                    account: () => payee.get(),
-                    id: accountId.format(),
-                    publicKey: accountId.serialize(),
+                ctx.queue.lazy(async () => {
+                    const payee = await payeeDeferred.get()
+                    if (payee == null) {
+                        ctx.queue.add('account_create', {
+                            id: payeeId,
+                            publicKey: accountAddress.serialize(),
+                        })
+                    }
                 })
 
-                return {payeeType: PayeeType.Account, payee}
+                return {payeeType: PayeeType.Account, payeeId}
             },
         })
 
-        const staker = ctx.store.defer(Staker, stashId.format())
-
+        const stakerId = stashId
+        const stakerDeferred = ctx.store.defer(Staker, stakerId)
         ctx.queue
-            .add('staker_ensure', {
-                staker: () => staker.get(),
-                id: stashId.format(),
-                stash: () => stash.getOrFail(),
+            .lazy(async () => {
+                const staker = await stakerDeferred.get()
+                if (staker == null) {
+                    ctx.queue.add('staker_create', {
+                        id: stakerId,
+                        stashId,
+                    })
+                }
             })
             .add('staker_revive', {
-                staker: () => staker.getOrFail(),
+                stakerId,
             })
             .add('staker_setController', {
-                staker: () => staker.getOrFail(),
-                constroller: () => controller.getOrFail(),
+                stakerId,
+                controllerId,
             })
             .add('staker_setPayee', {
-                staker: () => staker.getOrFail(),
+                stakerId,
                 type: payeeType,
-                payee: () => payee?.getOrFail(),
+                payeeId,
             })
             .add('staking_bond', {
                 id: item.call.id,
-                staker: () => staker.getOrFail(),
-                account: () => stash.getOrFail(),
+                stakerId,
+                accountId: stashId,
                 amount: data.value,
             })
     }
@@ -283,20 +286,19 @@ export class BondExtraCall extends CallMapper<StakingPallet> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const stashId = new this.config.AccountId(origin)
-        const stash = ctx.store.defer(Account, stashId.format())
+        const stashAddress = new this.config.AccountId(origin)
+        const stashId = stashAddress.format()
+        ctx.store.defer(Account, stashId)
 
-        const staker = ctx.store.defer(Staker, stashId.format())
+        const stakerId = stashId
+        ctx.store.defer(Staker, stakerId)
 
-        ctx.queue
-            .setBlock(block)
-            .setExtrinsic(item.extrinsic)
-            .add('staking_bond', {
-                id: item.call.id,
-                account: () => stash.getOrFail(),
-                staker: () => staker.getOrFail(),
-                amount: data.maxAdditional,
-            })
+        ctx.queue.setBlock(block).setExtrinsic(item.extrinsic).add('staking_bond', {
+            id: item.call.id,
+            accountId: stashId,
+            stakerId,
+            amount: data.maxAdditional,
+        })
     }
 }
 
@@ -307,14 +309,15 @@ export class UnbondCall extends CallMapper<StakingPallet> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const controllerId = new this.config.AccountId(origin)
+        const controllerAddress = new this.config.AccountId(origin)
+        const controllerId = controllerAddress.format()
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
             .lazy(async () => {
                 const controller = await ctx.store.getOrFail(Account, {
-                    where: {id: controllerId.format()},
+                    where: {id: controllerId},
                     relations: {controllerOf: {stash: true}},
                 })
                 const staker = controller.controllerOf
@@ -329,13 +332,13 @@ export class UnbondCall extends CallMapper<StakingPallet> {
                 ctx.queue
                     .add('staking_bond', {
                         id: item.call.id,
-                        account: () => staker.stash,
-                        staker: () => staker,
+                        accountId: staker.stash.id,
+                        stakerId: staker.id,
                         amount: -amount,
                     })
                     .add('staking_createUnlockChunk', {
                         id: item.call.id,
-                        staker: () => staker,
+                        stakerId: staker.id,
                         amount,
                         lockedUntilEra: currentEra + bondingDuration,
                     })
@@ -347,26 +350,27 @@ export class ForceUnstakeCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const data = new StakingForceUnstakeCall(ctx, item.call).asV1020
 
-        const stashId = new this.config.AccountId(data.stash)
+        const stashAddress = new this.config.AccountId(data.stash)
+        const stashId = stashAddress.format()
+        const stakerId = stashId
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
             .lazy(async () => {
                 const staker = await ctx.store.getOrFail(Staker, {
-                    where: {id: stashId.format()},
+                    where: {id: stakerId},
                     relations: {unlocking: true},
-                })
-
-                ctx.queue.add('staker_kill', {
-                    staker: () => staker,
                 })
 
                 for (const chunk of staker.unlocking) {
                     ctx.queue.add('staking_withdrawUnlockChunk', {
-                        chunk: () => chunk,
+                        chunkId: chunk.id,
                     })
                 }
+            })
+            .add('staker_kill', {
+                stakerId,
             })
     }
 }
@@ -378,7 +382,8 @@ export class WithdrawUnbondedCall extends CallMapper<StakingPallet> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const controllerId = new this.config.AccountId(origin)
+        const controllerAddress = new this.config.AccountId(origin)
+        const controllerId = controllerAddress.format()
 
         ctx.queue
             .setBlock(block)
@@ -386,7 +391,7 @@ export class WithdrawUnbondedCall extends CallMapper<StakingPallet> {
             .lazy(async () => {
                 const controller = await ctx.store.getOrFail(Account, {
                     where: {
-                        id: controllerId.format(),
+                        id: controllerId,
                     },
                     relations: {controllerOf: {stash: true, unlocking: true}},
                 })
@@ -397,15 +402,17 @@ export class WithdrawUnbondedCall extends CallMapper<StakingPallet> {
 
                 const withdrawable = staker.unlocking.filter((c) => c.lockedUntilEra <= currentEra)
                 for (const chunk of withdrawable) {
-                    ctx.queue.add('staking_withdrawUnlockChunk', {chunk: () => chunk})
+                    ctx.queue.add('staking_withdrawUnlockChunk', {chunkId: chunk.id})
                 }
 
                 if (staker.activeBond === 0n && withdrawable.length == staker.unlocking.length) {
                     const ledger = await new StakingLedgerStorage(ctx, block).asV1020.get(origin)
+                    const stashAddress = ledger ? new this.config.AccountId(ledger.stash) : undefined
+                    const stashId = stashAddress?.format()
 
-                    if (ledger == null || new this.config.AccountId(ledger.stash).format() !== staker.id) {
+                    if (ledger == null || stashId !== staker.stash.id) {
                         ctx.queue.add('staker_kill', {
-                            staker: () => staker,
+                            stakerId: staker.id,
                         })
                     }
                 }
@@ -420,24 +427,30 @@ export class SetControllerCall extends CallMapper<StakingPallet> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const stashId = new this.config.AccountId(origin)
+        const stashAddress = new this.config.AccountId(origin)
+        const stashId = stashAddress.format()
+        const stakerId = stashId
+        ctx.store.defer(Staker, stakerId)
 
-        const controllerId = this.config.Lookup.lookup(new Address(data.controller))
-        const controller = ctx.store.defer(Account, controllerId.format())
-
-        const staker = ctx.store.defer(Staker, stashId.format())
+        const controllerAddress = this.config.Lookup.lookup(new Address(data.controller))
+        const controllerId = controllerAddress.format()
+        const controllerDeferred = ctx.store.defer(Account, controllerId)
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
-            .add('account_ensure', {
-                account: () => controller.get(),
-                id: controllerId.format(),
-                publicKey: controllerId.serialize(),
+            .lazy(async () => {
+                const controller = await controllerDeferred.get()
+                if (controller == null) {
+                    ctx.queue.add('account_create', {
+                        id: controllerId,
+                        publicKey: controllerAddress.serialize(),
+                    })
+                }
             })
             .add('staker_setController', {
-                staker: () => staker.getOrFail(),
-                constroller: () => controller.getOrFail(),
+                stakerId,
+                controllerId,
             })
     }
 }
@@ -462,53 +475,34 @@ export class SetPayeeCall extends CallMapper<StakingPallet> {
                 const staker = controller.controllerOf
                 assert(staker != null)
 
-                new RewardDestination(data.payee).match({
-                    None: () => {
-                        ctx.queue.add('staker_setPayee', {
-                            staker: () => staker,
-                            type: PayeeType.None,
-                            payee: () => undefined,
-                        })
-                    },
-                    Stash: () => {
-                        ctx.queue.add('staker_setPayee', {
-                            staker: () => staker,
-                            type: PayeeType.Stash,
-                            payee: () => staker.stash,
-                        })
-                    },
-                    Staked: () => {
-                        ctx.queue.add('staker_setPayee', {
-                            staker: () => staker,
-                            type: PayeeType.Staked,
-                            payee: () => staker.stash,
-                        })
-                    },
-                    Controller: () => {
-                        ctx.queue.add('staker_setPayee', {
-                            staker: () => staker,
-                            type: PayeeType.Controller,
-                            payee: () => controller,
-                        })
-                    },
-                    Account: (account) => {
-                        const accountId = new this.config.AccountId(account)
-                        const payee = ctx.store.defer(Account, accountId.format())
+                const {payeeType, payeeId} = await new RewardDestination(data.payee).match({
+                    None: () => ({payeeType: PayeeType.None, payeeId: undefined}),
+                    Stash: () => ({payeeType: PayeeType.Stash, payeeId: staker.stash.id}),
+                    Staked: () => ({payeeType: PayeeType.Staked, payeeId: staker.stash.id}),
+                    Controller: () => ({payeeType: PayeeType.Controller, payeeId: controller.id}),
+                    Account: async (account) => {
+                        const accountAddress = new this.config.AccountId(account)
+                        const payeeId = accountAddress.format()
+                        const payeeDeferred = ctx.store.defer(Account, payeeId)
 
-                        ctx.queue
-                            .add('account_ensure', {
-                                account: () => payee.get(),
-                                id: accountId.format(),
-                                publicKey: accountId.serialize(),
-                            })
-                            .add('staker_setPayee', {
-                                staker: () => staker,
-                                type: PayeeType.Account,
-                                payee: () => payee.getOrFail(),
-                            })
+                        ctx.queue.lazy(async () => {
+                            const payee = await payeeDeferred.get()
+                            if (payee == null) {
+                                ctx.queue.add('account_create', {
+                                    id: payeeId,
+                                    publicKey: accountAddress.serialize(),
+                                })
+                            }
+                        })
 
-                        return {payeeType: PayeeType.Account, payee}
+                        return {payeeType: PayeeType.Account, payeeId}
                     },
+                })
+
+                ctx.queue.add('staker_setPayee', {
+                    stakerId: staker.id,
+                    type: payeeType,
+                    payeeId,
                 })
             })
     }
@@ -521,30 +515,27 @@ export class ValidateCall extends CallMapper<StakingPallet> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const controllerId = new this.config.AccountId(origin)
+        const controllerAddress = new this.config.AccountId(origin)
+        const controllerId = controllerAddress.serialize()
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
             .lazy(async () => {
                 const controller = await ctx.store.getOrFail(Account, {
-                    where: {
-                        id: controllerId.format(),
-                    },
+                    where: {id: controllerId},
                     relations: {controllerOf: true},
                 })
                 const staker = controller.controllerOf
                 assert(staker != null)
 
                 ctx.queue.add('staker_validate', {
-                    staker: () => staker,
+                    stakerId: staker.id,
                     commission: data.prefs.commission,
                 })
             })
     }
 }
-
-// const brokenNominations = ['0000009689-000006-72916-000001', '0000278674-000003-913cb', '0000318994-000003-7205c']
 
 export class NominateCall extends CallMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
@@ -553,7 +544,8 @@ export class NominateCall extends CallMapper<StakingPallet> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const controllerId = new this.config.AccountId(origin)
+        const controllerAddress = new this.config.AccountId(origin)
+        const controllerId = controllerAddress.serialize()
 
         let targets: string[]
         try {
@@ -568,16 +560,14 @@ export class NominateCall extends CallMapper<StakingPallet> {
             .setExtrinsic(item.extrinsic)
             .lazy(async () => {
                 const controller = await ctx.store.getOrFail(Account, {
-                    where: {
-                        id: controllerId.format(),
-                    },
+                    where: {id: controllerId},
                     relations: {controllerOf: true},
                 })
                 const staker = controller.controllerOf
                 assert(staker != null)
 
                 ctx.queue.add('staker_nominate', {
-                    staker: () => staker,
+                    stakerId: staker.id,
                     targets,
                 })
             })
@@ -591,16 +581,15 @@ export class ChillCall extends CallMapper<StakingPallet> {
         const origin = getOriginAccountId(item.call.origin)
         if (origin == null) return
 
-        const controllerId = new this.config.AccountId(origin)
+        const controllerAddress = new this.config.AccountId(origin)
+        const controllerId = controllerAddress.serialize()
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.extrinsic)
             .lazy(async () => {
                 const controller = await ctx.store.getOrFail(Account, {
-                    where: {
-                        id: controllerId.format(),
-                    },
+                    where: {id: controllerId},
                     relations: {controllerOf: true},
                 })
 
@@ -608,7 +597,7 @@ export class ChillCall extends CallMapper<StakingPallet> {
                 assert(staker != null)
 
                 ctx.queue.add('staker_idle', {
-                    staker: () => staker,
+                    stakerId: staker.id,
                 })
             })
     }
@@ -630,21 +619,24 @@ export class SlashEvent extends EventMapper<StakingPallet> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
         const data = new StakingSlashEvent(ctx, item.event).asV1020
 
-        const stashId = new this.config.AccountId(data[0])
-        const staker = ctx.store.defer(Staker, stashId.format())
-        const account = ctx.store.defer(Account, stashId.format())
+        const stashAddress = new this.config.AccountId(data[0])
+        const stashId = stashAddress.format()
+        ctx.store.defer(Account, stashId)
+
+        const stakerId = stashId
+        const stakerDeferred = ctx.store.defer(Staker, stakerId)
 
         ctx.queue
             .setBlock(block)
             .setExtrinsic(item.event.extrinsic)
             .add('staking_slash', {
                 id: item.event.id,
-                account: () => account.getOrFail(),
-                staker: () => staker.getOrFail(),
+                stakerId,
+                accountId: stashId,
                 amount: data[1],
             })
             .lazy(async () => {
-                const s = await staker.getOrFail()
+                const staker = await stakerDeferred.getOrFail()
 
                 let remainSlash = data[1]
                 const slashAmount = (balance: bigint) => {
@@ -654,11 +646,12 @@ export class SlashEvent extends EventMapper<StakingPallet> {
                     return value
                 }
 
+                const bondDelta = slashAmount(staker.activeBond)
                 ctx.queue.add('staking_bond', {
                     id: item.event.id,
-                    staker: () => s,
-                    account: () => account.getOrFail(),
-                    amount: -slashAmount(s.activeBond),
+                    stakerId,
+                    accountId: stashId,
+                    amount: -bondDelta,
                 })
 
                 if (remainSlash > 0) {
@@ -672,13 +665,13 @@ export class SlashEvent extends EventMapper<StakingPallet> {
 
                         const newChunkAmount = chunk.amount - slashAmount(chunk.amount)
                         ctx.queue.add('staking_updateUnlockChunk', {
-                            chunk: () => chunk,
+                            chunkId: chunk.id,
                             value: newChunkAmount,
                         })
 
                         if (newChunkAmount === 0n) {
                             ctx.queue.add('staking_withdrawUnlockChunk', {
-                                chunk: () => chunk,
+                                chunkId: chunk.id,
                             })
                         }
                     }

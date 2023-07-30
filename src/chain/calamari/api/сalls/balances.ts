@@ -1,4 +1,4 @@
-import {UnknownVersionError} from '../../../../utils'
+import {UnknownVersionError} from '@gs/util/errors'
 import {
     BalancesForceTransferCall,
     BalancesTransferAllCall,

@@ -18,8 +18,8 @@
       "@gs/model": [
         "./src/model",
       ],
-      "@gs/util": [
-        "./src/utils",
+      "@gs/util/*": [
+        "./src/utils/*",
       ],
       "@metadata/*": [
         "./src/metadata/*"

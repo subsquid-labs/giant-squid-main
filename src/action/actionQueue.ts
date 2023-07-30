@@ -7,14 +7,14 @@ import * as Staking from './staking'
 import * as Transfer from './transfer'
 
 const Actions = {
-    account_ensure: Account.EnsureAccount,
+    account_create: Account.CreateAccount,
 
-    identity_ensure: Identity.EnsureIdentityAction,
+    identity_create: Identity.CreateIdentityAction,
     identity_set: Identity.SetIdentityAction,
     identity_judge: Identity.GiveJudgementAction,
     identity_clear: Identity.ClearIdentityAction,
     identity_kill: Identity.KillIdentityAction,
-    identity_ensureSub: Identity.EnsureIdentitySubAction,
+    identity_createSub: Identity.CreateIdentitySubAction,
     identity_addSub: Identity.AddIdentitySubAction,
     identity_renameSub: Identity.RenameSubAction,
     identity_removeSub: Identity.RemoveIdentitySubAction,
@@ -34,7 +34,7 @@ const Actions = {
     staking_newEraNominator: Staking.NewEraNominatorAction,
     staking_newEraNomination: Staking.NewEraNominationAction,
 
-    staker_ensure: Staking.EnsureStakerAction,
+    staker_create: Staking.CreateStakerAction,
     staker_setController: Staking.SetControllerAction,
     staker_setPayee: Staking.SetPayeeAction,
     staker_kill: Staking.KillStakerAction,
@@ -122,7 +122,7 @@ export class ActionQueue {
             this.block = action.block
             this.extrinsic = action.extrinsic
             this.actions = []
-            await action.perform(ctx)
+            await action.perform()
             await this.processActions(ctx, this.actions)
         } finally {
             this.block = saved.block
@@ -141,7 +141,7 @@ class LazyAction extends Action<unknown> {
         super(block, extrinsic, {})
     }
 
-    protected async _perform(): Promise<void> {
+    async perform(): Promise<void> {
         await this.cb()
     }
 }

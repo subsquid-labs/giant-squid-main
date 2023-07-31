@@ -2,68 +2,92 @@ import {StoreWithCache} from '@belopash/squid-tools'
 import {ActionQueue} from '@gs/action'
 import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
 import assert from 'assert'
-import {CallItem, EventItem} from '../processor'
+import {CallItem, EventItem, Call, Event, Block, Extrinsic} from '../processor'
 
-export {CallItem, EventItem}
+export {CallItem, EventItem, Call, Event, Block, Extrinsic}
+
+export * from './types'
 
 export type MappingContext<Store> = Omit<DataHandlerContext<Store, unknown>, 'blocks'> & {queue: ActionQueue}
 
-export abstract class EventMapper<P extends Pallet<any>> {
-    constructor(protected pallet: P) {}
+export interface EventMapper {
+    // protected get config(): P extends Pallet<infer C> ? C : never {
+    //     return this.pallet.config
+    // }
 
-    protected get config(): P extends Pallet<infer C> ? C : never {
-        return this.pallet.config
-    }
-
-    abstract handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void
 }
 
-export abstract class CallMapper<P extends Pallet<any>> {
-    constructor(protected pallet: P, readonly result?: boolean) {}
-
-    protected get config(): P extends Pallet<infer C> ? C : never {
-        return this.pallet.config
-    }
-
-    abstract handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void
+export interface CallMapper {
+    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void
 }
 
-export class Pallet<C extends {}> {
-    private _config: C | undefined
+export interface PalletSetup {
+    Config: unknown
+    Events?: unknown
+    Calls?: unknown
+    Storage?: unknown
+    Constants?: unknown
+}
 
-    get config(): C {
-        assert(this._config != null, 'config is not defined')
-        return this._config
-    }
+export abstract class PalletBase<T extends PalletSetup> {
+    Config!: T['Config']
+    Events!: T['Events']
+    Calls!: T['Calls']
+    Storage!: T['Storage']
+    Constants!: T['Constants']
 
-    set config(c: C) {
-        this._config = c
-    }
+    EventMappers!: Record<string, new () => EventMapper>
+    CallMappers!: Record<string, new () => CallMapper>
+    // get events() {
+    //     return this._events ?? {}
+    // }
 
-    private _events: Record<string, EventMapper<this>> | undefined
+    // set events(map: Record<string, EventMapper<this>>) {
+    //     this._events = map
+    // }
 
-    get events() {
-        return this._events ?? {}
-    }
+    // get calls() {
+    //     return this._calls ?? {}
+    // }
 
-    set events(map: Record<string, EventMapper<this>>) {
-        this._events = map
-    }
-
-    private _calls: Record<string, CallMapper<this>> | undefined
-
-    get calls() {
-        return this._calls ?? {}
-    }
-
-    set calls(map: Record<string, CallMapper<this>>) {
-        this._calls = map
-    }
+    // set calls(map: Record<string, CallMapper<this>>) {
+    //     this._calls = map
+    // }
 }
 
 export interface Runtime {
-    readonly [k: string]: Pallet<any>
+    readonly [k: string]: PalletBase<any>
 }
 
-export * from './types'
-export {Call, Event, Block, Extrinsic} from '../processor'
+export interface Chain {
+    getEventHash(eventName: string): string
+    decodeEvent(event: Event): any
+    getCallHash(name: string): string
+    decodeCall(call: Call): any
+    getStorageItemTypeHash(prefix: string, name: string): string | undefined
+    getStorage(blockHash: string, prefix: string, name: string, ...args: any[]): Promise<any>
+    queryStorage2(blockHash: string, prefix: string, name: string, keyList?: any[]): Promise<any[]>
+    getKeys(blockHash: string, prefix: string, name: string, ...args: any[]): Promise<any[]>
+    getPairs(blockHash: string, prefix: string, name: string, ...args: any[]): Promise<any[]>
+    getKeysPaged(
+        pageSize: number,
+        blockHash: string,
+        prefix: string,
+        name: string,
+        ...args: any[]
+    ): AsyncIterable<any[]>
+    getPairsPaged(
+        pageSize: number,
+        blockHash: string,
+        prefix: string,
+        name: string,
+        ...args: any[]
+    ): AsyncIterable<[key: any, value: any][]>
+    getConstantTypeHash(pallet: string, name: string): string | undefined
+    getConstant(pallet: string, name: string): any
+}
+
+export interface ChainContext {
+    _chain: Chain
+}

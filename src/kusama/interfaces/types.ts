@@ -1,5 +1,25 @@
+import {Block, Call, ChainContext, Event} from '.'
+
 export interface Type<T> {
     new (value: T): unknown
+}
+
+export type EventType<T> = {
+    new (ctx: ChainContext, event: Event): T
+}
+
+export type CallType<T> = {
+    new (ctx: ChainContext, call: Call): T
+}
+
+export type StorageType<K extends any[], V> = {
+    new (ctx: ChainContext, block: Block): {
+        get(...keys: K): Promise<V>
+    }
+}
+
+export type ConstantType<T> = {
+    new (ctx: ChainContext): T
 }
 
 export interface Display<T> {
@@ -14,9 +34,9 @@ export interface Serialize<T> {
     }
 }
 
-export interface StaticLookup<Source, Target> {
-    lookup(s: Source): Target
-    unlookup(t: Target): Source
+export interface StaticLookup<Target extends Type<any>> {
+    lookup(s: unknown): InstanceType<Target>
+    unlookup(t: InstanceType<Target>): unknown
 }
 
 type EnumEntry<K extends string, V> = {__kind: K; value?: V}

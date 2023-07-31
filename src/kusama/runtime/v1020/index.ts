@@ -8,24 +8,24 @@ import {AccountId32} from './primitive'
 
 const prefix = 2
 
-pallet_system.config = {
-    AccountId: AccountId32.withPrefix(prefix),
+pallet_system.Config = {
+    AccountId: AccountId32(prefix),
     Lookup: pallet_indecies,
 }
 
-pallet_indecies.config = {
-    ...pallet_system.config,
+pallet_indecies.Config = {
+    ...pallet_system.Config,
 }
 
-pallet_balances.config = {
-    ...pallet_system.config,
+pallet_balances.Config = {
+    ...pallet_system.Config,
 }
 
-pallet_staking.config = {
-    ...pallet_system.config,
+pallet_staking.Config = {
+    ...pallet_system.Config,
 }
 
-pallet_session.config = {}
+pallet_session.Config = {}
 
 export const runtime: Runtime = {
     Balances: pallet_balances,

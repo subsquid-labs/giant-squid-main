@@ -1,21 +1,39 @@
 import {Account} from '@gs/model'
 import {BalancesTransferEvent} from '@metadata/kusama/events'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
-import {EventItem, EventMapper, Pallet, MappingContext, Extrinsic, Block} from '../../../interfaces'
+import {
+    EventItem,
+    EventMapper,
+    MappingContext,
+    Extrinsic,
+    Block,
+    ChainContext,
+    EventType,
+    PalletBase,
+} from '../../../interfaces'
 import {StoreWithCache} from '@belopash/squid-tools'
-import * as pallet_system from './system'
+import pallet_system from './system'
 
-export interface Config extends pallet_system.Config {}
+export type Config = typeof pallet_system.Config & {}
 
-export class PalletBalances<C extends Config = Config> extends Pallet<C> {
+export class Pallet extends PalletBase<{
+    Config: Config
+    Events: {
+        Transfer: EventType<{
+            from: InstanceType<Config['AccountId']>
+            to: InstanceType<Config['AccountId']>
+            amount: bigint
+        }>
+    }
+}> {
     transfer(
         ctx: MappingContext<StoreWithCache>,
         data: {
             block: Block
             extrinsic?: Extrinsic
             id: string
-            from: InstanceType<C['AccountId']>
-            to: InstanceType<C['AccountId']>
+            from: InstanceType<Config['AccountId']>
+            to: InstanceType<Config['AccountId']>
             amount: bigint
             success: boolean
         }
@@ -58,29 +76,47 @@ export class PalletBalances<C extends Config = Config> extends Pallet<C> {
     }
 }
 
-export class TransferEventMapper extends EventMapper<PalletBalances> {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
-        const data = new BalancesTransferEvent(ctx, item.event).asV1020
+export const TransferEvent = (pallet: Pallet) =>
+    class TransferEvent {
+        readonly from: InstanceType<Config['AccountId']>
+        readonly to: InstanceType<Config['AccountId']>
+        readonly amount: bigint
 
-        const from = new this.config.AccountId(data[0])
-        const to = new this.config.AccountId(data[1])
+        constructor(ctx: ChainContext, event: {name: string; args: any}) {
+            const data = new BalancesTransferEvent(ctx, event).asV1020
 
-        this.pallet.transfer(ctx, {
-            block,
-            extrinsic: item.event.extrinsic,
-            id: item.event.id,
-            from,
-            to,
-            amount: data[2],
-            success: true,
-        })
+            this.from = new pallet.Config.AccountId(data[0])
+            this.to = new pallet.Config.AccountId(data[1])
+            this.amount = data[2]
+        }
     }
+
+export const TransferEventMapper = (pallet: Pallet) =>
+    class TransferEventMapper implements EventMapper {
+        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
+            const data = new pallet.Events.Transfer(ctx, item.event)
+
+            pallet.transfer(ctx, {
+                block,
+                extrinsic: item.event.extrinsic,
+                id: item.event.id,
+                from: data.to,
+                to: data.to,
+                amount: data.amount,
+                success: true,
+            })
+        }
+    }
+
+const pallet = new Pallet()
+
+pallet.Events = {
+    Transfer: TransferEvent(pallet),
 }
 
-const pallet_balances = new PalletBalances()
-
-pallet_balances.events = {
-    Transfer: new TransferEventMapper(pallet_balances),
+pallet.EventMappers = {
+    Transfer: TransferEventMapper(pallet),
 }
 
-export default pallet_balances
+// Pallet.events =
+export default pallet

@@ -1,27 +1,29 @@
-import {Pallet, StaticLookup} from '../../../interfaces'
+import {PalletBase, StaticLookup} from '../../../interfaces'
 import {Address} from '../primitive'
-import * as pallet_system from './system'
+import pallet_system from './system'
 
-export interface Config extends pallet_system.Config {}
+export type Config = typeof pallet_system.Config & {}
 
-export class IndeciesPallet<C extends Config = Config>
-    extends Pallet<C>
-    implements StaticLookup<Address, InstanceType<Config['AccountId']>>
+export class Pallet
+    extends PalletBase<{
+        Config: Config
+    }>
+    implements StaticLookup<Config['AccountId']>
 {
     lookup(s: Address) {
         return s.match({
-            AccountId: (v) => new this.config.AccountId(v),
+            AccountId: (v) => new this.Config.AccountId(v),
             _: () => {
                 throw new Error()
             },
         })
     }
 
-    unlookup(t: InstanceType<C['AccountId']>): Address {
+    unlookup(t: InstanceType<Config['AccountId']>): Address {
         throw new Error(`not impemented`)
     }
 }
 
-const pallet_indecies = new IndeciesPallet()
+const pallet = new Pallet()
 
-export default pallet_indecies
+export default pallet

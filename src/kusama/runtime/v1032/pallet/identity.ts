@@ -10,11 +10,20 @@ import {
     Data,
     IdentityClearEventMapper,
     IdentityKillEventMapper,
+    PalletIdentity,
     ProvideJudgmentCallMapper,
     SetSubsCallMapper,
 } from '../../v1030/pallet/identity'
 
-export {Config, Data, IdentityClearEventMapper, IdentityKillEventMapper, ProvideJudgmentCallMapper, SetSubsCallMapper}
+export {
+    Config,
+    Data,
+    IdentityClearEventMapper,
+    IdentityKillEventMapper,
+    PalletIdentity,
+    ProvideJudgmentCallMapper,
+    SetSubsCallMapper,
+}
 
 export class IdentityInfo {
     additional: [Data, Data][]
@@ -40,9 +49,7 @@ export class IdentityInfo {
     }
 }
 
-export const pallet = new Pallet<Config>()
-
-export class SetIdentityCallMapper extends CallMapper<typeof pallet> {
+export class SetIdentityCallMapper extends CallMapper<PalletIdentity> {
     handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
         const identitySetData = new IdentitySetIdentityCall(ctx, item.call).asV1032
 
@@ -100,6 +107,8 @@ export class SetIdentityCallMapper extends CallMapper<typeof pallet> {
             })
     }
 }
+
+export const pallet = new PalletIdentity()
 
 pallet.calls = {
     set_subs: new SetSubsCallMapper(pallet, true),

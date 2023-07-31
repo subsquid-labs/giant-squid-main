@@ -1,13 +1,14 @@
-import {Display, Pallet, Serialize, StaticLookup, Type} from '../../../interfaces'
-import {Address} from '../primitive'
+import {Display, PalletBase, Serialize, StaticLookup, Type} from '../../../interfaces'
 
-export interface Config {
+export type Config = {
     AccountId: Type<Uint8Array> & Display<string> & Serialize<string>
-    Lookup: StaticLookup<Address, InstanceType<Config['AccountId']>>
+    Lookup: StaticLookup<Config['AccountId']>
 }
 
-export class PalletSystem<C extends Config> extends Pallet<C> {}
+class Pallet<T extends Config> extends PalletBase<{
+    Config: T
+}> {}
 
-const pallet_system = new PalletSystem()
+const pallet = new Pallet()
 
-export default pallet_system
+export default pallet

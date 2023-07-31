@@ -1,41 +1,54 @@
 import {StoreWithCache} from '@belopash/squid-tools'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
-import {EventItem, EventMapper, MappingContext, Pallet} from '../../../interfaces'
+import {ChainContext, EventItem, EventMapper, MappingContext, PalletBase, Event} from '../../../interfaces'
+import {EventType} from '../../../interfaces/types'
 import {SessionNewSessionEvent} from '@metadata/kusama/events'
 
-export interface Config {}
+export type Config = {}
 
-export type NewSessionHandler = (
-    ctx: MappingContext<StoreWithCache>,
-    block: SubstrateBlock,
-    sessionIndex: number
-) => void
+export type SessionManager = {
+    newSession(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number): void
+}
 
-export class SessionPallet extends Pallet<Config> {
-    private handlers: {newSession: NewSessionHandler[]} = {newSession: []}
-
-    set sessionManager(handlers: {newSession: NewSessionHandler}) {
-        this.handlers.newSession.push(handlers.newSession)
+export class Pallet extends PalletBase<{
+    Config: Config
+    Events: {
+        NewSession: EventType<{sessionIndex: number}>
     }
+}> {
+    SessionManager!: SessionManager
 
     newSession(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number) {
-        for (const handler of this.handlers.newSession) {
-            handler(ctx, block, sessionIndex)
+        this.SessionManager.newSession(ctx, block, sessionIndex)
+    }
+}
+
+export const NewSessionEvent = (pallet: Pallet) =>
+    class NewSessionEvent {
+        readonly sessionIndex: number
+
+        constructor(ctx: ChainContext, event: Event) {
+            const data = new SessionNewSessionEvent(ctx, event).asV1020
+            this.sessionIndex = data
         }
     }
-}
 
-export class NewSessionEventMapper extends EventMapper<SessionPallet> {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
-        const data = new SessionNewSessionEvent(ctx, item.event).asV1020
-        this.pallet.newSession(ctx, block, data)
+export const NewSessionEventMapper = (pallet: Pallet) =>
+    class Mapper {
+        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
+            const data = new pallet.Events.NewSession(ctx, item.event)
+            pallet.newSession(ctx, block, data.sessionIndex)
+        }
     }
+
+const pallet = new Pallet()
+
+pallet.Events = {
+    NewSession: NewSessionEvent(pallet),
 }
 
-const pallet_session = new SessionPallet()
-
-pallet_session.events = {
-    NewSession: new NewSessionEventMapper(pallet_session),
+pallet.EventMappers = {
+    NewSession: NewSessionEventMapper(pallet),
 }
 
-export default pallet_session
+export default pallet

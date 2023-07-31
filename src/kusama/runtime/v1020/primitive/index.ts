@@ -3,29 +3,22 @@ import {Display, Enum, Serialize} from '../../../interfaces'
 import {toHex} from '@subsquid/substrate-processor'
 import * as metadata from '@metadata/kusama/v1020'
 
-export abstract class AccountId32 implements InstanceType<Display<string> & Serialize<string>> {
-    protected abstract prefix: number
+export const AccountId32 = (prefix: number) =>
+    class AccountId32 implements InstanceType<Display<string> & Serialize<string>> {
+        protected prefix = prefix
 
-    constructor(private value: Uint8Array) {}
+        constructor(private value: Uint8Array) {}
 
-    static withPrefix(prefix: number) {
-        class AccountId32WithPrefix extends AccountId32 {
-            protected prefix = prefix
+        format(): string {
+            return encode({
+                bytes: this.value,
+                prefix: this.prefix,
+            })
         }
 
-        return AccountId32WithPrefix
+        serialize(): string {
+            return toHex(this.value)
+        }
     }
-
-    format(): string {
-        return encode({
-            bytes: this.value,
-            prefix: this.prefix,
-        })
-    }
-
-    serialize(): string {
-        return toHex(this.value)
-    }
-}
 
 export class Address extends Enum<metadata.LookupSource> {}

@@ -5,22 +5,28 @@ import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCa
 import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '@metadata/kusama/events'
 import * as metadata from '@metadata/kusama/v1030'
 import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
-import assert from 'assert'
 import {
+    Call,
     CallItem,
     CallMapper,
+    CallType,
+    ChainContext,
     Enum,
     EventItem,
     EventMapper,
+    EventType,
     MappingContext,
-    Pallet,
+    PalletBase,
     Serialize,
+    Event,
+    PalletSetup,
 } from '../../../interfaces'
-import * as system from './system'
+import {Address} from '../primitive'
+import pallet_system from './system'
 
-export interface Config extends system.Config {}
-
-export class PalletIdentity<C extends Config = Config> extends Pallet<C> {}
+/*********
+ * TYPES *
+ *********/
 
 export class Data extends Enum<metadata.Data> implements InstanceType<Serialize<string | undefined>> {
     constructor(value: metadata.Data) {
@@ -81,12 +87,6 @@ export class Data extends Enum<metadata.Data> implements InstanceType<Serialize<
     }
 }
 
-export class IdentityJudgement extends Enum<metadata.IdentityJudgement> {
-    constructor(value: metadata.IdentityJudgement) {
-        super(value)
-    }
-}
-
 export class IdentityInfo {
     additional: [Data, Data][]
     display: Data
@@ -97,7 +97,7 @@ export class IdentityInfo {
     pgpFingerprint: Uint8Array | undefined
     image: Data
 
-    constructor(private value: metadata.IdentityInfo) {
+    constructor(readonly value: metadata.IdentityInfo) {
         this.display = new Data(value.display)
         this.legal = new Data(value.legal)
         this.web = new Data(value.web)
@@ -109,248 +109,358 @@ export class IdentityInfo {
     }
 }
 
-export class SetSubsCallMapper extends CallMapper<PalletIdentity> {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-        if (!item.call.success) return
+export class IdentityJudgement extends Enum<metadata.IdentityJudgement> {
+    constructor(value: metadata.IdentityJudgement) {
+        super(value)
+    }
+}
 
-        const setSubsData = new IdentitySetSubsCall(ctx, item.call).asV1030
+/**********
+ * PALLET *
+ **********/
 
-        const origin = getOriginAccountId(item.call.origin)
-        if (origin == null) return
+export type Config = typeof pallet_system.Config & {}
 
-        const accountAddress = new this.config.AccountId(origin)
-        const accountId = accountAddress.format()
-        ctx.store.defer(Account, accountId)
+export class Pallet<T extends PalletSetup = {}> extends PalletBase<
+    T & {
+        Config: Config
+        Calls: {
+            set_subs: CallType<{subs: [InstanceType<Config['AccountId']>, Data][]}>
+            provide_judgment: CallType<{target: ReturnType<Config['Lookup']['unlookup']>; judgement: IdentityJudgement}>
+            set_identity: CallType<{info: IdentityInfo}>
+        }
+        Events: {
+            IdentityCleared: EventType<{who: InstanceType<Config['AccountId']>}>
+            IdentityKilled: EventType<{who: InstanceType<Config['AccountId']>}>
+        }
+    }
+> {}
 
-        const identityId = accountId
-        ctx.store.defer(Identity, identityId)
+/*********
+ * CALLS *
+ *********/
 
-        ctx.queue.setBlock(block).setExtrinsic(item.extrinsic)
+export const SetSubsCall = (pallet: Pallet) =>
+    class {
+        readonly subs: [InstanceType<Config['AccountId']>, Data][]
 
-        for (const subData of setSubsData.subs) {
-            const subAccountAddress = new this.config.AccountId(subData[0])
+        constructor(ctx: ChainContext, call: Call) {
+            const data = new IdentitySetSubsCall(ctx, call).asV1030
+            this.subs = data.subs.map((s) => [new pallet.Config.AccountId(s[0]), new Data(s[1])])
+        }
+    }
 
-            const subAccountId = subAccountAddress.format()
-            const subAccountDeferred = ctx.store.defer(Account, subAccountId)
+export const ProvideJudgmentCall = (pallet: Pallet) =>
+    class {
+        readonly target: ReturnType<Config['Lookup']['unlookup']>
+        readonly judgement: IdentityJudgement
 
-            const subId = subAccountId
-            const subDeferred = ctx.store.defer(IdentitySub, subId)
+        constructor(ctx: ChainContext, call: Call) {
+            const data = new IdentityProvideJudgementCall(ctx, call).asV1030
+            this.target = new Address(data.target)
+            this.judgement = new IdentityJudgement(data.judgement)
+        }
+    }
 
-            ctx.queue
-                .lazy(async () => {
-                    const sub = await subDeferred.get()
-                    if (sub == null) {
-                        const subAccount = await subAccountDeferred.get()
-                        if (subAccount == null) {
-                            ctx.queue.add('account_create', {
-                                id: subAccountId,
-                                publicKey: subAccountAddress.serialize(),
+export const SetIdentityCall = (pallet: Pallet) =>
+    class {
+        readonly info: IdentityInfo
+
+        constructor(ctx: ChainContext, call: Call) {
+            const data = new IdentitySetIdentityCall(ctx, call).asV1030
+            this.info = new IdentityInfo(data.info)
+        }
+    }
+
+/**********
+ * EVENTS *
+ **********/
+
+export const IdentityClearedEvent = (pallet: Pallet) =>
+    class {
+        readonly who: InstanceType<Config['AccountId']>
+
+        constructor(ctx: ChainContext, event: Event) {
+            const data = new IdentityIdentityClearedEvent(ctx, event).asV1030
+            this.who = new pallet.Config.AccountId(data[0])
+        }
+    }
+
+export const IdentityKilledEvent = (pallet: Pallet) =>
+    class {
+        readonly who: InstanceType<Config['AccountId']>
+
+        constructor(ctx: ChainContext, event: Event) {
+            const data = new IdentityIdentityKilledEvent(ctx, event).asV1030
+            this.who = new pallet.Config.AccountId(data[0])
+        }
+    }
+
+/***********
+ * MAPPERS *
+ ***********/
+
+export const SetSubsCallMapper = (pallet: Pallet, success?: boolean) =>
+    class implements CallMapper {
+        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
+            if (success != null && item.call.success != success) return
+
+            const setSubsData = new pallet.Calls.set_subs(ctx, item.call)
+
+            const origin = getOriginAccountId(item.call.origin)
+            if (origin == null) return
+
+            const accountAddress = new pallet.Config.AccountId(origin)
+            const accountId = accountAddress.format()
+            ctx.store.defer(Account, accountId)
+
+            const identityId = accountId
+            ctx.store.defer(Identity, identityId)
+
+            ctx.queue.setBlock(block).setExtrinsic(item.extrinsic)
+
+            for (const subData of setSubsData.subs) {
+                const subAccountAddress = subData[0]
+
+                const subAccountId = subAccountAddress.format()
+                const subAccountDeferred = ctx.store.defer(Account, subAccountId)
+
+                const subId = subAccountId
+                const subDeferred = ctx.store.defer(IdentitySub, subId)
+
+                ctx.queue
+                    .lazy(async () => {
+                        const sub = await subDeferred.get()
+                        if (sub == null) {
+                            const subAccount = await subAccountDeferred.get()
+                            if (subAccount == null) {
+                                ctx.queue.add('account_create', {
+                                    id: subAccountId,
+                                    publicKey: subAccountAddress.serialize(),
+                                })
+                            }
+
+                            ctx.queue.add('identity_createSub', {
+                                id: subId,
+                                accountId: subAccountId,
                             })
                         }
+                    })
+                    .add('identity_addSub', {
+                        identityId,
+                        subId,
+                    })
+                    .add('identity_renameSub', {
+                        subId,
+                        name: subData[1].serialize(),
+                    })
+            }
+        }
+    }
 
-                        ctx.queue.add('identity_createSub', {
-                            id: subId,
-                            accountId: subAccountId,
-                        })
+export const ProvideJudgmentCallMapper = (pallet: Pallet, success?: boolean) =>
+    class implements CallMapper {
+        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
+            if (success != null && item.call.success != success) return
+
+            const judgementGivenData = new pallet.Calls.provide_judgment(ctx, item.call)
+
+            const accountAddress = pallet.Config.Lookup.lookup(judgementGivenData.target)
+            const accountId = accountAddress.format()
+            const accountDeferred = ctx.store.defer(Account, accountId)
+
+            const identityId = accountId
+            const identityDeferred = ctx.store.defer(Identity, identityId)
+
+            const judgement = judgementGivenData.judgement.match({
+                Erroneous: () => Judgement.Erroneous,
+                FeePaid: (fee) => Judgement.FeePaid,
+                KnownGood: () => Judgement.KnownGood,
+                LowQuality: () => Judgement.LowQuality,
+                OutOfDate: () => Judgement.OutOfDate,
+                Reasonable: () => Judgement.Reasonable,
+                Unknown: () => Judgement.Reasonable,
+            })
+
+            ctx.queue
+                .setBlock(block)
+                .setExtrinsic(item.extrinsic)
+                .lazy(async () => {
+                    const identity = await identityDeferred.get()
+                    if (identity == null) {
+                        const account = await accountDeferred.get()
+                        if (account == null) {
+                            ctx.queue.add('account_create', {
+                                id: accountId,
+                                publicKey: accountAddress.serialize(),
+                            })
+                        }
                     }
+                    ctx.queue.add('identity_create', {
+                        id: identityId,
+                        accountId,
+                    })
                 })
-                .add('identity_addSub', {
+                .add('identity_judge', {
                     identityId,
-                    subId,
-                })
-                .add('identity_renameSub', {
-                    subId,
-                    name: new Data(subData[1]).serialize(),
+                    judgement,
                 })
         }
     }
-}
 
-export class ProvideJudgmentCallMapper extends CallMapper<PalletIdentity> {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-        if (!item.call.success) return
+export const SetIdentityCallMapper = (pallet: Pallet, success?: boolean) =>
+    class implements CallMapper {
+        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
+            if (success != null && item.call.success != success) return
 
-        const judgementGivenData = new IdentityProvideJudgementCall(ctx, item.call).asV1030
-        assert(judgementGivenData.target.__kind === 'AccountId')
+            const identitySetData = new pallet.Calls.set_identity(ctx, item.call)
 
-        const accountAddress = new this.config.AccountId(judgementGivenData.target.value)
-        const accountId = accountAddress.format()
-        const accountDeferred = ctx.store.defer(Account, accountId)
+            const origin = getOriginAccountId(item.call.origin)
+            if (origin == null) return
 
-        const identityId = accountId
-        const identityDeferred = ctx.store.defer(Identity, identityId)
+            const accountAddress = new pallet.Config.AccountId(origin)
+            const accountId = accountAddress.format()
+            const accountDeferred = ctx.store.defer(Account, accountId)
 
-        const judgement = new IdentityJudgement(judgementGivenData.judgement).match({
-            Erroneous: () => Judgement.Erroneous,
-            FeePaid: (fee) => Judgement.FeePaid,
-            KnownGood: () => Judgement.KnownGood,
-            LowQuality: () => Judgement.LowQuality,
-            OutOfDate: () => Judgement.OutOfDate,
-            Reasonable: () => Judgement.Reasonable,
-            Unknown: () => Judgement.Reasonable,
-        })
+            const identityId = accountId
+            const identityDeferred = ctx.store.defer(Identity, identityId)
 
-        ctx.queue
-            .setBlock(block)
-            .setExtrinsic(item.extrinsic)
-            .lazy(async () => {
-                const identity = await identityDeferred.get()
-                if (identity == null) {
-                    const account = await accountDeferred.get()
-                    if (account == null) {
-                        ctx.queue.add('account_create', {
-                            id: accountId,
-                            publicKey: accountAddress.serialize(),
+            const info = identitySetData.info
+
+            ctx.queue
+                .setBlock(block)
+                .setExtrinsic(item.extrinsic)
+                .lazy(async () => {
+                    const identity = await identityDeferred.get()
+                    if (identity == null) {
+                        const account = await accountDeferred.get()
+                        if (account == null) {
+                            ctx.queue.add('account_create', {
+                                id: accountId,
+                                publicKey: accountAddress.serialize(),
+                            })
+                        }
+                    }
+                    ctx.queue.add('identity_create', {
+                        id: identityId,
+                        accountId,
+                    })
+                })
+                .add('identity_judge', {
+                    identityId,
+                    judgement: Judgement.Unknown,
+                })
+                .add('identity_set', {
+                    identityId,
+                    web: info.web.serialize(),
+                    display: info.display.serialize(),
+                    legal: info.legal.serialize(),
+                    email: info.email.serialize(),
+                    image: info.image.serialize(),
+                    pgpFingerprint: identitySetData.info.pgpFingerprint
+                        ? toHex(identitySetData.info.pgpFingerprint)
+                        : undefined,
+                    riot: info.riot.serialize(),
+                    twitter: undefined,
+                    additional: info.additional.map((a) => ({
+                        name: a[0].serialize(),
+                        value: a[1].serialize(),
+                    })),
+                })
+        }
+    }
+
+export const IdentityClearedEventMapper = (pallet: Pallet) =>
+    class implements EventMapper {
+        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
+            const data = new pallet.Events.IdentityCleared(ctx, item.event)
+
+            const accountId = data.who.format()
+            const identityId = accountId
+            ctx.store.defer(Identity, identityId)
+
+            ctx.queue
+                .setBlock(block)
+                .setExtrinsic(item.event.extrinsic)
+                .add('identity_clear', {
+                    identityId,
+                })
+                .add('identity_judge', {
+                    identityId,
+                    judgement: Judgement.Unknown,
+                })
+                .lazy(async () => {
+                    const subs = await ctx.store.find(IdentitySub, {where: {super: {id: identityId}}})
+
+                    for (const s of subs) {
+                        ctx.queue.add('identity_removeSub', {
+                            subId: s.id,
                         })
                     }
-                }
-                ctx.queue.add('identity_create', {
-                    id: identityId,
-                    accountId,
                 })
-            })
-            .add('identity_judge', {
-                identityId,
-                judgement,
-            })
+        }
     }
-}
 
-export class SetIdentityCallMapper extends CallMapper<PalletIdentity> {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-        if (!item.call.success) return
+export const IdentityKilledEventMapper = (pallet: Pallet) =>
+    class implements EventMapper {
+        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
+            const data = new pallet.Events.IdentityKilled(ctx, item.event)
 
-        const identitySetData = new IdentitySetIdentityCall(ctx, item.call).asV1030
+            const accountId = data.who.format()
+            const identityId = accountId
+            ctx.store.defer(Identity, identityId)
 
-        const origin = getOriginAccountId(item.call.origin)
-        if (origin == null) return
+            ctx.queue
+                .setBlock(block)
+                .setExtrinsic(item.event.extrinsic)
+                .add('identity_clear', {
+                    identityId,
+                })
+                .add('identity_judge', {
+                    identityId,
+                    judgement: Judgement.Unknown,
+                })
+                .lazy(async () => {
+                    const subs = await ctx.store.find(IdentitySub, {where: {super: {id: identityId}}})
 
-        const accountAddress = new this.config.AccountId(origin)
-        const accountId = accountAddress.format()
-        const accountDeferred = ctx.store.defer(Account, accountId)
-
-        const identityId = accountId
-        const identityDeferred = ctx.store.defer(Identity, identityId)
-
-        const info = new IdentityInfo(identitySetData.info)
-
-        ctx.queue
-            .setBlock(block)
-            .setExtrinsic(item.extrinsic)
-            .lazy(async () => {
-                const identity = await identityDeferred.get()
-                if (identity == null) {
-                    const account = await accountDeferred.get()
-                    if (account == null) {
-                        ctx.queue.add('account_create', {
-                            id: accountId,
-                            publicKey: accountAddress.serialize(),
+                    for (const s of subs) {
+                        ctx.queue.add('identity_removeSub', {
+                            subId: s.id,
                         })
                     }
-                }
-                ctx.queue.add('identity_create', {
-                    id: identityId,
-                    accountId,
                 })
-            })
-            .add('identity_judge', {
-                identityId,
-                judgement: Judgement.Unknown,
-            })
-            .add('identity_set', {
-                identityId,
-                web: info.web.serialize(),
-                display: info.display.serialize(),
-                legal: info.legal.serialize(),
-                email: info.email.serialize(),
-                image: info.image.serialize(),
-                pgpFingerprint: identitySetData.info.pgpFingerprint
-                    ? toHex(identitySetData.info.pgpFingerprint)
-                    : undefined,
-                riot: info.riot.serialize(),
-                twitter: undefined,
-                additional: info.additional.map((a) => ({
-                    name: a[0].serialize(),
-                    value: a[1].serialize(),
-                })),
-            })
+                .add('identity_kill', {
+                    identityId,
+                })
+        }
     }
+
+/******************
+ * IMPLEMENTATION *
+ ******************/
+
+const pallet = new Pallet()
+
+pallet.Calls = {
+    provide_judgment: ProvideJudgmentCall(pallet),
+    set_identity: SetIdentityCall(pallet),
+    set_subs: SetSubsCall(pallet),
 }
 
-export class IdentityClearEventMapper extends EventMapper<PalletIdentity> {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
-        const data = new IdentityIdentityClearedEvent(ctx, item.event).asV1030
-
-        const accountId = new this.config.AccountId(data[0]).format()
-        const identityId = accountId
-        ctx.store.defer(Identity, identityId)
-
-        ctx.queue
-            .setBlock(block)
-            .setExtrinsic(item.event.extrinsic)
-            .add('identity_clear', {
-                identityId,
-            })
-            .add('identity_judge', {
-                identityId,
-                judgement: Judgement.Unknown,
-            })
-            .lazy(async () => {
-                const subs = await ctx.store.find(IdentitySub, {where: {super: {id: identityId}}})
-
-                for (const s of subs) {
-                    ctx.queue.add('identity_removeSub', {
-                        subId: s.id,
-                    })
-                }
-            })
-    }
+pallet.Events = {
+    IdentityCleared: IdentityClearedEvent(pallet),
+    IdentityKilled: IdentityKilledEvent(pallet),
 }
 
-export class IdentityKillEventMapper extends EventMapper<PalletIdentity> {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
-        const data = new IdentityIdentityKilledEvent(ctx, item.event).asV1030
-
-        const accountId = new this.config.AccountId(data[0]).format()
-        const identityId = accountId
-        ctx.store.defer(Identity, identityId, {subs: true})
-
-        ctx.queue
-            .setBlock(block)
-            .setExtrinsic(item.event.extrinsic)
-            .add('identity_clear', {
-                identityId,
-            })
-            .add('identity_judge', {
-                identityId,
-                judgement: Judgement.Unknown,
-            })
-            .lazy(async () => {
-                const subs = await ctx.store.find(IdentitySub, {where: {super: {id: identityId}}})
-
-                for (const s of subs) {
-                    ctx.queue.add('identity_removeSub', {
-                        subId: s.id,
-                    })
-                }
-            })
-            .add('identity_kill', {
-                identityId,
-            })
-    }
+pallet.CallMappers = {
+    set_subs: SetSubsCallMapper(pallet, true),
+    provide_judgment: ProvideJudgmentCallMapper(pallet, true),
+    set_identity: SetIdentityCallMapper(pallet, true),
 }
 
-const pallet = new PalletIdentity()
-
-pallet.calls = {
-    set_subs: new SetSubsCallMapper(pallet),
-    provide_judgment: new ProvideJudgmentCallMapper(pallet),
-    set_identity: new SetIdentityCallMapper(pallet),
-}
-
-pallet.events = {
-    IdentityClear: new IdentityClearEventMapper(pallet),
-    IdentityKill: new IdentityKillEventMapper(pallet),
+pallet.EventMappers = {
+    IdentityClear: IdentityClearedEventMapper(pallet),
+    IdentityKill: IdentityKilledEventMapper(pallet),
 }
 
 export default pallet

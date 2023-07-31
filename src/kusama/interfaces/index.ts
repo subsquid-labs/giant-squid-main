@@ -23,7 +23,7 @@ export interface CallMapper {
 }
 
 export interface PalletSetup {
-    Config: unknown
+    Config?: unknown
     Events?: unknown
     Calls?: unknown
     Storage?: unknown

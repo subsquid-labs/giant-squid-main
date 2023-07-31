@@ -13,13 +13,8 @@ import {
     StakingValidateCall,
     StakingWithdrawUnbondedCall,
 } from '@metadata/kusama/calls'
-import {StakingSessionsPerEraConstant} from '@metadata/kusama/constants'
-import {
-    StakingCurrentElectedStorage,
-    StakingCurrentEraStartSessionIndexStorage,
-    StakingCurrentEraStorage,
-    StakingStakersStorage,
-} from '@metadata/kusama/storage'
+import {StakingRewardEvent, StakingSlashEvent} from '@metadata/kusama/events'
+import {StakingCurrentElectedStorage, StakingCurrentEraStorage, StakingStakersStorage} from '@metadata/kusama/storage'
 import * as metadata from '@metadata/kusama/v1020'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
 import assert from 'assert'
@@ -32,18 +27,17 @@ import {
     ChainContext,
     ConstantType,
     Enum,
+    Event,
     EventItem,
     EventMapper,
     EventType,
     MappingContext,
     PalletBase,
     StorageType,
-    Event,
 } from '../../../interfaces'
 import {Address} from '../primitive'
 import pallet_session from './session'
 import pallet_system from './system'
-import {StakingRewardEvent, StakingSlashEvent} from '@metadata/kusama/events'
 
 /*********
  * TYPES *
@@ -926,4 +920,8 @@ export default pallet
 
 pallet_session.SessionManager = {
     newSession: (...args) => pallet.newSession(...args),
+}
+
+export namespace A {
+    export const A = 1
 }

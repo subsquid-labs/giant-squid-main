@@ -1,7 +1,9 @@
 import {Block, Call, ChainContext, Event} from '.'
 
 export interface Type<T> {
-    new (value: T): unknown
+    new (value: T): {
+        value: T
+    }
 }
 
 export type EventType<T> = {
@@ -42,7 +44,7 @@ export interface StaticLookup<Target extends Type<any>> {
 type EnumEntry<K extends string, V> = {__kind: K; value?: V}
 
 export abstract class Enum<U extends EnumEntry<string, any>> {
-    constructor(protected value: U) {}
+    constructor(readonly value: U) {}
 
     match<
         S extends {

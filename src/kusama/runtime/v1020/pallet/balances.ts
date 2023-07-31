@@ -118,5 +118,4 @@ pallet.EventMappers = {
     Transfer: TransferEventMapper(pallet),
 }
 
-// Pallet.events =
 export default pallet

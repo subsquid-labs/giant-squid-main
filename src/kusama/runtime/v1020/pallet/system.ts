@@ -5,8 +5,8 @@ export type Config = {
     Lookup: StaticLookup<Config['AccountId']>
 }
 
-class Pallet<T extends Config> extends PalletBase<{
-    Config: T
+export class Pallet extends PalletBase<{
+    Config: Config
 }> {}
 
 const pallet = new Pallet()

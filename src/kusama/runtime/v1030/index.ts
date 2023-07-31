@@ -1,38 +1,36 @@
 import {Runtime} from '../../interfaces'
+import pallet_balances from './pallet/balances'
+import pallet_identity from './pallet/identity'
+import pallet_indecies from './pallet/indecies'
+import pallet_session from './pallet/session'
+import pallet_staking from './pallet/staking'
+import pallet_system from './pallet/system'
 import {AccountId32} from './primitive'
-import {
-    pallet_balances,
-    pallet_session,
-    pallet_identity,
-    pallet_indecies,
-    pallet_staking,
-    pallet_system,
-} from './pallet'
 
 const prefix = 2
 
-pallet_system.config = {
-    AccountId: AccountId32.withPrefix(prefix),
+pallet_system.Config = {
+    AccountId: AccountId32(prefix),
     Lookup: pallet_indecies,
 }
 
-pallet_indecies.config = {
-    ...pallet_system.config,
+pallet_indecies.Config = {
+    ...pallet_system.Config,
 }
 
-pallet_balances.config = {
-    ...pallet_system.config,
+pallet_balances.Config = {
+    ...pallet_system.Config,
 }
 
-pallet_identity.config = {
-    ...pallet_system.config,
+pallet_identity.Config = {
+    ...pallet_system.Config,
 }
 
-pallet_staking.config = {
-    ...pallet_system.config,
+pallet_staking.Config = {
+    ...pallet_system.Config,
 }
 
-pallet_session.config = {}
+pallet_session.Config = {}
 
 export const runtime: Runtime = {
     Balances: pallet_balances,

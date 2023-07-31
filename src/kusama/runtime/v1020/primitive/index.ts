@@ -7,7 +7,7 @@ export const AccountId32 = (prefix: number) =>
     class AccountId32 implements InstanceType<Display<string> & Serialize<string>> {
         protected prefix = prefix
 
-        constructor(private value: Uint8Array) {}
+        constructor(readonly value: Uint8Array) {}
 
         format(): string {
             return encode({

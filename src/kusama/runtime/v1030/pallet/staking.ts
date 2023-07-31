@@ -1,9 +1,5 @@
-/******************
- * IMPLEMENTATION *
- ******************/
-
-import {pallet_session} from '.'
 import * as parent from '../../v1020/pallet/staking'
+import pallet_session from './session'
 
 export const {
     BondCall,
@@ -77,8 +73,8 @@ pallet.CallMappers = {
     // force_new_era_always: new ForceNewEraAlwaysCall(pallet, true),
 }
 
-export default pallet
-
 pallet_session.SessionManager = {
     newSession: (...args) => pallet.newSession(...args),
 }
+
+export default pallet

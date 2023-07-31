@@ -1,8 +1,11 @@
-import {Pallet} from '../../../interfaces'
-import {Config} from '../../v1020/pallet/system'
+import * as parent from '../../v1020/pallet/system'
 
-export {Config}
+export const {Pallet} = parent
 
-const pallet = new Pallet<Config>()
+/******************
+ * IMPLEMENTATION *
+ ******************/
+
+export const pallet = new Pallet()
 
 export default pallet

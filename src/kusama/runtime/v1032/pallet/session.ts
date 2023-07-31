@@ -1,9 +1,19 @@
-import {NewSessionEventMapper, SessionPallet} from '../../v1030/pallet/session'
+import * as parent from '../../v1030/pallet/session'
 
-export {NewSessionEventMapper, SessionPallet}
+export const {NewSessionEvent, NewSessionEventMapper, Pallet} = parent
 
-export const pallet = new SessionPallet()
+/******************
+ * IMPLEMENTATION *
+ ******************/
 
-pallet.events = {
-    NewSession: new NewSessionEventMapper(pallet),
+const pallet = new Pallet()
+
+pallet.Events = {
+    NewSession: NewSessionEvent(pallet),
 }
+
+pallet.EventMappers = {
+    NewSession: NewSessionEventMapper(pallet),
+}
+
+export default pallet

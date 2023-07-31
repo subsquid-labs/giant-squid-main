@@ -1,5 +1,11 @@
-import {IndeciesPallet, Config} from '../../v1030/pallet/indecies'
+import * as parent from '../../v1030/pallet/indecies'
 
-export {IndeciesPallet, Config}
+export const {Pallet} = parent
 
-export const pallet = new IndeciesPallet()
+/******************
+ * IMPLEMENTATION *
+ ******************/
+
+const pallet = new Pallet()
+
+export default pallet

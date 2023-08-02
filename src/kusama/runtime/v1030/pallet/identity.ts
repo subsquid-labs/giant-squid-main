@@ -12,16 +12,15 @@ import {
     CallType,
     ChainContext,
     Enum,
+    Event,
     EventItem,
     EventMapper,
     EventType,
     MappingContext,
     PalletBase,
-    Serialize,
-    Event,
     PalletSetup,
+    Serialize,
 } from '../../../interfaces'
-import {Address} from '../primitive'
 import * as pallet_system from './system'
 
 /*********

@@ -4,11 +4,13 @@ import {
     BondExtraCall,
     BondExtraCallMapper,
     ChillCallMapper,
+    Config,
     ForceUnstakeCall,
     ForceUnstakeCallMapper,
     NominateCall,
     NominateCallMapper,
     Pallet,
+    RewardDestination,
     RewardEvent,
     RewardEventMapper,
     SetControllerCall,
@@ -24,7 +26,6 @@ import {
     WithdrawUnbondedCall,
     WithdrawUnbondedCallMapper,
 } from '../../v1030/pallet/staking'
-import pallet_session from './session'
 
 export {
     BondCall,
@@ -51,6 +52,8 @@ export {
     ValidateCallMapper,
     WithdrawUnbondedCall,
     WithdrawUnbondedCallMapper,
+    Config,
+    RewardDestination,
 }
 
 /******************
@@ -96,10 +99,6 @@ pallet.CallMappers = {
     // force_no_eras: new ForceNoErasCall(pallet, true),
     // force_new_era: new ForceNewEraCall(pallet, true),
     // force_new_era_always: new ForceNewEraAlwaysCall(pallet, true),
-}
-
-pallet_session.SessionManager = {
-    newSession: (...args) => pallet.newSession(...args),
 }
 
 export default pallet

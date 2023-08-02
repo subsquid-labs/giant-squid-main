@@ -48,15 +48,16 @@ export class Pallet extends PalletBase<{
             .setBlock(data.block)
             .setExtrinsic(data.extrinsic)
             .lazy(async () => {
-                const from = fromDeferred.get()
+                const from = await fromDeferred.get()
                 if (from == null) {
                     ctx.queue.add('account_create', {
                         id: fromId,
                         publicKey: data.from.serialize(),
                     })
                 }
-
-                const to = toDeferred.get()
+            })
+            .lazy(async () => {
+                const to = await toDeferred.get()
                 if (to == null) {
                     ctx.queue.add('account_create', {
                         id: toId,

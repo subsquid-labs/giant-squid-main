@@ -1,6 +1,6 @@
-import {Pallet} from '../../v1020/pallet/indecies'
+import {Pallet, Config} from '../../v1020/pallet/indecies'
 
-export {Pallet}
+export {Pallet, Config}
 
 /******************
  * IMPLEMENTATION *

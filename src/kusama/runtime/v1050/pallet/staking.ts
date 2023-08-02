@@ -1,17 +1,18 @@
+import {StakingBondCall, StakingNominateCall, StakingSetControllerCall} from '@metadata/kusama/calls'
+import {Call, ChainContext} from '../../../interfaces'
 import {
-    BondCall,
     BondCallMapper,
     BondExtraCall,
     BondExtraCallMapper,
     ChillCallMapper,
+    Config,
     ForceUnstakeCall,
     ForceUnstakeCallMapper,
-    NominateCall,
     NominateCallMapper,
     Pallet,
+    RewardDestination,
     RewardEvent,
     RewardEventMapper,
-    SetControllerCall,
     SetControllerCallMapper,
     SetPayeeCall,
     SetPayeeCallMapper,
@@ -24,22 +25,18 @@ import {
     WithdrawUnbondedCall,
     WithdrawUnbondedCallMapper,
 } from '../../v1032/pallet/staking'
-import pallet_session from './session'
 
 export {
-    BondCall,
     BondCallMapper,
     BondExtraCall,
     BondExtraCallMapper,
     ChillCallMapper,
     ForceUnstakeCall,
     ForceUnstakeCallMapper,
-    NominateCall,
     NominateCallMapper,
     Pallet,
     RewardEvent,
     RewardEventMapper,
-    SetControllerCall,
     SetControllerCallMapper,
     SetPayeeCall,
     SetPayeeCallMapper,
@@ -52,6 +49,47 @@ export {
     WithdrawUnbondedCall,
     WithdrawUnbondedCallMapper,
 }
+
+/*********
+ * CALLS *
+ *********/
+
+export const BondCall = (pallet: Pallet) =>
+    class {
+        readonly controller: InstanceType<Config['Lookup']['Source']>
+        readonly value: bigint
+        readonly payee: RewardDestination<Config['AccountId']>
+
+        constructor(ctx: ChainContext, call: Call) {
+            const data = new StakingBondCall(ctx, call).asV1050
+
+            this.controller = new pallet.Config.Lookup.Source(data.controller)
+            this.value = data.value
+            this.payee = new (RewardDestination(pallet.Config.AccountId))(data.payee)
+        }
+    }
+
+export const NominateCall = (pallet: Pallet) =>
+    class {
+        readonly targets: InstanceType<Config['Lookup']['Source']>[]
+
+        constructor(ctx: ChainContext, call: Call) {
+            const data = new StakingNominateCall(ctx, call).asV1050
+            this.targets = data.targets.map((t) => new pallet.Config.Lookup.Source(t))
+        }
+    }
+
+export const SetControllerCall = (pallet: Pallet) =>
+    class {
+        readonly controller: InstanceType<Config['Lookup']['Source']>
+
+        constructor(ctx: ChainContext, call: Call) {
+            const data = new StakingSetControllerCall(ctx, call).asV1050
+
+            const lookupSource = new pallet.Config.Lookup.Source(data.controller)
+            this.controller = pallet.Config.Lookup.lookup(lookupSource)
+        }
+    }
 
 /******************
  * IMPLEMENTATION *
@@ -96,10 +134,6 @@ pallet.CallMappers = {
     // force_no_eras: new ForceNoErasCall(pallet, true),
     // force_new_era: new ForceNewEraCall(pallet, true),
     // force_new_era_always: new ForceNewEraAlwaysCall(pallet, true),
-}
-
-pallet_session.SessionManager = {
-    newSession: (...args) => pallet.newSession(...args),
 }
 
 export default pallet

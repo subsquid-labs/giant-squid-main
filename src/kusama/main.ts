@@ -99,17 +99,16 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
 
             switch (item.kind) {
                 case 'event': {
-                    const mapper = pallet.events[itemName]
+                    const mapper = pallet.EventMappers[itemName]
                     if (mapper == null) continue
-                    mapper.handle(ctx, block.header, item)
+                    new mapper().handle(ctx, block.header, item)
 
                     break
                 }
                 case 'call': {
-                    const mapper = pallet.calls[itemName]
+                    const mapper = pallet.CallMappers[itemName]
                     if (mapper == null) continue
-                    if (mapper.result != null && mapper.result !== item.call.success) continue
-                    mapper.handle(ctx, block.header, item)
+                    new mapper().handle(ctx, block.header, item)
 
                     break
                 }

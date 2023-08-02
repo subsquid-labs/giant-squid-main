@@ -14,10 +14,10 @@ import {
 } from 'type-fest'
 
 export class Type<T> {
-    constructor(readonly value: T) {}
+    constructor(readonly __value: T) {}
 }
 
-export type TypeConstructor<T = any> = Class<Type<T>>
+export type TypeConstructor<T = any> = Constructor<Type<T>>
 
 export type EventType<T> = {
     new (ctx: ChainContext, event: Event): T
@@ -28,13 +28,15 @@ export type CallType<T> = {
 }
 
 export type StorageType<K extends any[], V> = {
-    new (ctx: ChainContext, block: Block): {
-        get(...keys: K): Promise<V>
+    new (ctx: ChainContext, block: Block, ...keys: K): {
+        readonly value: Promise<V>
     }
 }
 
 export type ConstantType<T> = {
-    new (ctx: ChainContext): T
+    new (ctx: ChainContext): {
+        readonly value: T
+    }
 }
 
 export const Display = <C extends Constructor<any>>(
@@ -127,7 +129,7 @@ export const Enum = <T extends EnumConfig>(config: T) => {
                 _?: () => any
             }
         >(map: M): ReturnType<Exclude<M[keyof M], undefined>> {
-            const kind = this.value.__kind as keyof T
+            const kind = this.__value.__kind as keyof T
 
             const fn = map[kind]
             if (fn != null) {
@@ -138,14 +140,14 @@ export const Enum = <T extends EnumConfig>(config: T) => {
                     case Number:
                     case BigInt:
                     case Uint8Array:
-                        return fn(this.value.value)
+                        return fn(this.__value.value)
                     case null:
                     case undefined:
                         return fn()
                     default:
                         const c = constructor as TypeConstructor
-                        assert(c.prototype instanceof Type)
-                        return fn(new c(this.value.value) as any)
+                        assert(c.prototype instanceof Type, `${c}`)
+                        return fn(new c(this.__value.value) as any)
                 }
             } else {
                 assert(map._ != null)
@@ -154,7 +156,7 @@ export const Enum = <T extends EnumConfig>(config: T) => {
         }
 
         eq(kind: keyof T) {
-            return this.value.__kind === kind
+            return this.__value.__kind === kind
         }
     }
 

@@ -1,17 +1,20 @@
+import {IdentityProvideJudgementCall} from '@metadata/kusama/calls'
+import {Call, ChainContext} from '../../../interfaces'
 import {
+    Config,
+    Data,
     IdentityClearedEvent,
     IdentityClearedEventMapper,
+    IdentityInfo,
+    IdentityJudgement,
     IdentityKilledEvent,
     IdentityKilledEventMapper,
     Pallet,
-    ProvideJudgmentCall,
     ProvideJudgmentCallMapper,
     SetIdentityCall,
     SetIdentityCallMapper,
     SetSubsCall,
     SetSubsCallMapper,
-    Data,
-    IdentityInfo,
 } from '../../v1032/pallet/identity'
 
 export {
@@ -20,7 +23,6 @@ export {
     IdentityKilledEvent,
     IdentityKilledEventMapper,
     Pallet,
-    ProvideJudgmentCall,
     ProvideJudgmentCallMapper,
     SetIdentityCall,
     SetIdentityCallMapper,
@@ -28,7 +30,24 @@ export {
     SetSubsCallMapper,
     Data,
     IdentityInfo,
+    Config,
 }
+
+/*********
+ * CALLS *
+ *********/
+
+export const ProvideJudgmentCall = (pallet: Pallet) =>
+    class {
+        readonly target: InstanceType<Config['Lookup']['Source']>
+        readonly judgement: IdentityJudgement
+
+        constructor(ctx: ChainContext, call: Call) {
+            const data = new IdentityProvideJudgementCall(ctx, call).asV1050
+            this.target = new pallet.Config.Lookup.Source(data.target)
+            this.judgement = new IdentityJudgement(data.judgement)
+        }
+    }
 
 /******************
  * IMPLEMENTATION *

@@ -1,7 +1,33 @@
-import * as parent from '../../v1020/pallet/staking'
-import pallet_session from './session'
+import {
+    BondCall,
+    BondCallMapper,
+    BondExtraCall,
+    BondExtraCallMapper,
+    ChillCallMapper,
+    Config,
+    ForceUnstakeCall,
+    ForceUnstakeCallMapper,
+    NominateCall,
+    NominateCallMapper,
+    Pallet,
+    RewardDestination,
+    RewardEvent,
+    RewardEventMapper,
+    SetControllerCall,
+    SetControllerCallMapper,
+    SetPayeeCall,
+    SetPayeeCallMapper,
+    SlashEvent,
+    SlashEventMapper,
+    UnbondCall,
+    UnbondCallMapper,
+    ValidateCall,
+    ValidateCallMapper,
+    WithdrawUnbondedCall,
+    WithdrawUnbondedCallMapper,
+} from '../../v1020/pallet/staking'
 
-export const {
+export {
     BondCall,
     BondCallMapper,
     BondExtraCall,
@@ -26,7 +52,9 @@ export const {
     ValidateCallMapper,
     WithdrawUnbondedCall,
     WithdrawUnbondedCallMapper,
-} = parent
+    RewardDestination,
+    Config,
+}
 
 /******************
  * IMPLEMENTATION *
@@ -71,10 +99,6 @@ pallet.CallMappers = {
     // force_no_eras: new ForceNoErasCall(pallet, true),
     // force_new_era: new ForceNewEraCall(pallet, true),
     // force_new_era_always: new ForceNewEraAlwaysCall(pallet, true),
-}
-
-pallet_session.SessionManager = {
-    newSession: (...args) => pallet.newSession(...args),
 }
 
 export default pallet

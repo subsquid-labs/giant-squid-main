@@ -1,5 +1,13 @@
-import {IndeciesPallet, Config} from '../../v1032/pallet/indecies'
+import {Pallet, Config} from '../../v1032/pallet/indecies'
 
-export {IndeciesPallet, Config}
+export {Pallet, Config}
 
-export const pallet = new IndeciesPallet()
+/******************
+ * IMPLEMENTATION *
+ ******************/
+
+const pallet = new Pallet()
+
+console.log(pallet)
+
+export default pallet

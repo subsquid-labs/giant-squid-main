@@ -6,6 +6,7 @@ import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
 import {Account, Identity, Judgement} from '../../../../model/generated'
 import {Call, CallItem, CallMapper, CallType, ChainContext, MappingContext, PalletSetup} from '../../../interfaces'
 import {
+    Config,
     Data,
     IdentityClearedEvent,
     IdentityClearedEventMapper,
@@ -16,6 +17,7 @@ import {
     ProvideJudgmentCallMapper,
     SetSubsCall,
     SetSubsCallMapper,
+    IdentityJudgement,
 } from '../../v1030/pallet/identity'
 
 export {
@@ -28,6 +30,8 @@ export {
     ProvideJudgmentCallMapper,
     SetSubsCall,
     SetSubsCallMapper,
+    Config,
+    IdentityJudgement,
 }
 
 export class IdentityInfo {

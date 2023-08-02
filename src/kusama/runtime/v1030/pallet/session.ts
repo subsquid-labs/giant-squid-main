@@ -1,6 +1,6 @@
-import {NewSessionEvent, NewSessionEventMapper, Pallet} from '../../v1020/pallet/session'
+import {NewSessionEvent, NewSessionEventMapper, Pallet, Config, SessionManager} from '../../v1020/pallet/session'
 
-export {NewSessionEvent, NewSessionEventMapper, Pallet}
+export {NewSessionEvent, NewSessionEventMapper, Pallet, Config, SessionManager}
 
 /******************
  * IMPLEMENTATION *

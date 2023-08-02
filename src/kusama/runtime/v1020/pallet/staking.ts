@@ -14,11 +14,19 @@ import {
     StakingWithdrawUnbondedCall,
 } from '@metadata/kusama/calls'
 import {StakingRewardEvent, StakingSlashEvent} from '@metadata/kusama/events'
-import {StakingCurrentElectedStorage, StakingCurrentEraStorage, StakingStakersStorage} from '@metadata/kusama/storage'
+import {
+    StakingCurrentElectedStorage,
+    StakingCurrentEraStartSessionIndexStorage,
+    StakingCurrentEraStorage,
+    StakingForceEraStorage,
+    StakingLedgerStorage,
+    StakingStakersStorage,
+} from '@metadata/kusama/storage'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
 import assert from 'assert'
 import MathBI from 'extra-bigint'
 import {
+    Block,
     Call,
     CallItem,
     CallMapper,
@@ -34,15 +42,17 @@ import {
     PalletBase,
     StorageType,
     Type,
+    TypeConstructor,
 } from '../../../interfaces'
 import pallet_system from './system'
 import {SessionManager} from './session'
+import {StakingBondingDurationConstant} from '@metadata/kusama/constants'
 
 /*********
  * TYPES *
  *********/
 
-export const RewardDestination = <AccountId extends typeof Type<any>>(AccountId: AccountId) =>
+export const RewardDestination = <AccountId extends TypeConstructor<Uint8Array>>(AccountId: AccountId) =>
     class RewardDestination extends Enum({
         Staked: null,
         Stash: null,
@@ -50,7 +60,7 @@ export const RewardDestination = <AccountId extends typeof Type<any>>(AccountId:
         Account: AccountId,
         None: null,
     }) {}
-export type RewardDestination<AccountId extends typeof Type<any>> = InstanceType<
+export type RewardDestination<AccountId extends TypeConstructor<Uint8Array>> = InstanceType<
     ReturnType<typeof RewardDestination<AccountId>>
 >
 
@@ -60,7 +70,38 @@ export class Forcing extends Enum({
     ForceNone: null,
     ForceAlways: null,
 }) {}
-export type ValidatorPrefs = any
+
+export class ValidatorPrefs extends Type<{commission: number}> {
+    readonly commission: number
+
+    constructor(value: {commission: number}) {
+        super(value)
+
+        this.commission = value.commission
+    }
+}
+
+export const StakingLedger = <AccountId extends TypeConstructor<Uint8Array>>(AccountId: AccountId) =>
+    class StakingLedger extends Type<{
+        stash: Uint8Array
+        total: bigint
+        active: bigint
+    }> {
+        readonly stash: InstanceType<AccountId>
+        readonly total: bigint
+        readonly active: bigint
+
+        constructor(value: {stash: Uint8Array; total: bigint; active: bigint}) {
+            super(value)
+
+            this.stash = new AccountId(value.stash) as InstanceType<AccountId> // TODO: wtf, some weird bahaviour, try to find solution
+            this.total = value.total
+            this.active = value.active
+        }
+    }
+export type StakingLedger<AccountId extends typeof Type<any>> = InstanceType<
+    ReturnType<typeof StakingLedger<AccountId>>
+>
 
 /**********
  * PALLET *
@@ -94,19 +135,17 @@ export class Pallet extends PalletBase<{
         CurrentEra: StorageType<[], number>
         ForceEra: StorageType<[], Forcing>
         CurrentEraStartSessionIndex: StorageType<[], number>
-        Ledger: StorageType<[InstanceType<Config['AccountId']>], any>
+        Ledger: StorageType<[InstanceType<Config['AccountId']>], StakingLedger<Config['AccountId']> | undefined>
     }
     Constants: {
         BondingDuration: ConstantType<number>
     }
 }> {
-    newEra(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number) {
+    newEra(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, currentEraIndex: number) {
         ctx.queue
             .setBlock(block)
             .setExtrinsic(undefined)
             .lazy(async () => {
-                const currentEraIndex = await new StakingCurrentEraStorage(ctx, block).asV1020.get()
-
                 const prevEra = await ctx.store.get(StakingEra, {where: {}, order: {index: 'DESC'}})
                 assert(prevEra?.index == null || prevEra.index < currentEraIndex)
 
@@ -133,6 +172,8 @@ export class Pallet extends PalletBase<{
                     const validatorInfo = validatorsInfo[i]
 
                     const validatorId = validatorAddress.format()
+                    ctx.store.defer(Staker, validatorId)
+
                     const eraValidatorId = createEraStakerId(eraId, validatorId)
                     validators.set(eraValidatorId, {
                         id: validatorId,
@@ -144,6 +185,8 @@ export class Pallet extends PalletBase<{
                         const nominatorAddress = new this.Config.AccountId(nomination.who)
 
                         const nominatorId = nominatorAddress.format()
+                        ctx.store.defer(Staker, nominatorId)
+
                         const eraNominatorId = createEraStakerId(eraId, nominatorId)
                         let nominator = nominators.get(eraNominatorId)
                         if (nominator == null) {
@@ -202,8 +245,8 @@ SessionManager(Pallet, {
             .setBlock(block)
             .setExtrinsic(undefined)
             .lazy(async () => {
-                const forceEra = await new this.Storage.ForceEra(ctx, block).get()
-                const currentEraStartSessionIndex = await new this.Storage.CurrentEraStartSessionIndex(ctx, block).get()
+                const forceEra = await new this.Storage.ForceEra(ctx, block).value
+                const currentEraStartSessionIndex = await new this.Storage.CurrentEraStartSessionIndex(ctx, block).value
 
                 const eraLength = sessionIndex - currentEraStartSessionIndex
                 assert(eraLength >= 0)
@@ -217,7 +260,8 @@ SessionManager(Pallet, {
                 })
 
                 if (triggerNewEra) {
-                    this.newEra(ctx, block, sessionIndex)
+                    const eraIndex = await new this.Storage.CurrentEra(ctx, block).value
+                    this.newEra(ctx, block, eraIndex)
                 }
             })
     },
@@ -288,8 +332,7 @@ export const SetControllerCall = (pallet: Pallet) =>
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingSetControllerCall(ctx, call).asV1020
 
-            const lookupSource = new pallet.Config.Lookup.Source(data.controller)
-            this.controller = pallet.Config.Lookup.lookup(lookupSource)
+            this.controller = new pallet.Config.Lookup.Source(data.controller)
         }
     }
 
@@ -310,7 +353,7 @@ export const ValidateCall = (pallet: Pallet) =>
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingValidateCall(ctx, call).asV1020
-            this.prefs = data.prefs
+            this.prefs = new ValidatorPrefs(data.prefs)
         }
     }
 
@@ -353,6 +396,62 @@ export const SlashEvent = (pallet: Pallet) =>
     }
 
 /***********
+ * STORAGE *
+ ***********/
+
+export const ForceEraStorage = (pallet: Pallet) =>
+    class {
+        readonly value: Promise<Forcing>
+
+        constructor(ctx: ChainContext, block: Block) {
+            this.value = new StakingForceEraStorage(ctx, block).asV1020.get().then((v) => new Forcing(v))
+        }
+    }
+
+export const CurrentEraStartSessionIndexStorage = (pallet: Pallet) =>
+    class {
+        readonly value: Promise<number>
+
+        constructor(ctx: ChainContext, block: Block) {
+            this.value = new StakingCurrentEraStartSessionIndexStorage(ctx, block).asV1020.get()
+        }
+    }
+
+export const CurrentEraStorage = (pallet: Pallet) =>
+    class {
+        readonly value: Promise<number>
+
+        constructor(ctx: ChainContext, block: Block) {
+            this.value = new StakingCurrentEraStorage(ctx, block).asV1020.get()
+        }
+    }
+
+export const LedgerStorage = (pallet: Pallet) =>
+    class {
+        readonly value: Promise<StakingLedger<Pallet['Config']['AccountId']> | undefined>
+
+        constructor(ctx: ChainContext, block: Block, key: InstanceType<Config['AccountId']>) {
+            const Ledger = StakingLedger(pallet.Config.AccountId)
+            this.value = new StakingLedgerStorage(ctx, block).asV1020
+                .get(key.__value)
+                .then((v) => (v == null ? undefined : new Ledger(v)))
+        }
+    }
+
+/*************
+ * CONSTANTS *
+ *************/
+
+export const BondingDurationConstant = (pallet: Pallet) =>
+    class {
+        readonly value: number
+
+        constructor(ctx: ChainContext) {
+            this.value = new StakingBondingDurationConstant(ctx).asV1020
+        }
+    }
+
+/***********
  * MAPPERS *
  ***********/
 
@@ -385,7 +484,8 @@ export const BondCallMapper = (pallet: Pallet, success?: boolean) =>
                             publicKey: stashAddress.serialize(),
                         })
                     }
-
+                })
+                .lazy(async () => {
                     const controller = await controllerDeferred.get()
                     if (controller == null) {
                         ctx.queue.add('account_create', {
@@ -505,8 +605,8 @@ export const UnbondCallMapper = (pallet: Pallet, success?: boolean) =>
                     const amount = data.value > staker.activeBond ? staker.activeBond : data.value
                     if (amount === 0n) return
 
-                    const bondingDuration = new pallet.Constants.BondingDuration(ctx)
-                    const currentEra = await new pallet.Storage.CurrentEra(ctx, block).get()
+                    const bondingDuration = new pallet.Constants.BondingDuration(ctx).value
+                    const currentEra = await new pallet.Storage.CurrentEra(ctx, block).value
 
                     ctx.queue
                         .add('staking_bond', {
@@ -581,7 +681,7 @@ export const WithdrawUnbondedCallMapper = (pallet: Pallet, success?: boolean) =>
                     const staker = controller.controllerOf
                     assert(staker != null)
 
-                    const currentEra = await new StakingCurrentEraStorage(ctx, block).asV1020.get()
+                    const currentEra = await new pallet.Storage.CurrentEra(ctx, block).value
 
                     const withdrawable = staker.unlocking.filter((c) => c.lockedUntilEra <= currentEra)
                     for (const chunk of withdrawable) {
@@ -589,7 +689,7 @@ export const WithdrawUnbondedCallMapper = (pallet: Pallet, success?: boolean) =>
                     }
 
                     if (staker.activeBond === 0n && withdrawable.length == staker.unlocking.length) {
-                        const ledger = await new pallet.Storage.Ledger(ctx, block).get(controllerAddress)
+                        const ledger = await new pallet.Storage.Ledger(ctx, block, controllerAddress).value
                         const stashAddress = ledger?.stash
                         const stashId = stashAddress?.format()
 
@@ -918,6 +1018,16 @@ pallet.Calls = {
 pallet.Events = {
     Reward: RewardEvent(pallet),
     Slash: SlashEvent(pallet),
+}
+pallet.Storage = {
+    ForceEra: ForceEraStorage(pallet),
+    CurrentEraStartSessionIndex: CurrentEraStartSessionIndexStorage(pallet),
+    CurrentEra: CurrentEraStorage(pallet),
+    Ledger: LedgerStorage(pallet),
+}
+
+pallet.Constants = {
+    BondingDuration: BondingDurationConstant(pallet),
 }
 
 pallet.EventMappers = {

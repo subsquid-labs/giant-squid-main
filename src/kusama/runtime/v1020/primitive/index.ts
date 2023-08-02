@@ -1,37 +1,36 @@
 import {encode} from '@subsquid/ss58'
-import {Display, Enum, Serialize, StaticLookup, Type} from '../../../interfaces'
+import {Display, Enum, Serialize, StaticLookup, Type, TypeConstructor} from '../../../interfaces'
 import {toHex} from '@subsquid/substrate-processor'
 import * as metadata from '@metadata/kusama/v1020'
+import {Class} from 'type-fest'
 
 export const AccountId32 = (prefix: number) =>
-    class AccountId32 implements Display<string>, Serialize<string> {
+    class AccountId32 extends Type<Uint8Array> implements Display<string>, Serialize<string> {
         protected prefix = prefix
-
-        constructor(readonly value: Uint8Array) {}
 
         format(): string {
             return encode({
-                bytes: this.value,
+                bytes: this.__value,
                 prefix: this.prefix,
             })
         }
 
         serialize(): string {
-            return toHex(this.value)
+            return toHex(this.__value)
         }
     }
 export type AccountId32 = ReturnType<typeof AccountId32>
 
-export const Address = <AccountId extends typeof Type<any>>(AccountId: AccountId) =>
+export const Address = <AccountId extends TypeConstructor>(AccountId: AccountId) =>
     class Address extends Enum({
         AccountId: AccountId,
     }) {}
-export type Address<AccountId extends typeof Type<any>> = ReturnType<typeof Address<AccountId>>
+export type Address<AccountId extends TypeConstructor> = ReturnType<typeof Address<AccountId>>
 
-export const IdentityLookup = <AccountId extends typeof Type<any>>(AccountId: AccountId) => {
-    class IdentityLookup<AccountId extends typeof Type<any>> {}
+export const IdentityLookup = <AccountId extends TypeConstructor>(AccountId: AccountId) => {
+    class IdentityLookup<AccountId extends TypeConstructor> {}
 
-    interface IdentityLookup<AccountId extends typeof Type<any>> extends StaticLookup<AccountId, AccountId> {}
+    interface IdentityLookup<AccountId extends TypeConstructor> extends StaticLookup<AccountId, AccountId> {}
 
     StaticLookup(IdentityLookup, {
         Source: AccountId,
@@ -44,6 +43,6 @@ export const IdentityLookup = <AccountId extends typeof Type<any>>(AccountId: Ac
         },
     })
 
-    return IdentityLookup
+    return IdentityLookup<AccountId>
 }
-export type IdentityLookup<AccountId extends typeof Type<any>> = ReturnType<typeof IdentityLookup<AccountId>>
+export type IdentityLookup<AccountId extends TypeConstructor> = ReturnType<typeof IdentityLookup<AccountId>>

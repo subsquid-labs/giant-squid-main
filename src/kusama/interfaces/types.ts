@@ -1,10 +1,23 @@
+import assert from 'assert'
 import {Block, Call, ChainContext, Event} from '.'
+import {applyMixins} from '@gs/util/misc'
+import {
+    Class,
+    ConditionalExcept,
+    ConditionalKeys,
+    ConditionalPick,
+    Constructor,
+    Entries,
+    Simplify,
+    StringKeyOf,
+    ValueOf,
+} from 'type-fest'
 
-export interface Type<T> {
-    new (value: T): {
-        value: T
-    }
+export class Type<T> {
+    constructor(readonly value: T) {}
 }
+
+export type TypeConstructor<T = any> = Class<Type<T>>
 
 export type EventType<T> = {
     new (ctx: ChainContext, event: Event): T
@@ -24,49 +37,126 @@ export type ConstantType<T> = {
     new (ctx: ChainContext): T
 }
 
+export const Display = <C extends Constructor<any>>(
+    base: C,
+    implementation: Display<any> & ThisType<InstanceType<C>>
+) => {
+    applyMixins(base, implementation)
+}
 export interface Display<T> {
-    new (...args: any): {
-        format(): T
-    }
+    format(): T
 }
 
+export const Serialize = <C extends Constructor<any>>(
+    base: C,
+    implementation: Serialize<any> & ThisType<InstanceType<C>>
+) => {
+    applyMixins(base, implementation)
+}
 export interface Serialize<T> {
-    new (...args: any): {
-        serialize(): T
-    }
+    serialize(): T
 }
 
-export interface StaticLookup<Target extends Type<any>> {
-    lookup(s: unknown): InstanceType<Target>
-    unlookup(t: InstanceType<Target>): unknown
+export const StaticLookup = <C extends Constructor<any>>(
+    base: C,
+    implementation: StaticLookup<any, any> & ThisType<InstanceType<C>>
+) => {
+    applyMixins(base, implementation)
+}
+export interface StaticLookup<Target extends TypeConstructor, Source extends TypeConstructor> {
+    readonly Source: Source
+    readonly Target: Target
+
+    lookup(s: InstanceType<Source>): InstanceType<Target>
+    unlookup(t: InstanceType<Target>): InstanceType<Source>
 }
 
-type EnumEntry<K extends string, V> = {__kind: K; value?: V}
+type RawType =
+    | TypeConstructor
+    | StringConstructor
+    | NumberConstructor
+    | BigIntConstructor
+    | Uint8ArrayConstructor
+    | null
+    | [RawType]
 
-export abstract class Enum<U extends EnumEntry<string, any>> {
-    constructor(readonly value: U) {}
+type ConvertType<T> = T extends TypeConstructor<infer V>
+    ? V
+    : T extends Uint8ArrayConstructor
+    ? Uint8Array
+    : T extends NumberConstructor
+    ? number
+    : T extends BigIntConstructor
+    ? bigint
+    : T extends StringConstructor
+    ? string
+    : T extends [infer R]
+    ? ConvertType<R>[]
+    : never
 
-    match<
-        S extends {
-            [K in U['__kind']]?: (value: Extract<U, EnumEntry<K, any>>['value']) => any
-        } & {
-            _?: () => any
-        }
-    >(s: S): ReturnType<Exclude<S[keyof S], undefined>> {
-        const fn = s[this.value.__kind as U['__kind']]
-        if (fn == null) {
-            const _ = s._
-            if (_ == null) {
-                throw new Error()
-            } else {
-                return _()
+type EnumEntry<E extends EnumConfig> = Simplify<
+    ValueOf<
+        {
+            [K in keyof ConditionalExcept<E, null>]: {
+                __kind: K
+                value: ConvertType<E[K]>
             }
-        } else {
-            return fn(this.value.value)
+        } & {
+            [K in keyof ConditionalPick<E, null>]: {
+                __kind: K
+            }
+        }
+    >
+>
+
+// type EnumEntry<K, V> = {
+//     __kind: K
+//     value?: V
+// }
+
+type EnumConfig = {
+    [K: string]: RawType
+}
+
+export const Enum = <T extends EnumConfig>(config: T) => {
+    abstract class Enum extends Type<EnumEntry<T>> {
+        match<
+            M extends {
+                [K in keyof T]?: (...args: T[K] extends Constructor<any> ? [InstanceType<T[K]>] : []) => any
+            } & {
+                _?: () => any
+            }
+        >(map: M): ReturnType<Exclude<M[keyof M], undefined>> {
+            const kind = this.value.__kind as keyof T
+
+            const fn = map[kind]
+            if (fn != null) {
+                const constructor = config[kind]
+
+                switch (constructor) {
+                    case String:
+                    case Number:
+                    case BigInt:
+                    case Uint8Array:
+                        return fn(this.value.value)
+                    case null:
+                    case undefined:
+                        return fn()
+                    default:
+                        const c = constructor as TypeConstructor
+                        assert(c.prototype instanceof Type)
+                        return fn(new c(this.value.value) as any)
+                }
+            } else {
+                assert(map._ != null)
+                return map._()
+            }
+        }
+
+        eq(kind: keyof T) {
+            return this.value.__kind === kind
         }
     }
 
-    eq(kind: keyof U) {
-        return this.value.__kind === kind
-    }
+    return Enum
 }

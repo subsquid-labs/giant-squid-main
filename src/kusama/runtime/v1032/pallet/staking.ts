@@ -1,7 +1,4 @@
-import * as parent from '../../v1030/pallet/staking'
-import pallet_session from './session'
-
-export const {
+import {
     BondCall,
     BondCallMapper,
     BondExtraCall,
@@ -26,7 +23,35 @@ export const {
     ValidateCallMapper,
     WithdrawUnbondedCall,
     WithdrawUnbondedCallMapper,
-} = parent
+} from '../../v1030/pallet/staking'
+import pallet_session from './session'
+
+export {
+    BondCall,
+    BondCallMapper,
+    BondExtraCall,
+    BondExtraCallMapper,
+    ChillCallMapper,
+    ForceUnstakeCall,
+    ForceUnstakeCallMapper,
+    NominateCall,
+    NominateCallMapper,
+    Pallet,
+    RewardEvent,
+    RewardEventMapper,
+    SetControllerCall,
+    SetControllerCallMapper,
+    SetPayeeCall,
+    SetPayeeCallMapper,
+    SlashEvent,
+    SlashEventMapper,
+    UnbondCall,
+    UnbondCallMapper,
+    ValidateCall,
+    ValidateCallMapper,
+    WithdrawUnbondedCall,
+    WithdrawUnbondedCallMapper,
+}
 
 /******************
  * IMPLEMENTATION *

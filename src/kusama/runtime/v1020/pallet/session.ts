@@ -3,11 +3,22 @@ import {SubstrateBlock} from '@subsquid/substrate-processor'
 import {ChainContext, EventItem, EventMapper, MappingContext, PalletBase, Event} from '../../../interfaces'
 import {EventType} from '../../../interfaces/types'
 import {SessionNewSessionEvent} from '@metadata/kusama/events'
+import {applyMixins} from '@gs/util/misc'
+import {Constructor, Class} from 'type-fest'
 
-export type Config = {}
+export const SessionManager = <C extends Class<any>>(
+    base: C,
+    implementation: SessionManager & ThisType<InstanceType<C>>
+) => {
+    applyMixins(base, implementation)
+}
 
-export type SessionManager = {
+export interface SessionManager {
     newSession(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number): void
+}
+
+export type Config = {
+    SessionManager: SessionManager
 }
 
 export class Pallet extends PalletBase<{
@@ -15,13 +26,9 @@ export class Pallet extends PalletBase<{
     Events: {
         NewSession: EventType<{sessionIndex: number}>
     }
-}> {
-    SessionManager!: SessionManager
+}> {}
 
-    newSession(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number) {
-        this.SessionManager.newSession(ctx, block, sessionIndex)
-    }
-}
+export interface Pallet {}
 
 export const NewSessionEvent = (pallet: Pallet) =>
     class NewSessionEvent {
@@ -37,7 +44,7 @@ export const NewSessionEventMapper = (pallet: Pallet) =>
     class Mapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
             const data = new pallet.Events.NewSession(ctx, item.event)
-            pallet.newSession(ctx, block, data.sessionIndex)
+            pallet.Config.SessionManager.newSession(ctx, block, data.sessionIndex)
         }
     }
 

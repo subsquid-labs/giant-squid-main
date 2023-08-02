@@ -1,26 +1,61 @@
-import * as metadata from '@metadata/kusama/v1050'
 import {
-    Config,
-    Data,
-    IdentityClearEventMapper,
-    IdentityKillEventMapper,
+    IdentityClearedEvent,
+    IdentityClearedEventMapper,
+    IdentityKilledEvent,
+    IdentityKilledEventMapper,
+    Pallet,
+    ProvideJudgmentCall,
     ProvideJudgmentCallMapper,
+    SetIdentityCall,
     SetIdentityCallMapper,
+    SetSubsCall,
     SetSubsCallMapper,
-    PalletIdentity,
+    Data,
+    IdentityInfo,
 } from '../../v1032/pallet/identity'
 
-export {Config, Data, IdentityClearEventMapper, IdentityKillEventMapper, ProvideJudgmentCallMapper, SetSubsCallMapper}
-
-export const pallet = new PalletIdentity()
-
-pallet.calls = {
-    set_subs: new SetSubsCallMapper(pallet, true),
-    provide_judgment: new ProvideJudgmentCallMapper(pallet, true),
-    set_identity: new SetIdentityCallMapper(pallet, true),
+export {
+    IdentityClearedEvent,
+    IdentityClearedEventMapper,
+    IdentityKilledEvent,
+    IdentityKilledEventMapper,
+    Pallet,
+    ProvideJudgmentCall,
+    ProvideJudgmentCallMapper,
+    SetIdentityCall,
+    SetIdentityCallMapper,
+    SetSubsCall,
+    SetSubsCallMapper,
+    Data,
+    IdentityInfo,
 }
 
-pallet.events = {
-    IdentityClear: new IdentityClearEventMapper(pallet),
-    IdentityKill: new IdentityKillEventMapper(pallet),
+/******************
+ * IMPLEMENTATION *
+ ******************/
+
+const pallet = new Pallet()
+
+pallet.Calls = {
+    provide_judgment: ProvideJudgmentCall(pallet),
+    set_identity: SetIdentityCall(pallet),
+    set_subs: SetSubsCall(pallet),
 }
+
+pallet.Events = {
+    IdentityCleared: IdentityClearedEvent(pallet),
+    IdentityKilled: IdentityKilledEvent(pallet),
+}
+
+pallet.CallMappers = {
+    set_subs: SetSubsCallMapper(pallet, true),
+    provide_judgment: ProvideJudgmentCallMapper(pallet, true),
+    set_identity: SetIdentityCallMapper(pallet, true),
+}
+
+pallet.EventMappers = {
+    IdentityClear: IdentityClearedEventMapper(pallet),
+    IdentityKill: IdentityKilledEventMapper(pallet),
+}
+
+export default pallet

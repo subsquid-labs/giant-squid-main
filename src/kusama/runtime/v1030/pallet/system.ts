@@ -1,6 +1,6 @@
-import * as parent from '../../v1020/pallet/system'
+import {Pallet, Config} from '../../v1020/pallet/system'
 
-export const {Pallet} = parent
+export {Pallet, Config}
 
 /******************
  * IMPLEMENTATION *

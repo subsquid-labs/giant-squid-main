@@ -1,9 +1,19 @@
-import {Config, TransferEventMapper, PalletBalances} from '../../v1032/pallet/balances'
+import {Pallet, TransferEvent, TransferEventMapper} from '../../v1032/pallet/balances'
 
-export {Config, TransferEventMapper, PalletBalances}
+export {Pallet, TransferEvent, TransferEventMapper}
 
-export const pallet = new PalletBalances<Config>()
+/******************
+ * IMPLEMENTATION *
+ ******************/
 
-pallet.events = {
-    Transfer: new TransferEventMapper(pallet),
+const pallet = new Pallet()
+
+pallet.Events = {
+    Transfer: TransferEvent(pallet),
 }
+
+pallet.EventMappers = {
+    Transfer: TransferEventMapper(pallet),
+}
+
+export default pallet

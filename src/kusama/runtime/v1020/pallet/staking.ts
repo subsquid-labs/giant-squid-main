@@ -15,7 +15,6 @@ import {
 } from '@metadata/kusama/calls'
 import {StakingRewardEvent, StakingSlashEvent} from '@metadata/kusama/events'
 import {StakingCurrentElectedStorage, StakingCurrentEraStorage, StakingStakersStorage} from '@metadata/kusama/storage'
-import * as metadata from '@metadata/kusama/v1020'
 import {SubstrateBlock} from '@subsquid/substrate-processor'
 import assert from 'assert'
 import MathBI from 'extra-bigint'
@@ -34,17 +33,33 @@ import {
     MappingContext,
     PalletBase,
     StorageType,
+    Type,
 } from '../../../interfaces'
-import {Address} from '../primitive'
-import pallet_session from './session'
 import pallet_system from './system'
+import {SessionManager} from './session'
 
 /*********
  * TYPES *
  *********/
 
-export class RewardDestination extends Enum<metadata.RewardDestination> {}
-export class Forcing extends Enum<metadata.Forcing> {}
+export const RewardDestination = <AccountId extends typeof Type<any>>(AccountId: AccountId) =>
+    class RewardDestination extends Enum({
+        Staked: null,
+        Stash: null,
+        Controller: null,
+        Account: AccountId,
+        None: null,
+    }) {}
+export type RewardDestination<AccountId extends typeof Type<any>> = InstanceType<
+    ReturnType<typeof RewardDestination<AccountId>>
+>
+
+export class Forcing extends Enum({
+    NotForcing: null,
+    ForceNew: null,
+    ForceNone: null,
+    ForceAlways: null,
+}) {}
 export type ValidatorPrefs = any
 
 /**********
@@ -60,15 +75,19 @@ export class Pallet extends PalletBase<{
         Slash: EventType<{staker: InstanceType<Config['AccountId']>; amount: bigint}>
     }
     Calls: {
-        bond: CallType<{controller: ReturnType<Config['Lookup']['unlookup']>; value: bigint; payee: RewardDestination}>
+        bond: CallType<{
+            controller: InstanceType<Config['Lookup']['Source']>
+            value: bigint
+            payee: RewardDestination<Config['AccountId']>
+        }>
         bond_extra: CallType<{maxAdditional: bigint}>
         unbond: CallType<{value: bigint}>
         force_unstake: CallType<{stash: InstanceType<Config['AccountId']>}>
         withdraw_unbonded: CallType<{}>
-        set_controller: CallType<{controller: ReturnType<Config['Lookup']['unlookup']>}>
-        set_payee: CallType<{payee: RewardDestination}>
+        set_controller: CallType<{controller: InstanceType<Config['Lookup']['Source']>}>
+        set_payee: CallType<{payee: RewardDestination<Config['AccountId']>}>
         validate: CallType<{prefs: ValidatorPrefs}>
-        nominate: CallType<{targets: ReturnType<Config['Lookup']['unlookup']>[]}>
+        nominate: CallType<{targets: InstanceType<Config['Lookup']['Source']>[]}>
         chill: CallType<{}>
     }
     Storage: {
@@ -81,31 +100,6 @@ export class Pallet extends PalletBase<{
         BondingDuration: ConstantType<number>
     }
 }> {
-    newSession(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number) {
-        ctx.queue
-            .setBlock(block)
-            .setExtrinsic(undefined)
-            .lazy(async () => {
-                const forceEra = await new this.Storage.ForceEra(ctx, block).get()
-                const currentEraStartSessionIndex = await new this.Storage.CurrentEraStartSessionIndex(ctx, block).get()
-
-                const eraLength = sessionIndex - currentEraStartSessionIndex
-                assert(eraLength >= 0)
-
-                let triggerNewEra = false
-                forceEra.match({
-                    ForceNew: () => (triggerNewEra = true),
-                    ForceAlways: () => (triggerNewEra = true),
-                    NotForcing: () => (triggerNewEra = eraLength == 0),
-                    _: () => (triggerNewEra = false),
-                })
-
-                if (triggerNewEra) {
-                    this.newEra(ctx, block, sessionIndex)
-                }
-            })
-    }
-
     newEra(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, sessionIndex: number) {
         ctx.queue
             .setBlock(block)
@@ -202,22 +196,51 @@ export class Pallet extends PalletBase<{
     }
 }
 
+SessionManager(Pallet, {
+    newSession(ctx, block, sessionIndex) {
+        ctx.queue
+            .setBlock(block)
+            .setExtrinsic(undefined)
+            .lazy(async () => {
+                const forceEra = await new this.Storage.ForceEra(ctx, block).get()
+                const currentEraStartSessionIndex = await new this.Storage.CurrentEraStartSessionIndex(ctx, block).get()
+
+                const eraLength = sessionIndex - currentEraStartSessionIndex
+                assert(eraLength >= 0)
+
+                let triggerNewEra = false
+                forceEra.match({
+                    ForceNew: () => (triggerNewEra = true),
+                    ForceAlways: () => (triggerNewEra = true),
+                    NotForcing: () => (triggerNewEra = eraLength == 0),
+                    _: () => (triggerNewEra = false),
+                })
+
+                if (triggerNewEra) {
+                    this.newEra(ctx, block, sessionIndex)
+                }
+            })
+    },
+})
+
+export interface Pallet extends SessionManager {}
+
 /*********
  * CALLS *
  *********/
 
 export const BondCall = (pallet: Pallet) =>
     class {
-        readonly controller: ReturnType<Config['Lookup']['unlookup']>
+        readonly controller: InstanceType<Config['Lookup']['Source']>
         readonly value: bigint
-        readonly payee: RewardDestination
+        readonly payee: RewardDestination<Config['AccountId']>
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingBondCall(ctx, call).asV1020
 
-            this.controller = new Address(data.controller)
+            this.controller = new pallet.Config.Lookup.Source(data.controller)
             this.value = data.value
-            this.payee = new RewardDestination(data.payee)
+            this.payee = new (RewardDestination(pallet.Config.AccountId))(data.payee)
         }
     }
 
@@ -260,21 +283,24 @@ export const WithdrawUnbondedCall = (pallet: Pallet) =>
 
 export const SetControllerCall = (pallet: Pallet) =>
     class {
-        readonly controller: ReturnType<Config['Lookup']['unlookup']>
+        readonly controller: InstanceType<Config['Lookup']['Source']>
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingSetControllerCall(ctx, call).asV1020
-            this.controller = new Address(data.controller)
+
+            const lookupSource = new pallet.Config.Lookup.Source(data.controller)
+            this.controller = pallet.Config.Lookup.lookup(lookupSource)
         }
     }
 
 export const SetPayeeCall = (pallet: Pallet) =>
     class {
-        readonly payee: RewardDestination
+        readonly payee: RewardDestination<Config['AccountId']>
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingSetPayeeCall(ctx, call).asV1020
-            this.payee = new RewardDestination(data.payee)
+
+            this.payee = this.payee = new (RewardDestination(pallet.Config.AccountId))(data.payee)
         }
     }
 
@@ -290,11 +316,11 @@ export const ValidateCall = (pallet: Pallet) =>
 
 export const NominateCall = (pallet: Pallet) =>
     class {
-        readonly targets: ReturnType<Config['Lookup']['unlookup']>[]
+        readonly targets: InstanceType<Config['Lookup']['Source']>[]
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingNominateCall(ctx, call).asV1020
-            this.targets = data.targets.map((t) => new Address(t))
+            this.targets = data.targets.map((t) => new pallet.Config.Lookup.Source(t))
         }
     }
 
@@ -375,7 +401,7 @@ export const BondCallMapper = (pallet: Pallet, success?: boolean) =>
                 Staked: () => ({payeeType: PayeeType.Stash, payeeId: stashId}),
                 Controller: () => ({payeeType: PayeeType.Controller, payeeId: controllerId}),
                 Account: (account) => {
-                    const accountAddress = new pallet.Config.AccountId(account)
+                    const accountAddress = account
                     const payeeId = accountAddress.format()
                     const payeeDeferred = ctx.store.defer(Account, payeeId)
 
@@ -644,8 +670,7 @@ export const SetPayeeCallMapper = (pallet: Pallet, success?: boolean) =>
                         Stash: () => ({payeeType: PayeeType.Stash, payeeId: staker.stash.id}),
                         Staked: () => ({payeeType: PayeeType.Staked, payeeId: staker.stash.id}),
                         Controller: () => ({payeeType: PayeeType.Controller, payeeId: controller.id}),
-                        Account: async (account) => {
-                            const accountAddress = new pallet.Config.AccountId(account)
+                        Account: async (accountAddress) => {
                             const payeeId = accountAddress.format()
                             const payeeDeferred = ctx.store.defer(Account, payeeId)
 
@@ -917,11 +942,3 @@ pallet.CallMappers = {
 }
 
 export default pallet
-
-pallet_session.SessionManager = {
-    newSession: (...args) => pallet.newSession(...args),
-}
-
-export namespace A {
-    export const A = 1
-}

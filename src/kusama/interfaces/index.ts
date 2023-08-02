@@ -3,6 +3,7 @@ import {ActionQueue} from '@gs/action'
 import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
 import assert from 'assert'
 import {CallItem, EventItem, Call, Event, Block, Extrinsic} from '../processor'
+import {CallType, ConstantType, EventType, StorageType} from './types'
 
 export {CallItem, EventItem, Call, Event, Block, Extrinsic}
 
@@ -23,11 +24,11 @@ export interface CallMapper {
 }
 
 export interface PalletSetup {
-    Config?: unknown
-    Events?: unknown
-    Calls?: unknown
-    Storage?: unknown
-    Constants?: unknown
+    Config?: Record<string, any>
+    Events?: Record<string, EventType<any>>
+    Calls?: Record<string, CallType<any>>
+    Storage?: Record<string, StorageType<any, any>>
+    Constants?: Record<string, ConstantType<any>>
 }
 
 export abstract class PalletBase<T extends PalletSetup> {
@@ -37,8 +38,16 @@ export abstract class PalletBase<T extends PalletSetup> {
     Storage!: T['Storage']
     Constants!: T['Constants']
 
-    EventMappers!: Record<string, new () => EventMapper>
-    CallMappers!: Record<string, new () => CallMapper>
+    EventMappers: Record<string, new () => EventMapper> = {}
+    CallMappers: Record<string, new () => CallMapper> = {}
+
+    // constructor(setup: T) {
+    //     this.Config = setup.Config
+    //     this.Events = setup.Events
+    //     this.Calls = setup.Calls
+    //     this.Storage = setup.Storage
+    //     this.Constants = setup.Constants
+    // }
     // get events() {
     //     return this._events ?? {}
     // }

@@ -1,6 +1,6 @@
-import * as parent from '../../v1020/pallet/balances'
+import {Pallet, TransferEvent, TransferEventMapper} from '../../v1020/pallet/balances'
 
-export const {Pallet, TransferEvent, TransferEventMapper} = parent
+export {Pallet, TransferEvent, TransferEventMapper}
 
 /******************
  * IMPLEMENTATION *

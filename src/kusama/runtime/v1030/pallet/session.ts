@@ -1,6 +1,6 @@
-import * as parent from '../../v1020/pallet/session'
+import {NewSessionEvent, NewSessionEventMapper, Pallet} from '../../v1020/pallet/session'
 
-export const {NewSessionEvent, NewSessionEventMapper, Pallet} = parent
+export {NewSessionEvent, NewSessionEventMapper, Pallet}
 
 /******************
  * IMPLEMENTATION *

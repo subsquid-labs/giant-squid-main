@@ -1,5 +1,6 @@
 import {BlockData, decodeHex, SubstrateBlock, toHex} from '@subsquid/substrate-processor'
 import {encode, decode, registry} from '@subsquid/ss58'
+import {Constructor} from 'type-fest'
 // import {chain} from '../chain'
 
 export function encodeAddress(address: Uint8Array) {
@@ -67,4 +68,10 @@ export function unwrapData(data: {__kind: string; value?: Uint8Array}) {
                 .toString('utf-8')
                 .replace(/\u0000/g, '')
     }
+}
+
+export function applyMixins(base: Constructor<any>, mixin: Object) {
+    Object.getOwnPropertyNames(mixin).forEach((name) => {
+        Object.defineProperty(base.prototype, name, Object.getOwnPropertyDescriptor(mixin, name) || Object.create(null))
+    })
 }

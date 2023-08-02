@@ -25,7 +25,9 @@ pallet_staking.Config = {
     ...pallet_system.Config,
 }
 
-pallet_session.Config = {}
+pallet_session.Config = {
+    SessionManager: pallet_staking,
+}
 
 export const runtime: Runtime = {
     Balances: pallet_balances,

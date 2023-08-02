@@ -22,17 +22,55 @@ import {
     PalletSetup,
 } from '../../../interfaces'
 import {Address} from '../primitive'
-import pallet_system from './system'
+import * as pallet_system from './system'
 
 /*********
  * TYPES *
  *********/
 
-export class Data extends Enum<metadata.Data> implements InstanceType<Serialize<string | undefined>> {
-    constructor(value: metadata.Data) {
-        super(value)
-    }
-
+export class Data
+    extends Enum({
+        None: null,
+        BlakeTwo256: Uint8Array,
+        Keccak256: Uint8Array,
+        Sha256: Uint8Array,
+        ShaThree256: Uint8Array,
+        Raw0: Uint8Array,
+        Raw1: Uint8Array,
+        Raw2: Uint8Array,
+        Raw3: Uint8Array,
+        Raw4: Uint8Array,
+        Raw5: Uint8Array,
+        Raw6: Uint8Array,
+        Raw7: Uint8Array,
+        Raw8: Uint8Array,
+        Raw9: Uint8Array,
+        Raw10: Uint8Array,
+        Raw11: Uint8Array,
+        Raw12: Uint8Array,
+        Raw13: Uint8Array,
+        Raw14: Uint8Array,
+        Raw15: Uint8Array,
+        Raw16: Uint8Array,
+        Raw17: Uint8Array,
+        Raw18: Uint8Array,
+        Raw19: Uint8Array,
+        Raw20: Uint8Array,
+        Raw21: Uint8Array,
+        Raw22: Uint8Array,
+        Raw23: Uint8Array,
+        Raw24: Uint8Array,
+        Raw25: Uint8Array,
+        Raw26: Uint8Array,
+        Raw27: Uint8Array,
+        Raw28: Uint8Array,
+        Raw29: Uint8Array,
+        Raw30: Uint8Array,
+        Raw31: Uint8Array,
+        Raw32: Uint8Array,
+    })
+    implements Serialize<string | undefined>
+{
     serialize(): string | undefined {
         return this.match({
             None: () => undefined,
@@ -109,17 +147,21 @@ export class IdentityInfo {
     }
 }
 
-export class IdentityJudgement extends Enum<metadata.IdentityJudgement> {
-    constructor(value: metadata.IdentityJudgement) {
-        super(value)
-    }
-}
+export class IdentityJudgement extends Enum({
+    Unknown: null,
+    FeePaid: BigInt,
+    Reasonable: null,
+    KnownGood: null,
+    OutOfDate: null,
+    LowQuality: null,
+    Erroneous: null,
+}) {}
 
 /**********
  * PALLET *
  **********/
 
-export type Config = typeof pallet_system.Config & {}
+export type Config = pallet_system.Config & {}
 
 export class Pallet<T extends PalletSetup = {}> extends PalletBase<
     T & {
@@ -152,12 +194,12 @@ export const SetSubsCall = (pallet: Pallet) =>
 
 export const ProvideJudgmentCall = (pallet: Pallet) =>
     class {
-        readonly target: ReturnType<Config['Lookup']['unlookup']>
+        readonly target: InstanceType<Config['Lookup']['Source']>
         readonly judgement: IdentityJudgement
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new IdentityProvideJudgementCall(ctx, call).asV1030
-            this.target = new Address(data.target)
+            this.target = new pallet.Config.Lookup.Source(data.target)
             this.judgement = new IdentityJudgement(data.judgement)
         }
     }
@@ -274,7 +316,7 @@ export const ProvideJudgmentCallMapper = (pallet: Pallet, success?: boolean) =>
 
             const judgement = judgementGivenData.judgement.match({
                 Erroneous: () => Judgement.Erroneous,
-                FeePaid: (fee) => Judgement.FeePaid,
+                FeePaid: () => Judgement.FeePaid,
                 KnownGood: () => Judgement.KnownGood,
                 LowQuality: () => Judgement.LowQuality,
                 OutOfDate: () => Judgement.OutOfDate,

@@ -4,10 +4,15 @@ import {
     BondCallMapper,
     BondExtraCall,
     BondExtraCallMapper,
+    BondingDurationConstant,
     ChillCallMapper,
     Config,
+    CurrentEraStartSessionIndexStorage,
+    CurrentEraStorage,
+    ForceEraStorage,
     ForceUnstakeCall,
     ForceUnstakeCallMapper,
+    LedgerStorage,
     NominateCallMapper,
     Pallet,
     RewardDestination,
@@ -30,11 +35,18 @@ export {
     BondCallMapper,
     BondExtraCall,
     BondExtraCallMapper,
+    BondingDurationConstant,
     ChillCallMapper,
+    Config,
+    CurrentEraStartSessionIndexStorage,
+    CurrentEraStorage,
+    ForceEraStorage,
     ForceUnstakeCall,
     ForceUnstakeCallMapper,
+    LedgerStorage,
     NominateCallMapper,
     Pallet,
+    RewardDestination,
     RewardEvent,
     RewardEventMapper,
     SetControllerCallMapper,
@@ -113,6 +125,17 @@ pallet.Calls = {
 pallet.Events = {
     Reward: RewardEvent(pallet),
     Slash: SlashEvent(pallet),
+}
+
+pallet.Storage = {
+    ForceEra: ForceEraStorage(pallet),
+    CurrentEraStartSessionIndex: CurrentEraStartSessionIndexStorage(pallet),
+    CurrentEra: CurrentEraStorage(pallet),
+    Ledger: LedgerStorage(pallet),
+}
+
+pallet.Constants = {
+    BondingDuration: BondingDurationConstant(pallet),
 }
 
 pallet.EventMappers = {

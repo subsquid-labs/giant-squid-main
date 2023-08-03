@@ -381,11 +381,11 @@ export const SetIdentityCallMapper = (pallet: Pallet, success?: boolean) =>
                                 publicKey: accountAddress.serialize(),
                             })
                         }
+                        ctx.queue.add('identity_create', {
+                            id: identityId,
+                            accountId,
+                        })
                     }
-                    ctx.queue.add('identity_create', {
-                        id: identityId,
-                        accountId,
-                    })
                 })
                 .add('identity_judge', {
                     identityId,

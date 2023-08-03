@@ -1019,6 +1019,7 @@ pallet.Events = {
     Reward: RewardEvent(pallet),
     Slash: SlashEvent(pallet),
 }
+
 pallet.Storage = {
     ForceEra: ForceEraStorage(pallet),
     CurrentEraStartSessionIndex: CurrentEraStartSessionIndexStorage(pallet),

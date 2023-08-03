@@ -8,6 +8,4 @@ export {Pallet, Config}
 
 const pallet = new Pallet()
 
-console.log(pallet)
-
 export default pallet

@@ -1,12 +1,24 @@
 import {encode} from '@subsquid/ss58'
-import {Display, Enum, Serialize, StaticLookup, Type, TypeConstructor} from '../../../interfaces'
+import {Display, Enum, Serialize, StaticLookup, Type} from '../../../interfaces'
 import {toHex} from '@subsquid/substrate-processor'
 import * as metadata from '@metadata/kusama/v1020'
 import {Class} from 'type-fest'
 
-export const AccountId32 = (prefix: number) =>
-    class AccountId32 extends Type<Uint8Array> implements Display<string>, Serialize<string> {
+function implements_<T>() {
+    return <U extends T>(constructor: U) => constructor
+}
+
+function enum_<T extends Class<any>>() {
+    return (constructor: T) => constructor as T & Class<{a(): number}>
+}
+
+export const AccountId32 = (prefix: number) => {
+    @enum_()
+    @implements_<Type<Uint8Array> & Display & Serialize>()
+    class AccountId32 {
         protected prefix = prefix
+
+        constructor(readonly __value: Uint8Array) {}
 
         format(): string {
             return encode({
@@ -19,6 +31,9 @@ export const AccountId32 = (prefix: number) =>
             return toHex(this.__value)
         }
     }
+
+    return AccountId32
+}
 export type AccountId32 = ReturnType<typeof AccountId32>
 
 export const Address = <AccountId extends TypeConstructor>(AccountId: AccountId) =>
@@ -46,3 +61,5 @@ export const IdentityLookup = <AccountId extends TypeConstructor>(AccountId: Acc
     return IdentityLookup<AccountId>
 }
 export type IdentityLookup<AccountId extends TypeConstructor> = ReturnType<typeof IdentityLookup<AccountId>>
+
+new (AccountId32(2))().format()

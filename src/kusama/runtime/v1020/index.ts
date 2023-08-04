@@ -8,31 +8,33 @@ import {AccountId32} from './primitive'
 
 const prefix = 2
 
-pallet_system.Config = {
+export const runtime = Runtime({
+    Balances: pallet_balances(),
+    System: pallet_system(),
+    Indecies: pallet_indecies(),
+    Staking: pallet_staking(),
+    Session: pallet_session(),
+})
+
+runtime.System.Config = {
     AccountId: AccountId32(prefix),
-    Lookup: pallet_indecies,
+    Lookup: runtime.Indecies,
 }
 
-pallet_indecies.Config = {
-    ...pallet_system.Config,
+runtime.Balances.Config = {
+    ...runtime.System.Config,
 }
 
-pallet_balances.Config = {
-    ...pallet_system.Config,
+runtime.Staking.Config = {
+    ...runtime.System.Config,
 }
 
-pallet_staking.Config = {
-    ...pallet_system.Config,
+runtime.Indecies.Config = {
+    ...runtime.System.Config,
 }
 
-pallet_session.Config = {
-    SessionManager: pallet_staking,
+runtime.Session.Config = {
+    SessionManager: runtime.Staking,
 }
 
-export const runtime: Runtime = {
-    Balances: pallet_balances,
-    System: pallet_system,
-    Indecies: pallet_indecies,
-    Staking: pallet_staking,
-    Session: pallet_session,
-}
+new runtime.Balances.Events.Transfer().from

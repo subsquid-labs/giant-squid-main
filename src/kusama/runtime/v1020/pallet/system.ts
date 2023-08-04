@@ -1,15 +1,15 @@
-import {Constructor} from 'type-fest'
+import {Class} from 'type-fest'
 import {Display, PalletBase, Serialize, StaticLookup, Type} from '../../../interfaces'
 
-export type Config = {
-    AccountId: typeof Type<Uint8Array> & Constructor<Display<string> & Serialize<string>>
-    Lookup: StaticLookup<Config['AccountId'], typeof Type<unknown>>
+export interface Config {
+    AccountId: Type<Uint8Array> & Display<string> & Serialize<string>
+    Lookup: StaticLookup<Config['AccountId']>
 }
 
-export class Pallet extends PalletBase<{
-    Config: Config
-}> {}
+export class Pallet<T extends Config> extends PalletBase<T, {}> {}
 
-const pallet = new Pallet()
+export default () => {
+    const pallet = new Pallet<Config>()
 
-export default pallet
+    return pallet
+}

@@ -1,5 +1,5 @@
 import {StakingBondCall, StakingNominateCall, StakingSetControllerCall} from '@metadata/kusama/calls'
-import {Call, ChainContext} from '../../../interfaces'
+import {Call, ChainContext, EventType, PalletSetup} from '../../../interfaces'
 import {
     BondCallMapper,
     BondExtraCall,
@@ -14,9 +14,8 @@ import {
     ForceUnstakeCallMapper,
     LedgerStorage,
     NominateCallMapper,
-    Pallet,
+    Pallet as PalletOld,
     RewardDestination,
-    RewardEvent,
     RewardEventMapper,
     SetControllerCallMapper,
     SetPayeeCall,
@@ -30,6 +29,7 @@ import {
     WithdrawUnbondedCall,
     WithdrawUnbondedCallMapper,
 } from '../../v1032/pallet/staking'
+import {Merge} from 'type-fest'
 
 export {
     BondCallMapper,
@@ -45,9 +45,7 @@ export {
     ForceUnstakeCallMapper,
     LedgerStorage,
     NominateCallMapper,
-    Pallet,
     RewardDestination,
-    RewardEvent,
     RewardEventMapper,
     SetControllerCallMapper,
     SetPayeeCall,
@@ -61,6 +59,17 @@ export {
     WithdrawUnbondedCall,
     WithdrawUnbondedCallMapper,
 }
+
+export class Pallet<T = {}> extends PalletOld<
+    PalletSetup<
+        {
+            Events: {
+                Reward: EventType<{account: Config['AccountId']; amount: bigint}>
+            }
+        },
+        T
+    >
+> {}
 
 /*********
  * CALLS *
@@ -100,8 +109,16 @@ export const SetControllerCall = (pallet: Pallet) =>
 
             const lookupSource = new pallet.Config.Lookup.Source(data.controller)
             this.controller = pallet.Config.Lookup.lookup(lookupSource)
+
+            pallet.Events.Reward
         }
     }
+
+/**********
+ * EVENTS *
+ **********/
+
+export const RewardEvent = (pallet: Pallet) => class {}
 
 /******************
  * IMPLEMENTATION *
@@ -139,7 +156,6 @@ pallet.Constants = {
 }
 
 pallet.EventMappers = {
-    Reward: RewardEventMapper(pallet),
     Slash: SlashEventMapper(pallet),
 }
 

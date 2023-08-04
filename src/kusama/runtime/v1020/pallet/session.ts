@@ -1,10 +1,10 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {SubstrateBlock} from '@subsquid/substrate-processor'
-import {ChainContext, EventItem, EventMapper, MappingContext, PalletBase, Event} from '../../../interfaces'
-import {EventType} from '../../../interfaces/types'
-import {SessionNewSessionEvent} from '@metadata/kusama/events'
 import {applyMixins} from '@gs/util/misc'
-import {Constructor, Class} from 'type-fest'
+import {SessionNewSessionEvent} from '@metadata/kusama/events'
+import {SubstrateBlock} from '@subsquid/substrate-processor'
+import {Class} from 'type-fest'
+import {ChainContext, Event, EventItem, MappingContext, PalletBase, PalletSetup} from '../../../interfaces'
+import {EventType} from '../../../interfaces/types'
 
 export const SessionManager = <C extends Class<any>>(
     base: C,
@@ -21,16 +21,13 @@ export type Config = {
     SessionManager: SessionManager
 }
 
-export class Pallet extends PalletBase<{
-    Config: Config
-    Events: {
-        NewSession: EventType<{sessionIndex: number}>
-    }
-}> {}
+export type Events<T extends Config> = {
+    NewSession: EventType<{sessionIndex: number}>
+}
 
-export interface Pallet {}
+export class Pallet<T extends Config, S extends PalletSetup = {}> extends PalletBase<T, S> {}
 
-export const NewSessionEvent = (pallet: Pallet) =>
+export const NewSessionEvent = <T extends Config>(pallet: Pallet<T>) =>
     class NewSessionEvent {
         readonly sessionIndex: number
 
@@ -40,7 +37,7 @@ export const NewSessionEvent = (pallet: Pallet) =>
         }
     }
 
-export const NewSessionEventMapper = (pallet: Pallet) =>
+export const NewSessionEventMapper = <T extends Config>(pallet: Pallet<T, {Events: Pick<Events<T>, 'NewSession'>}>) =>
     class Mapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
             const data = new pallet.Events.NewSession(ctx, item.event)
@@ -48,14 +45,21 @@ export const NewSessionEventMapper = (pallet: Pallet) =>
         }
     }
 
-const pallet = new Pallet()
+export default () => {
+    const pallet = new Pallet<
+        Config,
+        {
+            Events: Events<Config>
+        }
+    >()
 
-pallet.Events = {
-    NewSession: NewSessionEvent(pallet),
+    pallet.Events = {
+        NewSession: NewSessionEvent(pallet),
+    }
+
+    pallet.EventMappers = {
+        NewSession: NewSessionEventMapper(pallet),
+    }
+
+    return pallet
 }
-
-pallet.EventMappers = {
-    NewSession: NewSessionEventMapper(pallet),
-}
-
-export default pallet

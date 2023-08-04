@@ -1,6 +1,6 @@
-import {Config, Pallet, TransferEvent, TransferEventMapper} from '../../v1030/pallet/balances'
+import {Pallet, TransferEvent, TransferEventMapper} from '../../v1030/pallet/balances'
 
-export {Pallet, TransferEvent, TransferEventMapper, Config}
+export {Pallet, TransferEvent, TransferEventMapper}
 
 /******************
  * IMPLEMENTATION *

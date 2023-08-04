@@ -162,48 +162,52 @@ export class IdentityJudgement extends Enum({
 
 export type Config = pallet_system.Config & {}
 
-export class Pallet<T extends PalletSetup = {}> extends PalletBase<
-    T & {
-        Config: Config
-        Calls: {
-            set_subs: CallType<{subs: [InstanceType<Config['AccountId']>, Data][]}>
-            provide_judgment: CallType<{target: ReturnType<Config['Lookup']['unlookup']>; judgement: IdentityJudgement}>
-            set_identity: CallType<{info: IdentityInfo}>
-        }
-        Events: {
-            IdentityCleared: EventType<{who: InstanceType<Config['AccountId']>}>
-            IdentityKilled: EventType<{who: InstanceType<Config['AccountId']>}>
-        }
-    }
-> {}
+export type Calls<T extends Config> = {
+    set_subs: CallType<{subs: [InstanceType<T['AccountId']>, Data][]}>
+    provide_judgment: CallType<{
+        target: ReturnType<T['Lookup']['unlookup']>
+        judgement: IdentityJudgement
+    }>
+    set_identity: CallType<{info: IdentityInfo}>
+}
+
+export type Events<T extends Config> = {
+    IdentityCleared: EventType<{who: InstanceType<T['AccountId']>}>
+    IdentityKilled: EventType<{who: InstanceType<T['AccountId']>}>
+}
+
+export class Pallet<T extends Config, S extends PalletSetup = {}> extends PalletBase<T, S> {}
 
 /*********
  * CALLS *
  *********/
 
-export const SetSubsCall = (pallet: Pallet) =>
+export const SetSubsCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        readonly subs: [InstanceType<Config['AccountId']>, Data][]
+        readonly subs: [InstanceType<T['AccountId']>, Data][]
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new IdentitySetSubsCall(ctx, call).asV1030
-            this.subs = data.subs.map((s) => [new pallet.Config.AccountId(s[0]), new Data(s[1])])
+            this.subs = data.subs.map((s) => [
+                new pallet.Config.AccountId(s[0]) as InstanceType<T['AccountId']>,
+                new Data(s[1]),
+            ])
         }
     }
 
-export const ProvideJudgmentCall = (pallet: Pallet) =>
+export const ProvideJudgmentCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        readonly target: InstanceType<Config['Lookup']['Source']>
+        readonly target: InstanceType<T['Lookup']['Source']>
         readonly judgement: IdentityJudgement
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new IdentityProvideJudgementCall(ctx, call).asV1030
-            this.target = new pallet.Config.Lookup.Source(data.target)
+            this.target = new pallet.Config.Lookup.Source(data.target) as InstanceType<T['Lookup']['Source']>
             this.judgement = new IdentityJudgement(data.judgement)
         }
     }
 
-export const SetIdentityCall = (pallet: Pallet) =>
+export const SetIdentityCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly info: IdentityInfo
 
@@ -217,7 +221,7 @@ export const SetIdentityCall = (pallet: Pallet) =>
  * EVENTS *
  **********/
 
-export const IdentityClearedEvent = (pallet: Pallet) =>
+export const IdentityClearedEvent = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly who: InstanceType<Config['AccountId']>
 
@@ -227,7 +231,7 @@ export const IdentityClearedEvent = (pallet: Pallet) =>
         }
     }
 
-export const IdentityKilledEvent = (pallet: Pallet) =>
+export const IdentityKilledEvent = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly who: InstanceType<Config['AccountId']>
 
@@ -241,7 +245,10 @@ export const IdentityKilledEvent = (pallet: Pallet) =>
  * MAPPERS *
  ***********/
 
-export const SetSubsCallMapper = (pallet: Pallet, success?: boolean) =>
+export const SetSubsCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'set_subs'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
             if (success != null && item.call.success != success) return
@@ -299,7 +306,10 @@ export const SetSubsCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const ProvideJudgmentCallMapper = (pallet: Pallet, success?: boolean) =>
+export const ProvideJudgmentCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'provide_judgment'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
             if (success != null && item.call.success != success) return
@@ -349,7 +359,10 @@ export const ProvideJudgmentCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const SetIdentityCallMapper = (pallet: Pallet, success?: boolean) =>
+export const SetIdentityCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'set_identity'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
             if (success != null && item.call.success != success) return
@@ -411,7 +424,9 @@ export const SetIdentityCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const IdentityClearedEventMapper = (pallet: Pallet) =>
+export const IdentityClearedEventMapper = <T extends Config>(
+    pallet: Pallet<T, {Events: Pick<Events<T>, 'IdentityCleared'>}>
+) =>
     class implements EventMapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
             const data = new pallet.Events.IdentityCleared(ctx, item.event)
@@ -442,7 +457,9 @@ export const IdentityClearedEventMapper = (pallet: Pallet) =>
         }
     }
 
-export const IdentityKilledEventMapper = (pallet: Pallet) =>
+export const IdentityKilledEventMapper = <T extends Config>(
+    pallet: Pallet<T, {Events: Pick<Events<T>, 'IdentityKilled'>}>
+) =>
     class implements EventMapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
             const data = new pallet.Events.IdentityKilled(ctx, item.event)
@@ -476,32 +493,36 @@ export const IdentityKilledEventMapper = (pallet: Pallet) =>
         }
     }
 
-/******************
- * IMPLEMENTATION *
- ******************/
+export default () => {
+    const pallet = new Pallet<
+        Config,
+        {
+            Calls: Calls<Config>
+            Events: Events<Config>
+        }
+    >()
 
-const pallet = new Pallet()
+    pallet.Calls = {
+        provide_judgment: ProvideJudgmentCall(pallet),
+        set_identity: SetIdentityCall(pallet),
+        set_subs: SetSubsCall(pallet),
+    }
 
-pallet.Calls = {
-    provide_judgment: ProvideJudgmentCall(pallet),
-    set_identity: SetIdentityCall(pallet),
-    set_subs: SetSubsCall(pallet),
+    pallet.Events = {
+        IdentityCleared: IdentityClearedEvent(pallet),
+        IdentityKilled: IdentityKilledEvent(pallet),
+    }
+
+    pallet.CallMappers = {
+        set_subs: SetSubsCallMapper(pallet, true),
+        provide_judgment: ProvideJudgmentCallMapper(pallet, true),
+        set_identity: SetIdentityCallMapper(pallet, true),
+    }
+
+    pallet.EventMappers = {
+        IdentityClear: IdentityClearedEventMapper(pallet),
+        IdentityKill: IdentityKilledEventMapper(pallet),
+    }
+
+    return pallet
 }
-
-pallet.Events = {
-    IdentityCleared: IdentityClearedEvent(pallet),
-    IdentityKilled: IdentityKilledEvent(pallet),
-}
-
-pallet.CallMappers = {
-    set_subs: SetSubsCallMapper(pallet, true),
-    provide_judgment: ProvideJudgmentCallMapper(pallet, true),
-    set_identity: SetIdentityCallMapper(pallet, true),
-}
-
-pallet.EventMappers = {
-    IdentityClear: IdentityClearedEventMapper(pallet),
-    IdentityKill: IdentityKilledEventMapper(pallet),
-}
-
-export default pallet

@@ -10,30 +10,35 @@ import {
     ChainContext,
     EventType,
     PalletBase,
+    PalletSetup,
+    Display,
+    Serialize,
+    StaticLookup,
+    Type,
 } from '../../../interfaces'
 import {StoreWithCache} from '@belopash/squid-tools'
-import pallet_system from './system'
+import * as pallet_system from './system'
+import {Class, Simplify} from 'type-fest'
 
-export type Config = typeof pallet_system.Config & {}
+export interface Config extends pallet_system.Config {}
 
-export class Pallet extends PalletBase<{
-    Config: Config
-    Events: {
-        Transfer: EventType<{
-            from: InstanceType<Config['AccountId']>
-            to: InstanceType<Config['AccountId']>
-            amount: bigint
-        }>
-    }
-}> {
+export type Events<T extends Config> = {
+    Transfer: EventType<{
+        from: InstanceType<T['AccountId']>
+        to: InstanceType<T['AccountId']>
+        amount: bigint
+    }>
+}
+
+export class Pallet<T extends Config, S extends PalletSetup = {}> extends PalletBase<T, S> {
     transfer(
         ctx: MappingContext<StoreWithCache>,
         data: {
             block: Block
             extrinsic?: Extrinsic
             id: string
-            from: InstanceType<Config['AccountId']>
-            to: InstanceType<Config['AccountId']>
+            from: InstanceType<T['AccountId']>
+            to: InstanceType<T['AccountId']>
             amount: bigint
             success: boolean
         }
@@ -77,10 +82,10 @@ export class Pallet extends PalletBase<{
     }
 }
 
-export const TransferEvent = (pallet: Pallet) =>
+export const TransferEvent = <T extends Config>(pallet: Pallet<T>) =>
     class TransferEvent {
-        readonly from: InstanceType<Config['AccountId']>
-        readonly to: InstanceType<Config['AccountId']>
+        readonly from: InstanceType<T['AccountId']>
+        readonly to: T['AccountId']
         readonly amount: bigint
 
         constructor(ctx: ChainContext, event: {name: string; args: any}) {
@@ -92,7 +97,7 @@ export const TransferEvent = (pallet: Pallet) =>
         }
     }
 
-export const TransferEventMapper = (pallet: Pallet) =>
+export const TransferEventMapper = <T extends Config>(pallet: Pallet<T, {Events: Pick<Events<T>, 'Transfer'>}>) =>
     class TransferEventMapper implements EventMapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem) {
             const data = new pallet.Events.Transfer(ctx, item.event)
@@ -109,15 +114,17 @@ export const TransferEventMapper = (pallet: Pallet) =>
         }
     }
 
-const pallet = new Pallet()
-
-pallet.Events = {
-    Transfer: TransferEvent(pallet),
-}
-
-pallet.EventMappers = {
-    Transfer: TransferEventMapper(pallet),
-}
-
 // Pallet.events =
-export default pallet
+export default () => {
+    const pallet = new Pallet<Config, {Events: Events<Config>}>()
+
+    pallet.Events = {
+        Transfer: TransferEvent(pallet),
+    }
+
+    pallet.EventMappers = {
+        Transfer: TransferEventMapper(pallet),
+    }
+
+    return pallet
+}

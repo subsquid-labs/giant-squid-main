@@ -1,19 +1,22 @@
-import {NewSessionEvent, NewSessionEventMapper, Pallet, Config, SessionManager} from '../../v1020/pallet/session'
+// import {NewSessionEvent, NewSessionEventMapper, Pallet, Config, SessionManager} from '../../v1020/pallet/session'
 
-export {NewSessionEvent, NewSessionEventMapper, Pallet, Config, SessionManager}
+// export {NewSessionEvent, NewSessionEventMapper, Pallet, Config, SessionManager}
 
-/******************
- * IMPLEMENTATION *
- ******************/
+// /******************
+//  * IMPLEMENTATION *
+//  ******************/
 
-const pallet = new Pallet()
+// const pallet = new Pallet()
 
-pallet.Events = {
-    NewSession: NewSessionEvent(pallet),
-}
+// pallet.Events = {
+//     NewSession: NewSessionEvent(pallet),
+// }
 
-pallet.EventMappers = {
-    NewSession: NewSessionEventMapper(pallet),
-}
+// pallet.EventMappers = {
+//     NewSession: NewSessionEventMapper(pallet),
+// }
 
-export default pallet
+// export default pallet
+
+export * from '../../v1020/pallet/session'
+export {default} from '../../v1020/pallet/session'

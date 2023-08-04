@@ -19,6 +19,7 @@ import {
     SetSubsCallMapper,
     IdentityJudgement,
 } from '../../v1030/pallet/identity'
+import {Merge} from 'type-fest'
 
 export {
     Data,
@@ -58,12 +59,15 @@ export class IdentityInfo {
     }
 }
 
-export class Pallet<T extends PalletSetup = {}> extends PalletOld<
-    T & {
-        Calls: {
-            set_identity: CallType<{info: IdentityInfo}>
-        }
-    }
+export class Pallet<T = {}> extends PalletOld<
+    PalletSetup<
+        {
+            Calls: {
+                set_identity: CallType<{info: IdentityInfo}>
+            }
+        },
+        T
+    >
 > {}
 
 export const SetIdentityCall = (pallet: Pallet) =>

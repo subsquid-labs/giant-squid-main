@@ -38,21 +38,24 @@ import {
     EventItem,
     EventMapper,
     EventType,
+    InstanceSubstrateType,
     MappingContext,
     PalletBase,
+    PalletSetup,
     StorageType,
     Type,
-    TypeConstructor,
+    Type,
 } from '../../../interfaces'
-import pallet_system from './system'
+import * as pallet_system from './system'
 import {SessionManager} from './session'
 import {StakingBondingDurationConstant} from '@metadata/kusama/constants'
+import {Opaque, Simplify} from 'type-fest'
 
 /*********
  * TYPES *
  *********/
 
-export const RewardDestination = <AccountId extends TypeConstructor<Uint8Array>>(AccountId: AccountId) =>
+export const RewardDestination = <AccountId extends Type<Uint8Array>>(AccountId: AccountId) =>
     class RewardDestination extends Enum({
         Staked: null,
         Stash: null,
@@ -60,9 +63,9 @@ export const RewardDestination = <AccountId extends TypeConstructor<Uint8Array>>
         Account: AccountId,
         None: null,
     }) {}
-export type RewardDestination<AccountId extends TypeConstructor<Uint8Array>> = InstanceType<
-    ReturnType<typeof RewardDestination<AccountId>>
->
+export type RewardDestination<AccountId extends Type<Uint8Array>> = InstanceType<ReturnType<
+    typeof RewardDestination<AccountId>
+>>
 
 export class Forcing extends Enum({
     NotForcing: null,
@@ -81,7 +84,7 @@ export class ValidatorPrefs extends Type<{commission: number}> {
     }
 }
 
-export const StakingLedger = <AccountId extends TypeConstructor<Uint8Array>>(AccountId: AccountId) =>
+export const StakingLedger = <AccountId extends Type<Uint8Array>>(AccountId: AccountId) =>
     class StakingLedger extends Type<{
         stash: Uint8Array
         total: bigint
@@ -94,12 +97,12 @@ export const StakingLedger = <AccountId extends TypeConstructor<Uint8Array>>(Acc
         constructor(value: {stash: Uint8Array; total: bigint; active: bigint}) {
             super(value)
 
-            this.stash = new AccountId(value.stash) as InstanceType<AccountId> // TODO: wtf, some weird bahaviour, try to find solution
+            this.stash = new AccountId(value.stash) as any
             this.total = value.total
             this.active = value.active
         }
     }
-export type StakingLedger<AccountId extends typeof Type<any>> = InstanceType<
+export type StakingLedger<AccountId extends Type<any>> = InstanceType<
     ReturnType<typeof StakingLedger<AccountId>>
 >
 
@@ -107,40 +110,48 @@ export type StakingLedger<AccountId extends typeof Type<any>> = InstanceType<
  * PALLET *
  **********/
 
-export type Config = typeof pallet_system.Config & {}
+export type Config = pallet_system.Config & {}
 
-export class Pallet extends PalletBase<{
-    Config: Config
-    Events: {
-        Reward: EventType<{reward: bigint; remainer: bigint}>
-        Slash: EventType<{staker: InstanceType<Config['AccountId']>; amount: bigint}>
+export type Events<T extends Config> = {
+    Reward: EventType<{reward: bigint; remainer: bigint}>
+    Slash: EventType<{staker: InstanceType<Config['AccountId']>; amount: bigint}>
+}
+
+export type Calls<T extends Config> = {
+    bond: CallType<{
+        controller: InstanceType<T['Lookup']['Source']>
+        value: bigint
+        payee: RewardDestination<T['AccountId']>
+    }>
+    bond_extra: CallType<{maxAdditional: bigint}>
+    unbond: CallType<{value: bigint}>
+    force_unstake: CallType<{stash: InstanceType<T['AccountId']>}>
+    withdraw_unbonded: CallType<{}>
+    set_controller: CallType<{controller: InstanceType<T['Lookup']['Source']>}>
+    set_payee: CallType<{payee: RewardDestination<T['AccountId']>}>
+    validate: CallType<{prefs: ValidatorPrefs}>
+    nominate: CallType<{targets: InstanceType<T['Lookup']['Source']>[]}>
+    chill: CallType<{}>
+}
+
+export type Storage<T extends Config> = {
+    CurrentEra: StorageType<[], number>
+    ForceEra: StorageType<[], Forcing>
+    CurrentEraStartSessionIndex: StorageType<[], number>
+    Ledger: StorageType<[InstanceType<T['AccountId']>], StakingLedger<T['AccountId']> | undefined>
+}
+
+export type Constanst<T extends Config> = {
+    BondingDuration: ConstantType<number>
+}
+
+export class Pallet<T extends Config, S extends PalletSetup = {}> extends PalletBase<
+    T,
+    S & {
+        Storage: Storage<T>
+        Constants: Constanst<T>
     }
-    Calls: {
-        bond: CallType<{
-            controller: InstanceType<Config['Lookup']['Source']>
-            value: bigint
-            payee: RewardDestination<Config['AccountId']>
-        }>
-        bond_extra: CallType<{maxAdditional: bigint}>
-        unbond: CallType<{value: bigint}>
-        force_unstake: CallType<{stash: InstanceType<Config['AccountId']>}>
-        withdraw_unbonded: CallType<{}>
-        set_controller: CallType<{controller: InstanceType<Config['Lookup']['Source']>}>
-        set_payee: CallType<{payee: RewardDestination<Config['AccountId']>}>
-        validate: CallType<{prefs: ValidatorPrefs}>
-        nominate: CallType<{targets: InstanceType<Config['Lookup']['Source']>[]}>
-        chill: CallType<{}>
-    }
-    Storage: {
-        CurrentEra: StorageType<[], number>
-        ForceEra: StorageType<[], Forcing>
-        CurrentEraStartSessionIndex: StorageType<[], number>
-        Ledger: StorageType<[InstanceType<Config['AccountId']>], StakingLedger<Config['AccountId']> | undefined>
-    }
-    Constants: {
-        BondingDuration: ConstantType<number>
-    }
-}> {
+> {
     newEra(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, currentEraIndex: number) {
         ctx.queue
             .setBlock(block)
@@ -267,28 +278,28 @@ SessionManager(Pallet, {
     },
 })
 
-export interface Pallet extends SessionManager {}
+export interface Pallet<T extends Config, S extends PalletSetup> extends SessionManager {}
 
 /*********
  * CALLS *
  *********/
 
-export const BondCall = (pallet: Pallet) =>
+export const BondCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        readonly controller: InstanceType<Config['Lookup']['Source']>
+        readonly controller: InstanceType<T['Lookup']['Source']>
         readonly value: bigint
-        readonly payee: RewardDestination<Config['AccountId']>
+        readonly payee: RewardDestination<T['AccountId']>
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingBondCall(ctx, call).asV1020
 
-            this.controller = new pallet.Config.Lookup.Source(data.controller)
+            this.controller = new pallet.Config.Lookup.Source(data.controller) as any
             this.value = data.value
             this.payee = new (RewardDestination(pallet.Config.AccountId))(data.payee)
         }
     }
 
-export const BondExtraCall = (pallet: Pallet) =>
+export const BondExtraCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly maxAdditional: bigint
 
@@ -298,7 +309,7 @@ export const BondExtraCall = (pallet: Pallet) =>
         }
     }
 
-export const UnbondCall = (pallet: Pallet) =>
+export const UnbondCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: bigint
 
@@ -308,37 +319,37 @@ export const UnbondCall = (pallet: Pallet) =>
         }
     }
 
-export const ForceUnstakeCall = (pallet: Pallet) =>
+export const ForceUnstakeCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        readonly stash: InstanceType<Config['AccountId']>
+        readonly stash: InstanceType<T['AccountId']>
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingForceUnstakeCall(ctx, call).asV1020
-            this.stash = new pallet.Config.AccountId(data.stash)
+            this.stash = new pallet.Config.AccountId(data.stash) as any
         }
     }
 
-export const WithdrawUnbondedCall = (pallet: Pallet) =>
+export const WithdrawUnbondedCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingWithdrawUnbondedCall(ctx, call).asV1020
         }
     }
 
-export const SetControllerCall = (pallet: Pallet) =>
+export const SetControllerCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        readonly controller: InstanceType<Config['Lookup']['Source']>
+        readonly controller: InstanceType<T['Lookup']['Source']>
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingSetControllerCall(ctx, call).asV1020
 
-            this.controller = new pallet.Config.Lookup.Source(data.controller)
+            this.controller = new pallet.Config.Lookup.Source(data.controller) as any
         }
     }
 
-export const SetPayeeCall = (pallet: Pallet) =>
+export const SetPayeeCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        readonly payee: RewardDestination<Config['AccountId']>
+        readonly payee: RewardDestination<T['AccountId']>
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingSetPayeeCall(ctx, call).asV1020
@@ -347,7 +358,7 @@ export const SetPayeeCall = (pallet: Pallet) =>
         }
     }
 
-export const ValidateCall = (pallet: Pallet) =>
+export const ValidateCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly prefs: ValidatorPrefs
 
@@ -357,13 +368,13 @@ export const ValidateCall = (pallet: Pallet) =>
         }
     }
 
-export const NominateCall = (pallet: Pallet) =>
+export const NominateCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        readonly targets: InstanceType<Config['Lookup']['Source']>[]
+        readonly targets: InstanceType<T['Lookup']['Source']>[]
 
         constructor(ctx: ChainContext, call: Call) {
             const data = new StakingNominateCall(ctx, call).asV1020
-            this.targets = data.targets.map((t) => new pallet.Config.Lookup.Source(t))
+            this.targets = data.targets.map((t) => new pallet.Config.Lookup.Source(t)) as any
         }
     }
 
@@ -371,7 +382,7 @@ export const NominateCall = (pallet: Pallet) =>
  * EVENTS *
  **********/
 
-export const RewardEvent = (pallet: Pallet) =>
+export const RewardEvent = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly reward: bigint
         readonly remainer: bigint
@@ -383,7 +394,7 @@ export const RewardEvent = (pallet: Pallet) =>
         }
     }
 
-export const SlashEvent = (pallet: Pallet) =>
+export const SlashEvent = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly staker: InstanceType<Config['AccountId']>
         readonly amount: bigint
@@ -399,7 +410,7 @@ export const SlashEvent = (pallet: Pallet) =>
  * STORAGE *
  ***********/
 
-export const ForceEraStorage = (pallet: Pallet) =>
+export const ForceEraStorage = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: Promise<Forcing>
 
@@ -408,7 +419,7 @@ export const ForceEraStorage = (pallet: Pallet) =>
         }
     }
 
-export const CurrentEraStartSessionIndexStorage = (pallet: Pallet) =>
+export const CurrentEraStartSessionIndexStorage = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: Promise<number>
 
@@ -417,7 +428,7 @@ export const CurrentEraStartSessionIndexStorage = (pallet: Pallet) =>
         }
     }
 
-export const CurrentEraStorage = (pallet: Pallet) =>
+export const CurrentEraStorage = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: Promise<number>
 
@@ -426,9 +437,9 @@ export const CurrentEraStorage = (pallet: Pallet) =>
         }
     }
 
-export const LedgerStorage = (pallet: Pallet) =>
+export const LedgerStorage = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        readonly value: Promise<StakingLedger<Pallet['Config']['AccountId']> | undefined>
+        readonly value: Promise<StakingLedger<T['AccountId']> | undefined>
 
         constructor(ctx: ChainContext, block: Block, key: InstanceType<Config['AccountId']>) {
             const Ledger = StakingLedger(pallet.Config.AccountId)
@@ -442,7 +453,7 @@ export const LedgerStorage = (pallet: Pallet) =>
  * CONSTANTS *
  *************/
 
-export const BondingDurationConstant = (pallet: Pallet) =>
+export const BondingDurationConstant = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: number
 
@@ -455,7 +466,10 @@ export const BondingDurationConstant = (pallet: Pallet) =>
  * MAPPERS *
  ***********/
 
-export const BondCallMapper = (pallet: Pallet, success?: boolean) =>
+export const BondCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'bond'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
         handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
             if (success != null && item.call.success != success) return
@@ -996,60 +1010,58 @@ export const SlashEventMapper = (pallet: Pallet) =>
 //     }
 // }
 
-/******************
- * IMPLEMENTATION *
- ******************/
+export default () => {
+    const pallet = new Pallet()
 
-const pallet = new Pallet()
+    pallet.Calls = {
+        bond: BondCall(pallet),
+        bond_extra: BondExtraCall(pallet),
+        unbond: UnbondCall(pallet),
+        force_unstake: ForceUnstakeCall(pallet),
+        withdraw_unbonded: WithdrawUnbondedCall(pallet),
+        set_controller: SetControllerCall(pallet),
+        set_payee: SetPayeeCall(pallet),
+        validate: ValidateCall(pallet),
+        nominate: NominateCall(pallet),
+        chill: ChillCallMapper(pallet),
+    }
 
-pallet.Calls = {
-    bond: BondCall(pallet),
-    bond_extra: BondExtraCall(pallet),
-    unbond: UnbondCall(pallet),
-    force_unstake: ForceUnstakeCall(pallet),
-    withdraw_unbonded: WithdrawUnbondedCall(pallet),
-    set_controller: SetControllerCall(pallet),
-    set_payee: SetPayeeCall(pallet),
-    validate: ValidateCall(pallet),
-    nominate: NominateCall(pallet),
-    chill: ChillCallMapper(pallet),
+    pallet.Events = {
+        Reward: RewardEvent(pallet),
+        Slash: SlashEvent(pallet),
+    }
+
+    pallet.Storage = {
+        ForceEra: ForceEraStorage(pallet),
+        CurrentEraStartSessionIndex: CurrentEraStartSessionIndexStorage(pallet),
+        CurrentEra: CurrentEraStorage(pallet),
+        Ledger: LedgerStorage(pallet),
+    }
+
+    pallet.Constants = {
+        BondingDuration: BondingDurationConstant(pallet),
+    }
+
+    pallet.EventMappers = {
+        Reward: RewardEventMapper(pallet),
+        Slash: SlashEventMapper(pallet),
+    }
+
+    pallet.CallMappers = {
+        bond: BondCallMapper(pallet, true),
+        bond_extra: BondExtraCallMapper(pallet, true),
+        unbond: UnbondCallMapper(pallet, true),
+        withdraw_unbonded: WithdrawUnbondedCallMapper(pallet, true),
+        force_unstake: ForceUnstakeCallMapper(pallet, true),
+        set_controller: SetControllerCallMapper(pallet, true),
+        set_payee: SetPayeeCallMapper(pallet, true),
+        validate: ValidateCallMapper(pallet, true),
+        nominate: NominateCallMapper(pallet, true),
+        chill: ChillCallMapper(pallet, true),
+        // force_no_eras: new ForceNoErasCall(pallet, true),
+        // force_new_era: new ForceNewEraCall(pallet, true),
+        // force_new_era_always: new ForceNewEraAlwaysCall(pallet, true),
+    }
+
+    return pallet
 }
-
-pallet.Events = {
-    Reward: RewardEvent(pallet),
-    Slash: SlashEvent(pallet),
-}
-
-pallet.Storage = {
-    ForceEra: ForceEraStorage(pallet),
-    CurrentEraStartSessionIndex: CurrentEraStartSessionIndexStorage(pallet),
-    CurrentEra: CurrentEraStorage(pallet),
-    Ledger: LedgerStorage(pallet),
-}
-
-pallet.Constants = {
-    BondingDuration: BondingDurationConstant(pallet),
-}
-
-pallet.EventMappers = {
-    Reward: RewardEventMapper(pallet),
-    Slash: SlashEventMapper(pallet),
-}
-
-pallet.CallMappers = {
-    bond: BondCallMapper(pallet, true),
-    bond_extra: BondExtraCallMapper(pallet, true),
-    unbond: UnbondCallMapper(pallet, true),
-    withdraw_unbonded: WithdrawUnbondedCallMapper(pallet, true),
-    force_unstake: ForceUnstakeCallMapper(pallet, true),
-    set_controller: SetControllerCallMapper(pallet, true),
-    set_payee: SetPayeeCallMapper(pallet, true),
-    validate: ValidateCallMapper(pallet, true),
-    nominate: NominateCallMapper(pallet, true),
-    chill: ChillCallMapper(pallet, true),
-    // force_no_eras: new ForceNoErasCall(pallet, true),
-    // force_new_era: new ForceNewEraCall(pallet, true),
-    // force_new_era_always: new ForceNewEraAlwaysCall(pallet, true),
-}
-
-export default pallet

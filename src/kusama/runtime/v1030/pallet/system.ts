@@ -1,11 +1,14 @@
-import {Pallet, Config} from '../../v1020/pallet/system'
+// import {Pallet, Config} from '../../v1020/pallet/system'
 
-export {Pallet, Config}
+// export {Pallet, Config}
 
-/******************
- * IMPLEMENTATION *
- ******************/
+// /******************
+//  * IMPLEMENTATION *
+//  ******************/
 
-export const pallet = new Pallet()
+// export const pallet = new Pallet()
 
-export default pallet
+// export default pallet
+
+export * from '../../v1020/pallet/system'
+export {default} from '../../v1020/pallet/system'

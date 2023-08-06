@@ -1,27 +1,25 @@
 import {StoreWithCache} from '@belopash/squid-tools'
 import {ActionQueue} from '@gs/action'
-import {DataHandlerContext, SubstrateBlock} from '@subsquid/substrate-processor'
-import assert from 'assert'
-import {CallItem, EventItem, Call, Event, Block, Extrinsic} from '../processor'
+import {Call, Event, Block, Extrinsic, BlockHeader} from '../processor'
 import {CallType, ConstantType, EventType, StorageType} from './types'
-import {Merge, Simplify, ConditionalPick, ConditionalExcept, MergeDeep} from 'type-fest'
+import {DataHandlerContext} from '@subsquid/substrate-processor'
 
-export {CallItem, EventItem, Call, Event, Block, Extrinsic}
+export {Call, Event, Block, Extrinsic, BlockHeader}
 
 export * from './types'
 
-export type MappingContext<Store> = Omit<DataHandlerContext<Store, unknown>, 'blocks'> & {queue: ActionQueue}
+export type MappingContext<Store> = Omit<DataHandlerContext<Store, {}>, 'blocks'> & {queue: ActionQueue}
 
 export interface EventMapper {
     // protected get config(): P extends Pallet<infer C> ? C : never {
     //     return this.pallet.config
     // }
 
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void
+    handle(ctx: MappingContext<StoreWithCache>, item: Event): void
 }
 
 export interface CallMapper {
-    handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void
+    handle(ctx: MappingContext<StoreWithCache>, call: Call): void
 }
 
 // export type PalletSetup<
@@ -47,39 +45,52 @@ export interface PalletSetup {
     Constants?: Record<string, ConstantType<any>>
 }
 
-export abstract class PalletBase<T, S extends PalletSetup> {
-    Config!: T
-    Events!: S['Events']
-    Calls!: S['Calls']
-    Storage!: S['Storage']
-    Constants!: S['Constants']
+// export interface PalletBase<T, S extends PalletSetup> {
+//     Config: T
+//     Events?: S['Events']
+//     Calls?: S['Calls']
+//     Storage?: S['Storage']
+//     Constants?: S['Constants']
 
-    EventMappers: Record<string, new () => EventMapper> = {}
-    CallMappers: Record<string, new () => CallMapper> = {}
+//     EventMappers: Record<string, new () => EventMapper>
+//     CallMappers: Record<string, new () => CallMapper>
+// }
+export const PalletBase = <T, S extends PalletSetup>() => {
+    abstract class PalletBase {
+        static Config: T
 
-    // constructor(setup: T) {
-    //     this.Config = setup.Config
-    //     this.Events = setup.Events
-    //     this.Calls = setup.Calls
-    //     this.Storage = setup.Storage
-    //     this.Constants = setup.Constants
-    // }
-    // get events() {
-    //     return this._events ?? {}
-    // }
+        static Events: S['Events']
+        static Calls: S['Calls']
+        static Storage: S['Storage']
+        static Constants: S['Constants']
 
-    // set events(map: Record<string, EventMapper<this>>) {
-    //     this._events = map
-    // }
+        static EventMappers: Record<string, new () => EventMapper>
+        static CallMappers: Record<string, new () => CallMapper>
 
-    // get calls() {
-    //     return this._calls ?? {}
-    // }
+        // constructor(setup: T) {
+        //     this.Config = setup.Config
+        //     this.Events = setup.Events
+        //     this.Calls = setup.Calls
+        //     this.Storage = setup.Storage
+        //     this.Constants = setup.Constants
+        // }
+        // get events() {
+        //     return this._events ?? {}
+        // }
+        // set events(map: Record<string, EventMapper<this>>) {
+        //     this._events = map
+        // }
+        // get calls() {
+        //     return this._calls ?? {}
+        // }
+        // set calls(map: Record<string, CallMapper<this>>) {
+        //     this._calls = map
+        // }
+    }
 
-    // set calls(map: Record<string, CallMapper<this>>) {
-    //     this._calls = map
-    // }
+    return PalletBase
 }
+export type PalletBase<T, S extends PalletSetup> = ReturnType<typeof PalletBase<T, S>>
 
 export const Runtime = <
     T extends {
@@ -94,34 +105,15 @@ export type Runtime<
     }
 > = ReturnType<typeof Runtime<T>>
 
-export interface Chain {
-    getEventHash(eventName: string): string
-    decodeEvent(event: Event): any
-    getCallHash(name: string): string
-    decodeCall(call: Call): any
-    getStorageItemTypeHash(prefix: string, name: string): string | undefined
-    getStorage(blockHash: string, prefix: string, name: string, ...args: any[]): Promise<any>
-    queryStorage2(blockHash: string, prefix: string, name: string, keyList?: any[]): Promise<any[]>
-    getKeys(blockHash: string, prefix: string, name: string, ...args: any[]): Promise<any[]>
-    getPairs(blockHash: string, prefix: string, name: string, ...args: any[]): Promise<any[]>
-    getKeysPaged(
-        pageSize: number,
-        blockHash: string,
-        prefix: string,
-        name: string,
-        ...args: any[]
-    ): AsyncIterable<any[]>
-    getPairsPaged(
-        pageSize: number,
-        blockHash: string,
-        prefix: string,
-        name: string,
-        ...args: any[]
-    ): AsyncIterable<[key: any, value: any][]>
-    getConstantTypeHash(pallet: string, name: string): string | undefined
-    getConstant(pallet: string, name: string): any
-}
-
 export interface ChainContext {
     _chain: Chain
+}
+
+export interface Chain {
+    rpc: RpcClient
+}
+
+interface RpcClient {
+    call(method: string, params?: any[]): Promise<any>
+    batchCall(calls: {method: string; params?: any[]}[]): Promise<any[]>
 }

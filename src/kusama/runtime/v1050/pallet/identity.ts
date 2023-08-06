@@ -42,8 +42,8 @@ export const ProvideJudgmentCall = (pallet: Pallet) =>
         readonly target: InstanceType<Config['Lookup']['Source']>
         readonly judgement: IdentityJudgement
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new IdentityProvideJudgementCall(ctx, call).asV1050
+        constructor(call: Call) {
+            const data = new IdentityProvideJudgementCall(call).asV1050
             this.target = new pallet.Config.Lookup.Source(data.target)
             this.judgement = new IdentityJudgement(data.judgement)
         }

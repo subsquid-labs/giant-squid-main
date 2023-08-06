@@ -6,7 +6,7 @@ export class BalancesTransferEvent {
     private readonly event: Event
 
     constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
+    constructor(event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
         assert(event.name === 'Balances.Transfer')
@@ -50,7 +50,7 @@ export class IdentityIdentityClearedEvent {
     private readonly event: Event
 
     constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
+    constructor(event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
         assert(event.name === 'Identity.IdentityCleared')
@@ -94,7 +94,7 @@ export class IdentityIdentityKilledEvent {
     private readonly event: Event
 
     constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
+    constructor(event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
         assert(event.name === 'Identity.IdentityKilled')
@@ -138,7 +138,7 @@ export class IdentityIdentitySubRemovedEvent {
     private readonly event: Event
 
     constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
+    constructor(event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
         assert(event.name === 'Identity.IdentitySubRemoved')
@@ -182,7 +182,7 @@ export class IdentityIdentitySubRevokedEvent {
     private readonly event: Event
 
     constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
+    constructor(event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
         assert(event.name === 'Identity.IdentitySubRevoked')
@@ -230,7 +230,7 @@ export class StakingRewardEvent {
     private readonly event: Event
 
     constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
+    constructor(event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
         assert(event.name === 'Staking.Reward')
@@ -259,7 +259,7 @@ export class StakingRewardedEvent {
     private readonly event: Event
 
     constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
+    constructor(event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
         assert(event.name === 'Staking.Rewarded')

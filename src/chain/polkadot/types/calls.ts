@@ -12,7 +12,7 @@ export class BalancesForceTransferCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Balances.force_transfer')
@@ -101,7 +101,7 @@ export class BalancesTransferCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Balances.transfer')
@@ -318,7 +318,7 @@ export class BalancesTransferAllCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Balances.transfer_all')
@@ -428,7 +428,7 @@ export class BalancesTransferKeepAliveCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Balances.transfer_keep_alive')
@@ -547,7 +547,7 @@ export class IdentityAddSubCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Identity.add_sub')
@@ -642,7 +642,7 @@ export class IdentityClearIdentityCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Identity.clear_identity')
@@ -705,7 +705,7 @@ export class IdentityKillIdentityCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Identity.kill_identity')
@@ -872,7 +872,7 @@ export class IdentityProvideJudgementCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Identity.provide_judgement')
@@ -1092,7 +1092,7 @@ export class IdentityRenameSubCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Identity.rename_sub')
@@ -1169,7 +1169,7 @@ export class IdentitySetIdentityCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Identity.set_identity')
@@ -1234,7 +1234,7 @@ export class IdentitySetSubsCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Identity.set_subs')
@@ -1303,7 +1303,7 @@ export class StakingPayoutStakersCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Staking.payout_stakers')

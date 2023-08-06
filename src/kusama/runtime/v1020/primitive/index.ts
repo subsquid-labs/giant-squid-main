@@ -1,20 +1,12 @@
 import {encode} from '@subsquid/ss58'
-import {Display, Enum, Serialize, StaticLookup, Type} from '../../../interfaces'
 import {toHex} from '@subsquid/substrate-processor'
+import {Constructor} from 'type-fest'
+import {Display, Enum, Lookup, Serialize, StaticLookup, Parameter} from '../../../interfaces'
+import {implements_} from '@gs/util/decorator'
 import * as metadata from '@metadata/kusama/v1020'
-import {Class} from 'type-fest'
-
-function implements_<T>() {
-    return <U extends T>(constructor: U) => constructor
-}
-
-function enum_<T extends Class<any>>() {
-    return (constructor: T) => constructor as T & Class<{a(): number}>
-}
 
 export const AccountId32 = (prefix: number) => {
-    @enum_()
-    @implements_<Type<Uint8Array> & Display & Serialize>()
+    @implements_<Parameter<Uint8Array> & Display & Serialize>()
     class AccountId32 {
         protected prefix = prefix
 
@@ -36,30 +28,26 @@ export const AccountId32 = (prefix: number) => {
 }
 export type AccountId32 = ReturnType<typeof AccountId32>
 
-export const Address = <AccountId extends TypeConstructor>(AccountId: AccountId) =>
-    class Address extends Enum({
+const a = AccountId32(2)
+
+export const Address = <AccountId extends Parameter<any>>(AccountId: AccountId) =>
+    class Address extends Enum<metadata.LookupSource>()({
         AccountId: AccountId,
     }) {}
-export type Address<AccountId extends TypeConstructor> = ReturnType<typeof Address<AccountId>>
 
-export const IdentityLookup = <AccountId extends TypeConstructor>(AccountId: AccountId) => {
-    class IdentityLookup<AccountId extends TypeConstructor> {}
+export type Address<AccountId extends Parameter<any>> = ReturnType<typeof Address<AccountId>>
 
-    interface IdentityLookup<AccountId extends TypeConstructor> extends StaticLookup<AccountId, AccountId> {}
+export const IdentityLookup = <AccountId extends Constructor<any>>(AccountId: AccountId) => {
+    @implements_<Lookup<AccountId, AccountId>>()
+    class IdentityLookup {
+        static Source = AccountId
+        static Target = AccountId
 
-    StaticLookup(IdentityLookup, {
-        Source: AccountId,
-        Target: AccountId,
-        lookup(s: InstanceType<AccountId>) {
+        static lookup(s: InstanceType<AccountId>) {
             return s
-        },
-        unlookup(t: InstanceType<AccountId>) {
-            return t
-        },
-    })
+        }
+    }
 
-    return IdentityLookup<AccountId>
+    return IdentityLookup
 }
-export type IdentityLookup<AccountId extends TypeConstructor> = ReturnType<typeof IdentityLookup<AccountId>>
-
-new (AccountId32(2))().format()
+export type IdentityLookup<AccountId extends Constructor<any>> = ReturnType<typeof IdentityLookup<AccountId>>

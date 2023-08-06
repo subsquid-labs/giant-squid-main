@@ -4,7 +4,7 @@ import {Call, ChainContext} from '../../types/support'
 
 const payout_stakers = {
     decode(ctx: ChainContext, event: Call) {
-        let e = new StakingPayoutStakersCall(ctx, event)
+        let e = new StakingPayoutStakersCall(event)
         if (e.isV1) {
             return e.asV1
         } else {

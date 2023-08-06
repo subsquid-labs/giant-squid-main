@@ -1,5 +1,5 @@
 import assert from 'assert'
-import {Block, BlockContext, Chain, ChainContext, Option, Result, StorageBase} from './support'
+import {StorageBase} from './support'
 import * as v1020 from './v1020'
 import * as v1050 from './v1050'
 import * as v1058 from './v1058'

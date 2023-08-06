@@ -10,8 +10,8 @@ import {
 import {ChainContext, Call} from '../../types/support'
 
 const set_identity = {
-    decode(ctx: ChainContext, call: Call) {
-        let e = new IdentitySetIdentityCall(ctx, call)
+    decode(call: Call) {
+        let e = new IdentitySetIdentityCall(call)
         if (e.isV5) {
             return e.asV5.info
         } else {
@@ -21,8 +21,8 @@ const set_identity = {
 }
 
 const set_subs = {
-    decode(ctx: ChainContext, call: Call) {
-        let e = new IdentitySetSubsCall(ctx, call)
+    decode(call: Call) {
+        let e = new IdentitySetSubsCall(call)
         if (e.isV5) {
             return e.asV5
         } else {
@@ -32,8 +32,8 @@ const set_subs = {
 }
 
 const provide_judgement = {
-    decode(ctx: ChainContext, call: Call) {
-        let e = new IdentityProvideJudgementCall(ctx, call)
+    decode(call: Call) {
+        let e = new IdentityProvideJudgementCall(call)
         if (e.isV5) {
             return e.asV5
         } else if (e.isV28) {
@@ -55,8 +55,8 @@ const provide_judgement = {
 }
 
 const add_sub = {
-    decode(ctx: ChainContext, call: Call) {
-        let e = new IdentityAddSubCall(ctx, call)
+    decode(call: Call) {
+        let e = new IdentityAddSubCall(call)
         if (e.isV15) {
             return e.asV15
         } else if (e.isV28) {
@@ -74,8 +74,8 @@ const add_sub = {
 }
 
 const rename_sub = {
-    decode(ctx: ChainContext, call: Call) {
-        let e = new IdentityRenameSubCall(ctx, call)
+    decode(call: Call) {
+        let e = new IdentityRenameSubCall(call)
         if (e.isV15) {
             return e.asV15
         } else if (e.isV28) {
@@ -93,8 +93,8 @@ const rename_sub = {
 }
 
 // const clear_identity = {
-//     decode(ctx: ChainContext, call: Call) {
-//         let e = new IdentityClearIdentityCall(ctx, call)
+//     decode(call: Call) {
+//         let e = new IdentityClearIdentityCall(call)
 //         if (e.isV1030) {
 //             return e.asV1030
 //         } else if (e.isV28) {

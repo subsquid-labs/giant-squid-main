@@ -81,8 +81,8 @@ export const BondCall = (pallet: Pallet) =>
         readonly value: bigint
         readonly payee: RewardDestination<Config['AccountId']>
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingBondCall(ctx, call).asV1050
+        constructor(call: Call) {
+            const data = new StakingBondCall(call).asV1050
 
             this.controller = new pallet.Config.Lookup.Source(data.controller)
             this.value = data.value
@@ -94,8 +94,8 @@ export const NominateCall = (pallet: Pallet) =>
     class {
         readonly targets: InstanceType<Config['Lookup']['Source']>[]
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingNominateCall(ctx, call).asV1050
+        constructor(call: Call) {
+            const data = new StakingNominateCall(call).asV1050
             this.targets = data.targets.map((t) => new pallet.Config.Lookup.Source(t))
         }
     }
@@ -104,8 +104,8 @@ export const SetControllerCall = (pallet: Pallet) =>
     class {
         readonly controller: InstanceType<Config['Lookup']['Source']>
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingSetControllerCall(ctx, call).asV1050
+        constructor(call: Call) {
+            const data = new StakingSetControllerCall(call).asV1050
 
             const lookupSource = new pallet.Config.Lookup.Source(data.controller)
             this.controller = pallet.Config.Lookup.lookup(lookupSource)

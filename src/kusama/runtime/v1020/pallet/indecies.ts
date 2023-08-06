@@ -1,37 +1,38 @@
-import {PalletBase, PalletSetup, StaticLookup, Type} from '../../../interfaces'
+import {implements_} from '@gs/util/decorator'
+import {PalletBase, PalletSetup, StaticLookup, Parameter} from '../../../interfaces'
 import {Address} from '../primitive'
 import * as pallet_system from './system'
 
 export type Config = pallet_system.Config & {}
 
-export class Pallet<T extends Config, O = {}> extends PalletBase<T, {}> {}
-
-StaticLookup(
-    Pallet<Config>,
-    class {
-        static get Source(): Address<Config['AccountId']> {
+export const Pallet = <T extends Config, S extends PalletSetup = {}>(setup: S) => {
+    @implements_<StaticLookup<T['AccountId'], Address<T['AccountId']>>>()
+    abstract class Pallet extends PalletBase<T, S>() {
+        static get Source() {
             return Address(this.Config.AccountId)
         }
-        static get Target(): Config['AccountId'] {
+        static get Target() {
             return this.Config.AccountId
         }
-        static lookup(s) {
+
+        static lookup(s: InstanceType<Address<T['AccountId']>>) {
             return s.match({
                 AccountId: (v) => v,
             })
         }
-        static unlookup(t) {
+        static unlookup(t: InstanceType<T['AccountId']>): never {
             throw new Error(`not impemented`)
         }
     }
-)
 
-export interface Pallet<T extends Config, O = {}> extends StaticLookup<T['AccountId'], Address<T['AccountId']>> {}
+    return Pallet
+}
+type Pallet<T extends Config, S extends PalletSetup> = ReturnType<typeof Pallet<T, S>>
 
 // Pallet.
 
 export default () => {
-    const pallet = new Pallet()
+    const pallet = Pallet<Config>({})
 
     return pallet
 }

@@ -8,8 +8,8 @@ import {
 import {ChainContext, Event} from '../../types/support'
 
 const IdentityCleared = {
-    decode(ctx: ChainContext, event: Event) {
-        let e = new IdentityIdentityClearedEvent(ctx, event)
+    decode(event: Event) {
+        let e = new IdentityIdentityClearedEvent(event)
         if (e.isV5) {
             const [who, deposit] = e.asV5
             return {who, deposit}
@@ -22,8 +22,8 @@ const IdentityCleared = {
 }
 
 const IdentityKilled = {
-    decode(ctx: ChainContext, event: Event) {
-        let e = new IdentityIdentityKilledEvent(ctx, event)
+    decode(event: Event) {
+        let e = new IdentityIdentityKilledEvent(event)
         if (e.isV5) {
             const [who, deposit] = e.asV5
             return {who, deposit}
@@ -36,8 +36,8 @@ const IdentityKilled = {
 }
 
 const IdentitySubRemoved = {
-    decode(ctx: ChainContext, event: Event) {
-        let e = new IdentityIdentitySubRemovedEvent(ctx, event)
+    decode(event: Event) {
+        let e = new IdentityIdentitySubRemovedEvent(event)
         if (e.isV15) {
             const [sub, main, deposit] = e.asV15
             return {sub, main, deposit}
@@ -50,8 +50,8 @@ const IdentitySubRemoved = {
 }
 
 const IdentitySubRevoked = {
-    decode(ctx: ChainContext, event: Event) {
-        let e = new IdentityIdentitySubRevokedEvent(ctx, event)
+    decode(event: Event) {
+        let e = new IdentityIdentitySubRevokedEvent(event)
         if (e.isV15) {
             const [sub, main, deposit] = e.asV15
             return {sub, main, deposit}

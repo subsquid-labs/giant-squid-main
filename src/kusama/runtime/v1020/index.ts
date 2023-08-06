@@ -16,8 +16,10 @@ export const runtime = Runtime({
     Session: pallet_session(),
 })
 
+const AccountId = AccountId32(prefix)
+
 runtime.System.Config = {
-    AccountId: AccountId32(prefix),
+    AccountId: AccountId,
     Lookup: runtime.Indecies,
 }
 
@@ -36,5 +38,3 @@ runtime.Indecies.Config = {
 runtime.Session.Config = {
     SessionManager: runtime.Staking,
 }
-
-new runtime.Balances.Events.Transfer().from

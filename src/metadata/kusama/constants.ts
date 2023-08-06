@@ -1,18 +1,18 @@
 import assert from 'assert'
-import {Block, Chain, ChainContext, BlockContext, Result, Option} from './support'
+import {getRuntime, Runtime, Result, Option, RuntimeCtx} from './support'
 
 export class StakingBondingDurationConstant {
-    private readonly _chain: Chain
+    private readonly runtime: Runtime
 
-    constructor(ctx: ChainContext) {
-        this._chain = ctx._chain
+    constructor(runtime: RuntimeCtx) {
+        this.runtime = getRuntime(runtime)
     }
 
     /**
      *  Number of eras that staked funds must remain bonded for.
      */
     get isV1020() {
-        return this._chain.getConstantTypeHash('Staking', 'BondingDuration') === 'b76f37d33f64f2d9b3234e29034ab4a73ee9da01a61ab139c27f8c841971e469'
+        return this.runtime.getConstantTypeHash('Staking', 'BondingDuration') === 'b76f37d33f64f2d9b3234e29034ab4a73ee9da01a61ab139c27f8c841971e469'
     }
 
     /**
@@ -20,29 +20,29 @@ export class StakingBondingDurationConstant {
      */
     get asV1020(): number {
         assert(this.isV1020)
-        return this._chain.getConstant('Staking', 'BondingDuration')
+        return this.runtime.getConstant('Staking', 'BondingDuration')
     }
 
     /**
      * Checks whether the constant is defined for the current chain version.
      */
     get isExists(): boolean {
-        return this._chain.getConstantTypeHash('Staking', 'BondingDuration') != null
+        return this.runtime.getConstantTypeHash('Staking', 'BondingDuration') != null
     }
 }
 
 export class StakingSessionsPerEraConstant {
-    private readonly _chain: Chain
+    private readonly runtime: Runtime
 
-    constructor(ctx: ChainContext) {
-        this._chain = ctx._chain
+    constructor(runtime: RuntimeCtx) {
+        this.runtime = getRuntime(runtime)
     }
 
     /**
      *  Number of sessions per era.
      */
     get isV1020() {
-        return this._chain.getConstantTypeHash('Staking', 'SessionsPerEra') === 'b76f37d33f64f2d9b3234e29034ab4a73ee9da01a61ab139c27f8c841971e469'
+        return this.runtime.getConstantTypeHash('Staking', 'SessionsPerEra') === 'b76f37d33f64f2d9b3234e29034ab4a73ee9da01a61ab139c27f8c841971e469'
     }
 
     /**
@@ -50,13 +50,13 @@ export class StakingSessionsPerEraConstant {
      */
     get asV1020(): number {
         assert(this.isV1020)
-        return this._chain.getConstant('Staking', 'SessionsPerEra')
+        return this.runtime.getConstant('Staking', 'SessionsPerEra')
     }
 
     /**
      * Checks whether the constant is defined for the current chain version.
      */
     get isExists(): boolean {
-        return this._chain.getConstantTypeHash('Staking', 'SessionsPerEra') != null
+        return this.runtime.getConstantTypeHash('Staking', 'SessionsPerEra') != null
     }
 }

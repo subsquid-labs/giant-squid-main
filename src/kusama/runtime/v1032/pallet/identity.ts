@@ -74,15 +74,15 @@ export const SetIdentityCall = (pallet: Pallet) =>
     class {
         readonly info: IdentityInfo
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new IdentitySetIdentityCall(ctx, call).asV1032
+        constructor(call: Call) {
+            const data = new IdentitySetIdentityCall(call).asV1032
             this.info = new IdentityInfo(data.info)
         }
     }
 
 export const SetIdentityCallMapper = (pallet: Pallet, success?: true) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
             if (success != null && item.call.success != success) return
 
             const identitySetData = new pallet.Calls.set_identity(ctx, item.call)

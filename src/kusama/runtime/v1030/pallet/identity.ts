@@ -186,8 +186,8 @@ export const SetSubsCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly subs: [InstanceType<T['AccountId']>, Data][]
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new IdentitySetSubsCall(ctx, call).asV1030
+        constructor(call: Call) {
+            const data = new IdentitySetSubsCall(call).asV1030
             this.subs = data.subs.map((s) => [
                 new pallet.Config.AccountId(s[0]) as InstanceType<T['AccountId']>,
                 new Data(s[1]),
@@ -200,8 +200,8 @@ export const ProvideJudgmentCall = <T extends Config>(pallet: Pallet<T>) =>
         readonly target: InstanceType<T['Lookup']['Source']>
         readonly judgement: IdentityJudgement
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new IdentityProvideJudgementCall(ctx, call).asV1030
+        constructor(call: Call) {
+            const data = new IdentityProvideJudgementCall(call).asV1030
             this.target = new pallet.Config.Lookup.Source(data.target) as InstanceType<T['Lookup']['Source']>
             this.judgement = new IdentityJudgement(data.judgement)
         }
@@ -211,8 +211,8 @@ export const SetIdentityCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly info: IdentityInfo
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new IdentitySetIdentityCall(ctx, call).asV1030
+        constructor(call: Call) {
+            const data = new IdentitySetIdentityCall(call).asV1030
             this.info = new IdentityInfo(data.info)
         }
     }
@@ -225,8 +225,8 @@ export const IdentityClearedEvent = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly who: InstanceType<Config['AccountId']>
 
-        constructor(ctx: ChainContext, event: Event) {
-            const data = new IdentityIdentityClearedEvent(ctx, event).asV1030
+        constructor(event: Event) {
+            const data = new IdentityIdentityClearedEvent(event).asV1030
             this.who = new pallet.Config.AccountId(data[0])
         }
     }
@@ -235,8 +235,8 @@ export const IdentityKilledEvent = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly who: InstanceType<Config['AccountId']>
 
-        constructor(ctx: ChainContext, event: Event) {
-            const data = new IdentityIdentityKilledEvent(ctx, event).asV1030
+        constructor(event: Event) {
+            const data = new IdentityIdentityKilledEvent(event).asV1030
             this.who = new pallet.Config.AccountId(data[0])
         }
     }
@@ -250,7 +250,7 @@ export const SetSubsCallMapper = <T extends Config>(
     success?: boolean
 ) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
             if (success != null && item.call.success != success) return
 
             const setSubsData = new pallet.Calls.set_subs(ctx, item.call)
@@ -311,7 +311,7 @@ export const ProvideJudgmentCallMapper = <T extends Config>(
     success?: boolean
 ) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
             if (success != null && item.call.success != success) return
 
             const judgementGivenData = new pallet.Calls.provide_judgment(ctx, item.call)
@@ -364,7 +364,7 @@ export const SetIdentityCallMapper = <T extends Config>(
     success?: boolean
 ) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
             if (success != null && item.call.success != success) return
 
             const identitySetData = new pallet.Calls.set_identity(ctx, item.call)

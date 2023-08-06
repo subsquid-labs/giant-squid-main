@@ -1,5 +1,6 @@
 import {StoreWithCache} from '@belopash/squid-tools'
 import {Account, PayeeType, Staker, StakingEra, StakingUnlockChunk} from '@gs/model'
+import {implements_} from '@gs/util/decorator'
 import {createEraId, createEraNominationId, createEraStakerId} from '@gs/util/id'
 import {getOriginAccountId} from '@gs/util/misc'
 import {
@@ -13,6 +14,7 @@ import {
     StakingValidateCall,
     StakingWithdrawUnbondedCall,
 } from '@metadata/kusama/calls'
+import {StakingBondingDurationConstant} from '@metadata/kusama/constants'
 import {StakingRewardEvent, StakingSlashEvent} from '@metadata/kusama/events'
 import {
     StakingCurrentElectedStorage,
@@ -22,89 +24,75 @@ import {
     StakingLedgerStorage,
     StakingStakersStorage,
 } from '@metadata/kusama/storage'
-import {SubstrateBlock} from '@subsquid/substrate-processor'
+import * as metadata from '@metadata/kusama/v1020'
 import assert from 'assert'
 import MathBI from 'extra-bigint'
 import {
-    Block,
+    BlockHeader,
     Call,
-    CallItem,
     CallMapper,
     CallType,
     ChainContext,
     ConstantType,
     Enum,
     Event,
-    EventItem,
     EventMapper,
     EventType,
-    InstanceSubstrateType,
     MappingContext,
     PalletBase,
     PalletSetup,
     StorageType,
-    Type,
-    Type,
+    Parameter,
 } from '../../../interfaces'
-import * as pallet_system from './system'
 import {SessionManager} from './session'
-import {StakingBondingDurationConstant} from '@metadata/kusama/constants'
-import {Opaque, Simplify} from 'type-fest'
+import * as pallet_system from './system'
+import {Exact} from 'type-fest'
 
 /*********
  * TYPES *
  *********/
 
-export const RewardDestination = <AccountId extends Type<Uint8Array>>(AccountId: AccountId) =>
-    class RewardDestination extends Enum({
-        Staked: null,
-        Stash: null,
-        Controller: null,
+export const RewardDestination = <AccountId extends Parameter<Uint8Array>>(AccountId: AccountId) => {
+    @implements_<Parameter<metadata.RewardDestination>>()
+    class RewardDestination extends Enum<metadata.RewardDestination>()({
         Account: AccountId,
-        None: null,
     }) {}
-export type RewardDestination<AccountId extends Type<Uint8Array>> = InstanceType<ReturnType<
-    typeof RewardDestination<AccountId>
->>
 
-export class Forcing extends Enum({
-    NotForcing: null,
-    ForceNew: null,
-    ForceNone: null,
-    ForceAlways: null,
-}) {}
+    return RewardDestination
+}
+export type RewardDestination<AccountId extends Parameter<Uint8Array>> = InstanceType<
+    ReturnType<typeof RewardDestination<AccountId>>
+>
 
-export class ValidatorPrefs extends Type<{commission: number}> {
+@implements_<Parameter<metadata.Forcing>>()
+export class Forcing extends Enum<metadata.Forcing>()({}) {}
+
+@implements_<Parameter<metadata.ValidatorPrefs>>()
+export class ValidatorPrefs {
     readonly commission: number
 
-    constructor(value: {commission: number}) {
-        super(value)
-
-        this.commission = value.commission
+    constructor(readonly __value: metadata.ValidatorPrefs) {
+        this.commission = __value.commission
     }
 }
 
-export const StakingLedger = <AccountId extends Type<Uint8Array>>(AccountId: AccountId) =>
-    class StakingLedger extends Type<{
-        stash: Uint8Array
-        total: bigint
-        active: bigint
-    }> {
+export const StakingLedger = <AccountId extends Parameter<Uint8Array>>(AccountId: AccountId) => {
+    @implements_<Parameter<metadata.StakingLedger>>()
+    class StakingLedger {
         readonly stash: InstanceType<AccountId>
         readonly total: bigint
         readonly active: bigint
 
-        constructor(value: {stash: Uint8Array; total: bigint; active: bigint}) {
-            super(value)
-
-            this.stash = new AccountId(value.stash) as any
-            this.total = value.total
-            this.active = value.active
+        constructor(readonly __value: metadata.StakingLedger) {
+            this.stash = new AccountId(__value.stash) as any
+            this.total = __value.total
+            this.active = __value.active
         }
     }
-export type StakingLedger<AccountId extends Type<any>> = InstanceType<
-    ReturnType<typeof StakingLedger<AccountId>>
->
+
+    return StakingLedger
+}
+export type StakingLedger<AccountId extends Parameter<any>> = InstanceType<ReturnType<typeof StakingLedger<AccountId>>>
 
 /**********
  * PALLET *
@@ -145,140 +133,145 @@ export type Constanst<T extends Config> = {
     BondingDuration: ConstantType<number>
 }
 
-export class Pallet<T extends Config, S extends PalletSetup = {}> extends PalletBase<
-    T,
-    S & {
-        Storage: Storage<T>
-        Constants: Constanst<T>
-    }
-> {
-    newEra(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, currentEraIndex: number) {
-        ctx.queue
-            .setBlock(block)
-            .setExtrinsic(undefined)
-            .lazy(async () => {
-                const prevEra = await ctx.store.get(StakingEra, {where: {}, order: {index: 'DESC'}})
-                assert(prevEra?.index == null || prevEra.index < currentEraIndex)
+export const Pallet = <T extends Config, S extends PalletSetup>() => {
+    @implements_<SessionManager>()
+    abstract class Pallet extends PalletBase<
+        T,
+        S & {
+            Storage: Storage<T>
+            Constants: Constanst<T>
+        }
+    >() {
+        static newSession(ctx: MappingContext<StoreWithCache>, block: BlockHeader, sessionIndex: number) {
+            ctx.queue
+                .setBlock(block)
+                .setExtrinsic(undefined)
+                .lazy(async () => {
+                    const forceEra = await new this.Storage.ForceEra(ctx, block).value
+                    const currentEraStartSessionIndex = await new this.Storage.CurrentEraStartSessionIndex(ctx, block)
+                        .value
 
-                if (prevEra != null) {
-                    ctx.queue.add('staking_endEra', {
-                        eraId: prevEra.id,
+                    const eraLength = sessionIndex - currentEraStartSessionIndex
+                    assert(eraLength >= 0)
+
+                    let triggerNewEra = false
+                    forceEra.match({
+                        ForceNew: () => (triggerNewEra = true),
+                        ForceAlways: () => (triggerNewEra = true),
+                        NotForcing: () => (triggerNewEra = eraLength == 0),
+                        _: () => (triggerNewEra = false),
                     })
-                }
 
-                const eraId = createEraId(currentEraIndex)
-                ctx.queue.add('staking_newEra', {
-                    id: eraId,
-                    index: currentEraIndex,
+                    if (triggerNewEra) {
+                        const eraIndex = await new this.Storage.CurrentEra(ctx, block).value
+                        this.newEra(ctx, block, eraIndex)
+                    }
                 })
+        }
 
-                const validatorAddresses = await new StakingCurrentElectedStorage(ctx, block).asV1020.get()
-                const validatorsInfo = await new StakingStakersStorage(ctx, block).asV1020.getMany(validatorAddresses)
+        static newEra(ctx: MappingContext<StoreWithCache>, block: BlockHeader, currentEraIndex: number) {
+            ctx.queue
+                .setBlock(block)
+                .setExtrinsic(undefined)
+                .lazy(async () => {
+                    const prevEra = await ctx.store.get(StakingEra, {where: {}, order: {index: 'DESC'}})
+                    assert(prevEra?.index == null || prevEra.index < currentEraIndex)
 
-                const validators = new Map<string, {id: string; bonded: bigint; total: bigint}>()
-                const nominators = new Map<string, {id: string; bonded: bigint}>()
-                const nominations = new Map<string, {validatorId: string; nominatorId: string; vote: bigint}>()
-                for (let i = 0; i < validatorAddresses.length; i++) {
-                    const validatorAddress = new this.Config.AccountId(validatorAddresses[i])
-                    const validatorInfo = validatorsInfo[i]
-
-                    const validatorId = validatorAddress.format()
-                    ctx.store.defer(Staker, validatorId)
-
-                    const eraValidatorId = createEraStakerId(eraId, validatorId)
-                    validators.set(eraValidatorId, {
-                        id: validatorId,
-                        bonded: validatorInfo.own,
-                        total: validatorInfo.total,
-                    })
-
-                    for (let nomination of validatorInfo.others) {
-                        const nominatorAddress = new this.Config.AccountId(nomination.who)
-
-                        const nominatorId = nominatorAddress.format()
-                        ctx.store.defer(Staker, nominatorId)
-
-                        const eraNominatorId = createEraStakerId(eraId, nominatorId)
-                        let nominator = nominators.get(eraNominatorId)
-                        if (nominator == null) {
-                            nominator = {
-                                id: nominatorId,
-                                bonded: 0n,
-                            }
-                            nominators.set(eraNominatorId, nominator)
-                        }
-                        nominator.bonded += nomination.value
-
-                        const eraNominationId = createEraNominationId(eraId, validatorId, nominatorId)
-                        nominations.set(eraNominationId, {
-                            validatorId: eraValidatorId,
-                            nominatorId: eraNominatorId,
-                            vote: nomination.value,
+                    if (prevEra != null) {
+                        ctx.queue.add('staking_endEra', {
+                            eraId: prevEra.id,
                         })
                     }
-                }
 
-                for (const [id, validator] of validators) {
-                    ctx.queue.add('staking_newEraValidator', {
-                        id,
-                        eraId,
-                        stakerId: validator.id,
-                        total: validator.total,
-                        own: validator.bonded,
+                    const eraId = createEraId(currentEraIndex)
+                    ctx.queue.add('staking_newEra', {
+                        id: eraId,
+                        index: currentEraIndex,
                     })
-                }
 
-                for (const [id, nominator] of nominators) {
-                    ctx.queue.add('staking_newEraNominator', {
-                        id,
-                        eraId,
-                        stakerId: nominator.id,
-                        bonded: nominator.bonded,
-                    })
-                }
+                    const validatorAddresses = await new StakingCurrentElectedStorage(ctx, block).asV1020.get()
+                    const validatorsInfo = await new StakingStakersStorage(ctx, block).asV1020.getMany(
+                        validatorAddresses
+                    )
 
-                for (const [id, nomination] of nominations) {
-                    ctx.queue.add('staking_newEraNomination', {
-                        id,
-                        eraId,
-                        validatorId: nomination.validatorId,
-                        nominatorId: nomination.nominatorId,
-                        vote: nomination.vote,
-                    })
-                }
-            })
-    }
-}
+                    const validators = new Map<string, {id: string; bonded: bigint; total: bigint}>()
+                    const nominators = new Map<string, {id: string; bonded: bigint}>()
+                    const nominations = new Map<string, {validatorId: string; nominatorId: string; vote: bigint}>()
+                    for (let i = 0; i < validatorAddresses.length; i++) {
+                        const validatorAddress = new this.Config.AccountId(validatorAddresses[i])
+                        const validatorInfo = validatorsInfo[i]
 
-SessionManager(Pallet, {
-    newSession(ctx, block, sessionIndex) {
-        ctx.queue
-            .setBlock(block)
-            .setExtrinsic(undefined)
-            .lazy(async () => {
-                const forceEra = await new this.Storage.ForceEra(ctx, block).value
-                const currentEraStartSessionIndex = await new this.Storage.CurrentEraStartSessionIndex(ctx, block).value
+                        const validatorId = validatorAddress.format()
+                        ctx.store.defer(Staker, validatorId)
 
-                const eraLength = sessionIndex - currentEraStartSessionIndex
-                assert(eraLength >= 0)
+                        const eraValidatorId = createEraStakerId(eraId, validatorId)
+                        validators.set(eraValidatorId, {
+                            id: validatorId,
+                            bonded: validatorInfo.own,
+                            total: validatorInfo.total,
+                        })
 
-                let triggerNewEra = false
-                forceEra.match({
-                    ForceNew: () => (triggerNewEra = true),
-                    ForceAlways: () => (triggerNewEra = true),
-                    NotForcing: () => (triggerNewEra = eraLength == 0),
-                    _: () => (triggerNewEra = false),
+                        for (let nomination of validatorInfo.others) {
+                            const nominatorAddress = new this.Config.AccountId(nomination.who)
+
+                            const nominatorId = nominatorAddress.format()
+                            ctx.store.defer(Staker, nominatorId)
+
+                            const eraNominatorId = createEraStakerId(eraId, nominatorId)
+                            let nominator = nominators.get(eraNominatorId)
+                            if (nominator == null) {
+                                nominator = {
+                                    id: nominatorId,
+                                    bonded: 0n,
+                                }
+                                nominators.set(eraNominatorId, nominator)
+                            }
+                            nominator.bonded += nomination.value
+
+                            const eraNominationId = createEraNominationId(eraId, validatorId, nominatorId)
+                            nominations.set(eraNominationId, {
+                                validatorId: eraValidatorId,
+                                nominatorId: eraNominatorId,
+                                vote: nomination.value,
+                            })
+                        }
+                    }
+
+                    for (const [id, validator] of validators) {
+                        ctx.queue.add('staking_newEraValidator', {
+                            id,
+                            eraId,
+                            stakerId: validator.id,
+                            total: validator.total,
+                            own: validator.bonded,
+                        })
+                    }
+
+                    for (const [id, nominator] of nominators) {
+                        ctx.queue.add('staking_newEraNominator', {
+                            id,
+                            eraId,
+                            stakerId: nominator.id,
+                            bonded: nominator.bonded,
+                        })
+                    }
+
+                    for (const [id, nomination] of nominations) {
+                        ctx.queue.add('staking_newEraNomination', {
+                            id,
+                            eraId,
+                            validatorId: nomination.validatorId,
+                            nominatorId: nomination.nominatorId,
+                            vote: nomination.vote,
+                        })
+                    }
                 })
+        }
+    }
 
-                if (triggerNewEra) {
-                    const eraIndex = await new this.Storage.CurrentEra(ctx, block).value
-                    this.newEra(ctx, block, eraIndex)
-                }
-            })
-    },
-})
-
-export interface Pallet<T extends Config, S extends PalletSetup> extends SessionManager {}
+    return Pallet
+}
+type Pallet<T extends Config, S extends PalletSetup = {}> = ReturnType<typeof Pallet<T, S>>
 
 /*********
  * CALLS *
@@ -290,8 +283,8 @@ export const BondCall = <T extends Config>(pallet: Pallet<T>) =>
         readonly value: bigint
         readonly payee: RewardDestination<T['AccountId']>
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingBondCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingBondCall(call).asV1020
 
             this.controller = new pallet.Config.Lookup.Source(data.controller) as any
             this.value = data.value
@@ -303,8 +296,8 @@ export const BondExtraCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly maxAdditional: bigint
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingBondExtraCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingBondExtraCall(call).asV1020
             this.maxAdditional = data.maxAdditional
         }
     }
@@ -313,8 +306,8 @@ export const UnbondCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: bigint
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingUnbondCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingUnbondCall(call).asV1020
             this.value = data.value
         }
     }
@@ -323,16 +316,16 @@ export const ForceUnstakeCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly stash: InstanceType<T['AccountId']>
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingForceUnstakeCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingForceUnstakeCall(call).asV1020
             this.stash = new pallet.Config.AccountId(data.stash) as any
         }
     }
 
 export const WithdrawUnbondedCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingWithdrawUnbondedCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingWithdrawUnbondedCall(call).asV1020
         }
     }
 
@@ -340,8 +333,8 @@ export const SetControllerCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly controller: InstanceType<T['Lookup']['Source']>
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingSetControllerCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingSetControllerCall(call).asV1020
 
             this.controller = new pallet.Config.Lookup.Source(data.controller) as any
         }
@@ -351,8 +344,8 @@ export const SetPayeeCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly payee: RewardDestination<T['AccountId']>
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingSetPayeeCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingSetPayeeCall(call).asV1020
 
             this.payee = this.payee = new (RewardDestination(pallet.Config.AccountId))(data.payee)
         }
@@ -362,8 +355,8 @@ export const ValidateCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly prefs: ValidatorPrefs
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingValidateCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingValidateCall(call).asV1020
             this.prefs = new ValidatorPrefs(data.prefs)
         }
     }
@@ -372,8 +365,8 @@ export const NominateCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly targets: InstanceType<T['Lookup']['Source']>[]
 
-        constructor(ctx: ChainContext, call: Call) {
-            const data = new StakingNominateCall(ctx, call).asV1020
+        constructor(call: Call) {
+            const data = new StakingNominateCall(call).asV1020
             this.targets = data.targets.map((t) => new pallet.Config.Lookup.Source(t)) as any
         }
     }
@@ -387,8 +380,8 @@ export const RewardEvent = <T extends Config>(pallet: Pallet<T>) =>
         readonly reward: bigint
         readonly remainer: bigint
 
-        constructor(ctx: ChainContext, event: Event) {
-            const data = new StakingRewardEvent(ctx, event).asV1020
+        constructor(event: Event) {
+            const data = new StakingRewardEvent(event).asV1020
             this.reward = data[0]
             this.remainer = data[1]
         }
@@ -399,8 +392,8 @@ export const SlashEvent = <T extends Config>(pallet: Pallet<T>) =>
         readonly staker: InstanceType<Config['AccountId']>
         readonly amount: bigint
 
-        constructor(ctx: ChainContext, event: Event) {
-            const data = new StakingSlashEvent(ctx, event).asV1020
+        constructor(event: Event) {
+            const data = new StakingSlashEvent(event).asV1020
             this.staker = new pallet.Config.AccountId(data[0])
             this.amount = data[1]
         }
@@ -414,7 +407,7 @@ export const ForceEraStorage = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: Promise<Forcing>
 
-        constructor(ctx: ChainContext, block: Block) {
+        constructor(ctx: ChainContext, block: BlockHeader) {
             this.value = new StakingForceEraStorage(ctx, block).asV1020.get().then((v) => new Forcing(v))
         }
     }
@@ -423,7 +416,7 @@ export const CurrentEraStartSessionIndexStorage = <T extends Config>(pallet: Pal
     class {
         readonly value: Promise<number>
 
-        constructor(ctx: ChainContext, block: Block) {
+        constructor(ctx: ChainContext, block: BlockHeader) {
             this.value = new StakingCurrentEraStartSessionIndexStorage(ctx, block).asV1020.get()
         }
     }
@@ -432,7 +425,7 @@ export const CurrentEraStorage = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: Promise<number>
 
-        constructor(ctx: ChainContext, block: Block) {
+        constructor(ctx: ChainContext, block: BlockHeader) {
             this.value = new StakingCurrentEraStorage(ctx, block).asV1020.get()
         }
     }
@@ -441,7 +434,7 @@ export const LedgerStorage = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: Promise<StakingLedger<T['AccountId']> | undefined>
 
-        constructor(ctx: ChainContext, block: Block, key: InstanceType<Config['AccountId']>) {
+        constructor(ctx: ChainContext, block: BlockHeader, key: InstanceType<Config['AccountId']>) {
             const Ledger = StakingLedger(pallet.Config.AccountId)
             this.value = new StakingLedgerStorage(ctx, block).asV1020
                 .get(key.__value)
@@ -457,8 +450,8 @@ export const BondingDurationConstant = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly value: number
 
-        constructor(ctx: ChainContext) {
-            this.value = new StakingBondingDurationConstant(ctx).asV1020
+        constructor(block: BlockHeader) {
+            this.value = new StakingBondingDurationConstant(block).asV1020
         }
     }
 
@@ -471,12 +464,12 @@ export const BondCallMapper = <T extends Config>(
     success?: boolean
 ) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const data = new pallet.Calls.bond(ctx, item.call)
+            const data = new pallet.Calls.bond(call)
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const stashAddress = new pallet.Config.AccountId(origin)
@@ -488,8 +481,8 @@ export const BondCallMapper = <T extends Config>(
             const controllerDeferred = ctx.store.defer(Account, controllerId)
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const stash = await stashDeferred.get()
                     if (stash == null) {
@@ -514,8 +507,7 @@ export const BondCallMapper = <T extends Config>(
                 Stash: () => ({payeeType: PayeeType.Stash, payeeId: stashId}),
                 Staked: () => ({payeeType: PayeeType.Stash, payeeId: stashId}),
                 Controller: () => ({payeeType: PayeeType.Controller, payeeId: controllerId}),
-                Account: (account) => {
-                    const accountAddress = account
+                Account: (accountAddress) => {
                     const payeeId = accountAddress.format()
                     const payeeDeferred = ctx.store.defer(Account, payeeId)
 
@@ -558,7 +550,7 @@ export const BondCallMapper = <T extends Config>(
                     payeeId,
                 })
                 .add('staking_bond', {
-                    id: item.call.id,
+                    id: call.id,
                     stakerId,
                     accountId: stashId,
                     amount: data.value,
@@ -566,14 +558,17 @@ export const BondCallMapper = <T extends Config>(
         }
     }
 
-export const BondExtraCallMapper = (pallet: Pallet, success?: boolean) =>
+export const BondExtraCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'bond_extra'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const data = new pallet.Calls.bond_extra(ctx, item.call)
+            const data = new pallet.Calls.bond_extra(call)
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const stashAddress = new pallet.Config.AccountId(origin)
@@ -583,8 +578,8 @@ export const BondExtraCallMapper = (pallet: Pallet, success?: boolean) =>
             const stakerId = stashId
             ctx.store.defer(Staker, stakerId)
 
-            ctx.queue.setBlock(block).setExtrinsic(item.extrinsic).add('staking_bond', {
-                id: item.call.id,
+            ctx.queue.setBlock(call.block).setExtrinsic(call.extrinsic).add('staking_bond', {
+                id: call.id,
                 accountId: stashId,
                 stakerId,
                 amount: data.maxAdditional,
@@ -592,22 +587,25 @@ export const BondExtraCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const UnbondCallMapper = (pallet: Pallet, success?: boolean) =>
+export const UnbondCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'unbond'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const data = new pallet.Calls.unbond(ctx, item.call)
+            const data = new pallet.Calls.unbond(call)
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const controllerAddress = new pallet.Config.AccountId(origin)
             const controllerId = controllerAddress.format()
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const controller = await ctx.store.getOrFail(Account, {
                         where: {id: controllerId},
@@ -619,18 +617,18 @@ export const UnbondCallMapper = (pallet: Pallet, success?: boolean) =>
                     const amount = data.value > staker.activeBond ? staker.activeBond : data.value
                     if (amount === 0n) return
 
-                    const bondingDuration = new pallet.Constants.BondingDuration(ctx).value
-                    const currentEra = await new pallet.Storage.CurrentEra(ctx, block).value
+                    const bondingDuration = new pallet.Constants.BondingDuration(call.block).value
+                    const currentEra = await new pallet.Storage.CurrentEra(ctx, call.block).value
 
                     ctx.queue
                         .add('staking_bond', {
-                            id: item.call.id,
+                            id: call.id,
                             accountId: staker.stash.id,
                             stakerId: staker.id,
                             amount: -amount,
                         })
                         .add('staking_createUnlockChunk', {
-                            id: item.call.id,
+                            id: call.id,
                             stakerId: staker.id,
                             amount,
                             lockedUntilEra: currentEra + bondingDuration,
@@ -639,20 +637,23 @@ export const UnbondCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const ForceUnstakeCallMapper = (pallet: Pallet, success?: boolean) =>
+export const ForceUnstakeCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'force_unstake'>}>,
+    success?: boolean
+) =>
     class {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const data = new pallet.Calls.force_unstake(ctx, item.call)
+            const data = new pallet.Calls.force_unstake(call)
 
             const stashAddress = data.stash
             const stashId = stashAddress.format()
             const stakerId = stashId
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const staker = await ctx.store.getOrFail(Staker, {
                         where: {id: stakerId},
@@ -671,20 +672,23 @@ export const ForceUnstakeCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const WithdrawUnbondedCallMapper = (pallet: Pallet, success?: boolean) =>
+export const WithdrawUnbondedCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'withdraw_unbonded'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const controllerAddress = new pallet.Config.AccountId(origin)
             const controllerId = controllerAddress.format()
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const controller = await ctx.store.getOrFail(Account, {
                         where: {
@@ -695,7 +699,7 @@ export const WithdrawUnbondedCallMapper = (pallet: Pallet, success?: boolean) =>
                     const staker = controller.controllerOf
                     assert(staker != null)
 
-                    const currentEra = await new pallet.Storage.CurrentEra(ctx, block).value
+                    const currentEra = await new pallet.Storage.CurrentEra(ctx, call.block).value
 
                     const withdrawable = staker.unlocking.filter((c) => c.lockedUntilEra <= currentEra)
                     for (const chunk of withdrawable) {
@@ -703,7 +707,7 @@ export const WithdrawUnbondedCallMapper = (pallet: Pallet, success?: boolean) =>
                     }
 
                     if (staker.activeBond === 0n && withdrawable.length == staker.unlocking.length) {
-                        const ledger = await new pallet.Storage.Ledger(ctx, block, controllerAddress).value
+                        const ledger = await new pallet.Storage.Ledger(ctx, call.block, controllerAddress).value
                         const stashAddress = ledger?.stash
                         const stashId = stashAddress?.format()
 
@@ -717,14 +721,17 @@ export const WithdrawUnbondedCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const SetControllerCallMapper = (pallet: Pallet, success?: boolean) =>
+export const SetControllerCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'set_controller'>}>,
+    success?: boolean
+) =>
     class SetControllerCall implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const data = new pallet.Calls.set_controller(ctx, item.call)
+            const data = new pallet.Calls.set_controller(call)
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const stashAddress = new pallet.Config.AccountId(origin)
@@ -737,8 +744,8 @@ export const SetControllerCallMapper = (pallet: Pallet, success?: boolean) =>
             const controllerDeferred = ctx.store.defer(Account, controllerId)
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const controller = await controllerDeferred.get()
                     if (controller == null) {
@@ -755,22 +762,25 @@ export const SetControllerCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const SetPayeeCallMapper = (pallet: Pallet, success?: boolean) =>
+export const SetPayeeCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'set_payee'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const data = new pallet.Calls.set_payee(ctx, item.call)
+            const data = new pallet.Calls.set_payee(call)
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const controllerAddress = new pallet.Config.AccountId(origin)
             const controllerId = controllerAddress.format()
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const controller = await ctx.store.getOrFail(Account, {
                         where: {id: controllerId},
@@ -811,22 +821,25 @@ export const SetPayeeCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const ValidateCallMapper = (pallet: Pallet, success?: boolean) =>
+export const ValidateCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'validate'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const data = new pallet.Calls.validate(ctx, item.call)
+            const data = new pallet.Calls.validate(call)
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const controllerAddress = new pallet.Config.AccountId(origin)
             const controllerId = controllerAddress.format()
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const controller = await ctx.store.getOrFail(Account, {
                         where: {id: controllerId},
@@ -843,14 +856,17 @@ export const ValidateCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const NominateCallMapper = (pallet: Pallet, success?: boolean) =>
+export const NominateCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'nominate'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const data = new pallet.Calls.nominate(ctx, item.call)
+            const data = new pallet.Calls.nominate(call)
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const controllerAddress = new pallet.Config.AccountId(origin)
@@ -860,13 +876,13 @@ export const NominateCallMapper = (pallet: Pallet, success?: boolean) =>
             try {
                 targets = data.targets.map((t) => pallet.Config.Lookup.lookup(t).format())
             } catch (err) {
-                ctx.log.error({err}, `Unable to get nomitations at extrinsic ${item.extrinsic.hash}`)
+                ctx.log.error({err}, `Unable to get nomitations at extrinsic ${call.extrinsic?.hash}`)
                 targets = []
             }
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const controller = await ctx.store.getOrFail(Account, {
                         where: {id: controllerId},
@@ -883,20 +899,23 @@ export const NominateCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const ChillCallMapper = (pallet: Pallet, success?: boolean) =>
+export const ChillCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'chill'>}>,
+    success?: boolean
+) =>
     class implements CallMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: CallItem): void {
-            if (success != null && item.call.success != success) return
+        handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
+            if (success != null && call.success != success) return
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const controllerAddress = new pallet.Config.AccountId(origin)
             const controllerId = controllerAddress.format()
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const controller = await ctx.store.getOrFail(Account, {
                         where: {id: controllerId},
@@ -913,10 +932,10 @@ export const ChillCallMapper = (pallet: Pallet, success?: boolean) =>
         }
     }
 
-export const RewardEventMapper = (pallet: Pallet) =>
+export const RewardEventMapper = <T extends Config>(pallet: Pallet<T, {Events: Pick<Events<T>, 'Reward'>}>) =>
     class implements EventMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
-            const data = new pallet.Events.Reward(ctx, item.event)
+        handle(ctx: MappingContext<StoreWithCache>, event: Event): void {
+            const data = new pallet.Events.Reward(event)
 
             // ctx.queue.lazy(async () => {
             //     const era = await ctx.store.getOrFail(StakingEra, {where: {}, order: {index: 'DESC'}})
@@ -926,10 +945,10 @@ export const RewardEventMapper = (pallet: Pallet) =>
         }
     }
 
-export const SlashEventMapper = (pallet: Pallet) =>
+export const SlashEventMapper = <T extends Config>(pallet: Pallet<T, {Events: Pick<Events<T>, 'Slash'>}>) =>
     class implements EventMapper {
-        handle(ctx: MappingContext<StoreWithCache>, block: SubstrateBlock, item: EventItem): void {
-            const data = new pallet.Events.Slash(ctx, item.event)
+        handle(ctx: MappingContext<StoreWithCache>, event: Event): void {
+            const data = new pallet.Events.Slash(event)
 
             const stashAddress = data.staker
             const stashId = stashAddress.format()
@@ -939,10 +958,10 @@ export const SlashEventMapper = (pallet: Pallet) =>
             const stakerDeferred = ctx.store.defer(Staker, stakerId)
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.event.extrinsic)
+                .setBlock(event.block)
+                .setExtrinsic(event.extrinsic)
                 .add('staking_slash', {
-                    id: item.event.id,
+                    id: event.id,
                     stakerId,
                     accountId: stashId,
                     amount: data.amount,
@@ -960,7 +979,7 @@ export const SlashEventMapper = (pallet: Pallet) =>
 
                     const bondDelta = slashAmount(staker.activeBond)
                     ctx.queue.add('staking_bond', {
-                        id: item.event.id,
+                        id: event.id,
                         stakerId,
                         accountId: stashId,
                         amount: -bondDelta,
@@ -1011,7 +1030,15 @@ export const SlashEventMapper = (pallet: Pallet) =>
 // }
 
 export default () => {
-    const pallet = new Pallet()
+    const pallet = Pallet<
+        Config,
+        {
+            Events: Events<Config>
+            Calls: Calls<Config>
+            Storage: Storage<Config>
+            Constants: Constanst<Config>
+        }
+    >()
 
     pallet.Calls = {
         bond: BondCall(pallet),

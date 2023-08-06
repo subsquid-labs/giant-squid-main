@@ -1,12 +1,12 @@
-import assert from 'assert'
-import {DataHandlerContext, SubstrateBlock, SubstrateExtrinsic} from '@subsquid/substrate-processor'
+import {DataHandlerContext} from '@subsquid/substrate-processor'
 import {StoreWithCache} from '@belopash/squid-tools'
+import type {BlockHeader, Extrinsic} from '@subsquid/substrate-data'
 
 export type Awaitable<T> = T | PromiseLike<T>
 
-export type ActionContext = DataHandlerContext<StoreWithCache, unknown>
-export type ActionBlock = Pick<SubstrateBlock, 'id' | 'hash' | 'height' | 'timestamp'>
-export type ActionExtrinsic = Pick<SubstrateExtrinsic, 'id' | 'hash'>
+export type ActionContext = DataHandlerContext<StoreWithCache, {}>
+export type ActionBlock = Pick<BlockHeader, 'hash' | 'height' | 'timestamp'>
+export type ActionExtrinsic = Pick<Extrinsic, 'hash'>
 
 export type ActionData<A> = A extends Action<infer D> ? D : never
 

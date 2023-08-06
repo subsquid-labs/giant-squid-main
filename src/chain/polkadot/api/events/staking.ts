@@ -3,8 +3,8 @@ import {StakingRewardedEvent, StakingRewardEvent} from '../../types/events'
 import {ChainContext, Event} from '../../types/support'
 
 const Reward = {
-    decode(ctx: ChainContext, event: Event) {
-        let e = new StakingRewardEvent(ctx, event)
+    decode(event: Event) {
+        let e = new StakingRewardEvent(event)
         if (e.isV0) {
             let [stash, amount] = e.asV0
             return {stash, amount}
@@ -15,8 +15,8 @@ const Reward = {
 }
 
 const Rewarded = {
-    decode(ctx: ChainContext, event: Event) {
-        let e = new StakingRewardedEvent(ctx, event)
+    decode(event: Event) {
+        let e = new StakingRewardedEvent(event)
         if (e.isV9090) {
             let [stash, amount] = e.asV9090
             return {stash, amount}

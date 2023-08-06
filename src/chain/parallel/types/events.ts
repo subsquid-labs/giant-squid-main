@@ -6,7 +6,7 @@ export class BalancesTransferEvent {
     private readonly event: Event
 
     constructor(ctx: EventContext)
-    constructor(ctx: ChainContext, event: Event)
+    constructor(event: Event)
     constructor(ctx: EventContext, event?: Event) {
         event = event || ctx.event
         assert(event.name === 'Balances.Transfer')

@@ -9,7 +9,7 @@ export class BalancesForceTransferCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Balances.force_transfer')
@@ -73,7 +73,7 @@ export class BalancesTransferCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Balances.transfer')
@@ -219,7 +219,7 @@ export class BalancesTransferAllCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Balances.transfer_all')
@@ -329,7 +329,7 @@ export class BalancesTransferKeepAliveCall {
     private readonly call: Call
 
     constructor(ctx: CallContext)
-    constructor(ctx: ChainContext, call: Call)
+    constructor(call: Call)
     constructor(ctx: CallContext, call?: Call) {
         call = call || ctx.call
         assert(call.name === 'Balances.transfer_keep_alive')

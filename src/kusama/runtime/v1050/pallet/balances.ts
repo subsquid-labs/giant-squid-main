@@ -15,7 +15,7 @@ export const TransferEvent = (pallet: Pallet) =>
         readonly amount: bigint
 
         constructor(ctx: ChainContext, event: {name: string; args: any}) {
-            const data = new BalancesTransferEvent(ctx, event).asV1050
+            const data = new BalancesTransferEvent(event).asV1050
 
             this.from = new pallet.Config.AccountId(data[0])
             this.to = new pallet.Config.AccountId(data[1])

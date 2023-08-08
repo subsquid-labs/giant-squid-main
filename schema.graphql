@@ -1,8 +1,9 @@
 type Account @entity {
     id: ID!
     publicKey: ID! @index
-    transfers: [Transfer!] @derivedFrom(field: "account")
+    transfers: [AccountTransfer!] @derivedFrom(field: "account")
     rewards: [StakingReward!] @derivedFrom(field: "account")
+    extrinsics: [SignedExtrinsic!] @derivedFrom(field: "account")
 }
 
 enum TransferDirection {
@@ -10,12 +11,23 @@ enum TransferDirection {
     To
 }
 
-# entity for linking account and transfer
-type Transfer @entity {
+interface Action @query {
     id: ID!
-    transfer: NativeTransfer
+    account: Account!
+    timestamp: DateTime!
+    blockNumber: Int!
+    extrinsicHash: String 
+}
+
+# entity for linking account and transfer
+type AccountTransfer implements Action @entity {
+    id: ID!
+    transferEntity: NativeTransfer
     account: Account!
     direction: TransferDirection
+    timestamp: DateTime!
+    blockNumber: Int! @index
+    extrinsicHash: String @index
 }
 
 type NativeTransfer @entity {
@@ -29,7 +41,7 @@ type NativeTransfer @entity {
     success: Boolean!
 }
 
-type StakingReward @entity {
+type StakingReward implements Action @entity {
     id: ID!
     timestamp: DateTime!
     blockNumber: Int! @index
@@ -38,4 +50,14 @@ type StakingReward @entity {
     amount: BigInt!
     era: Int
     validatorId: ID
+}
+
+type SignedExtrinsic implements Action @entity {
+    id: ID!
+    timestamp: DateTime!
+    blockNumber: Int! @index
+    extrinsicHash: String @index
+    callName: String @index
+    fee: BigInt!
+    account: Account!
 }

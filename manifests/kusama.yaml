@@ -1,6 +1,6 @@
 manifestVersion: subsquid.io/v0.1
 name: gs-main-kusama
-version: 1
+version: 201
 description: |-
   Giant Squid Explorer for Kusama chain
 build:
@@ -25,3 +25,11 @@ deploy:
         "--dumb-cache-max-age",
         "1000",
       ]
+
+scale:
+  dedicated: true
+  addons:
+     postgres:
+         profile: medium
+  processor:
+     profile: large

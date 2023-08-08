@@ -4,8 +4,8 @@ import {Account} from "./account.model"
 import {TransferDirection} from "./_transferDirection"
 
 @Entity_()
-export class Transfer {
-    constructor(props?: Partial<Transfer>) {
+export class AccountTransfer {
+    constructor(props?: Partial<AccountTransfer>) {
         Object.assign(this, props)
     }
 
@@ -14,7 +14,7 @@ export class Transfer {
 
     @Index_()
     @ManyToOne_(() => NativeTransfer, {nullable: true})
-    transfer!: NativeTransfer | undefined | null
+    transferEntity!: NativeTransfer | undefined | null
 
     @Index_()
     @ManyToOne_(() => Account, {nullable: true})
@@ -22,4 +22,15 @@ export class Transfer {
 
     @Column_("varchar", {length: 4, nullable: true})
     direction!: TransferDirection | undefined | null
+
+    @Column_("timestamp with time zone", {nullable: false})
+    timestamp!: Date
+
+    @Index_()
+    @Column_("int4", {nullable: false})
+    blockNumber!: number
+
+    @Index_()
+    @Column_("text", {nullable: true})
+    extrinsicHash!: string | undefined | null
 }

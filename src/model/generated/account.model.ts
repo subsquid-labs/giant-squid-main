@@ -1,6 +1,7 @@
 import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, Index as Index_, OneToMany as OneToMany_} from "typeorm"
-import {Transfer} from "./transfer.model"
+import {AccountTransfer} from "./accountTransfer.model"
 import {StakingReward} from "./stakingReward.model"
+import {SignedExtrinsic} from "./signedExtrinsic.model"
 
 @Entity_()
 export class Account {
@@ -15,9 +16,12 @@ export class Account {
     @Column_("text", {nullable: false})
     publicKey!: string
 
-    @OneToMany_(() => Transfer, e => e.account)
-    transfers!: Transfer[]
+    @OneToMany_(() => AccountTransfer, e => e.account)
+    transfers!: AccountTransfer[]
 
     @OneToMany_(() => StakingReward, e => e.account)
     rewards!: StakingReward[]
+
+    @OneToMany_(() => SignedExtrinsic, e => e.account)
+    extrinsics!: SignedExtrinsic[]
 }

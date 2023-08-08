@@ -271,7 +271,7 @@ export const Pallet = <T extends Config, S extends PalletSetup>() => {
 
     return Pallet
 }
-type Pallet<T extends Config, S extends PalletSetup = {}> = ReturnType<typeof Pallet<T, S>>
+export type Pallet<T extends Config, S extends PalletSetup = {}> = ReturnType<typeof Pallet<T, S>>
 
 /*********
  * CALLS *
@@ -507,7 +507,7 @@ export const BondCallMapper = <T extends Config>(
                 Stash: () => ({payeeType: PayeeType.Stash, payeeId: stashId}),
                 Staked: () => ({payeeType: PayeeType.Stash, payeeId: stashId}),
                 Controller: () => ({payeeType: PayeeType.Controller, payeeId: controllerId}),
-                Account: (accountAddress) => {
+                Account: (accountAddress: any) => {
                     const payeeId = accountAddress.format()
                     const payeeDeferred = ctx.store.defer(Account, payeeId)
 
@@ -590,7 +590,7 @@ export const BondExtraCallMapper = <T extends Config>(
 export const UnbondCallMapper = <T extends Config>(
     pallet: Pallet<T, {Calls: Pick<Calls<T>, 'unbond'>}>,
     success?: boolean
-) =>    
+) =>
     class implements CallMapper {
         handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
             if (success != null && call.success != success) return
@@ -792,7 +792,7 @@ export const SetPayeeCallMapper = <T extends Config>(
                         Stash: () => ({payeeType: PayeeType.Stash, payeeId: staker.stash.id}),
                         Staked: () => ({payeeType: PayeeType.Staked, payeeId: staker.stash.id}),
                         Controller: () => ({payeeType: PayeeType.Controller, payeeId: controller.id}),
-                        Account: async (accountAddress) => {
+                        Account: async (accountAddress: any) => {
                             const payeeId = accountAddress.format()
                             const payeeDeferred = ctx.store.defer(Account, payeeId)
 

@@ -2,37 +2,41 @@ import {StoreWithCache} from '@belopash/squid-tools'
 import {getOriginAccountId} from '@gs/util/misc'
 import {IdentitySetIdentityCall} from '@metadata/kusama/calls'
 import * as metadata from '@metadata/kusama/v1032'
-import {SubstrateBlock, toHex} from '@subsquid/substrate-processor'
+import {toHex} from '@subsquid/substrate-processor'
+import {Merge} from 'type-fest'
 import {Account, Identity, Judgement} from '../../../../model/generated'
-import {Call, CallItem, CallMapper, CallType, ChainContext, MappingContext, PalletSetup} from '../../../interfaces'
+import {Call, CallMapper, CallType, MappingContext} from '../../../interfaces'
 import {
+    Calls as CallsOld,
     Config,
     Data,
+    Events,
     IdentityClearedEvent,
     IdentityClearedEventMapper,
+    IdentityJudgement,
     IdentityKilledEvent,
     IdentityKilledEventMapper,
-    Pallet as PalletOld,
+    Pallet,
     ProvideJudgmentCall,
     ProvideJudgmentCallMapper,
     SetSubsCall,
     SetSubsCallMapper,
-    IdentityJudgement,
 } from '../../v1030/pallet/identity'
-import {Merge} from 'type-fest'
 
 export {
+    Config,
     Data,
+    Events,
     IdentityClearedEvent,
     IdentityClearedEventMapper,
+    IdentityJudgement,
     IdentityKilledEvent,
     IdentityKilledEventMapper,
+    Pallet,
     ProvideJudgmentCall,
     ProvideJudgmentCallMapper,
     SetSubsCall,
     SetSubsCallMapper,
-    Config,
-    IdentityJudgement,
 }
 
 export class IdentityInfo {
@@ -59,18 +63,14 @@ export class IdentityInfo {
     }
 }
 
-export class Pallet<T = {}> extends PalletOld<
-    PalletSetup<
-        {
-            Calls: {
-                set_identity: CallType<{info: IdentityInfo}>
-            }
-        },
-        T
-    >
-> {}
+export type Calls<T extends Config> = Merge<
+    CallsOld<T>,
+    {
+        set_identity: CallType<{info: IdentityInfo}>
+    }
+>
 
-export const SetIdentityCall = (pallet: Pallet) =>
+export const SetIdentityCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly info: IdentityInfo
 
@@ -80,14 +80,17 @@ export const SetIdentityCall = (pallet: Pallet) =>
         }
     }
 
-export const SetIdentityCallMapper = (pallet: Pallet, success?: true) =>
+export const SetIdentityCallMapper = <T extends Config>(
+    pallet: Pallet<T, {Calls: Pick<Calls<T>, 'set_identity'>}>,
+    success?: true
+) =>
     class implements CallMapper {
         handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
-            if (success != null && item.call.success != success) return
+            if (success != null && call.success != success) return
 
-            const identitySetData = new pallet.Calls.set_identity(ctx, item.call)
+            const identitySetData = new pallet.Calls.set_identity(call)
 
-            const origin = getOriginAccountId(item.call.origin)
+            const origin = getOriginAccountId(call.origin)
             if (origin == null) return
 
             const accountAddress = new pallet.Config.AccountId(origin)
@@ -100,8 +103,8 @@ export const SetIdentityCallMapper = (pallet: Pallet, success?: true) =>
             const info = identitySetData.info
 
             ctx.queue
-                .setBlock(block)
-                .setExtrinsic(item.extrinsic)
+                .setBlock(call.block)
+                .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const identity = await identityDeferred.get()
                     if (identity == null) {
@@ -142,32 +145,36 @@ export const SetIdentityCallMapper = (pallet: Pallet, success?: true) =>
         }
     }
 
-/******************
- * IMPLEMENTATION *
- ******************/
+export default () => {
+    const pallet = Pallet<
+        Config,
+        {
+            Calls: Calls<Config>
+            Events: Events<Config>
+        }
+    >()
 
-const pallet = new Pallet()
+    pallet.Calls = {
+        provide_judgment: ProvideJudgmentCall(pallet),
+        set_identity: SetIdentityCall(pallet),
+        set_subs: SetSubsCall(pallet),
+    }
 
-pallet.Calls = {
-    provide_judgment: ProvideJudgmentCall(pallet),
-    set_identity: SetIdentityCall(pallet),
-    set_subs: SetSubsCall(pallet),
+    pallet.Events = {
+        IdentityCleared: IdentityClearedEvent(pallet),
+        IdentityKilled: IdentityKilledEvent(pallet),
+    }
+
+    pallet.CallMappers = {
+        set_subs: SetSubsCallMapper(pallet, true),
+        provide_judgment: ProvideJudgmentCallMapper(pallet, true),
+        set_identity: SetIdentityCallMapper(pallet, true),
+    }
+
+    pallet.EventMappers = {
+        IdentityClear: IdentityClearedEventMapper(pallet),
+        IdentityKill: IdentityKilledEventMapper(pallet),
+    }
+
+    return pallet
 }
-
-pallet.Events = {
-    IdentityCleared: IdentityClearedEvent(pallet),
-    IdentityKilled: IdentityKilledEvent(pallet),
-}
-
-pallet.CallMappers = {
-    set_subs: SetSubsCallMapper(pallet, true),
-    provide_judgment: ProvideJudgmentCallMapper(pallet, true),
-    set_identity: SetIdentityCallMapper(pallet, true),
-}
-
-pallet.EventMappers = {
-    IdentityClear: IdentityClearedEventMapper(pallet),
-    IdentityKill: IdentityKilledEventMapper(pallet),
-}
-
-export default pallet

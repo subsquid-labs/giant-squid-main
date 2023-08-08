@@ -4,29 +4,29 @@ import {Block, BlockHeader, Call, Event, Extrinsic, processor} from './processor
 import assert from 'assert'
 
 export function getRuntime(block: BlockHeader) {
-    const version = block.specId.split('@')[1]
+    const version = block.specVersion
     switch (version) {
-        case '1020':
-        case '1021':
-        case '1022':
-        case '1023':
-        case '1024':
-        case '1025':
-        case '1026':
-        case '1027':
-        case '1028':
-        case '1029':
+        case 1020:
+        case 1021:
+        case 1022:
+        case 1023:
+        case 1024:
+        case 1025:
+        case 1026:
+        case 1027:
+        case 1028:
+        case 1029:
             return require('./runtime/v1020').runtime
-        case '1030':
-        case '1031':
+        case 1030:
+        case 1031:
             return require('./runtime/v1030').runtime
-        case '1032':
-        case '1033':
-        case '1038':
-        case '1039':
-        case '1040':
-        case '1042':
-        case '1045':
+        case 1032:
+        case 1033:
+        case 1038:
+        case 1039:
+        case 1040:
+        case 1042:
+        case 1045:
         default:
             return require('./runtime/v1032').runtime
             // case '1050':

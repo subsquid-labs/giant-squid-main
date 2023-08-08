@@ -11,7 +11,7 @@ export const Pallet = <T extends Config, S extends PalletSetup = {}>() => {
 
     return Pallet
 }
-type Pallet<T extends Config, S extends PalletSetup> = ReturnType<typeof Pallet<T, S>>
+export type Pallet<T extends Config, S extends PalletSetup> = ReturnType<typeof Pallet<T, S>>
 
 export default () => {
     const pallet = Pallet<Config>()

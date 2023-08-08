@@ -59,20 +59,6 @@ export interface StaticLookup<Target extends Constructor<any>, Source extends Co
 // export const None = null
 // export type None = null
 
-type PrimitiveType = StringConstructor | NumberConstructor | BigIntConstructor | Uint8ArrayConstructor
-
-type ConvertPrimitiveType<T> = T extends Uint8ArrayConstructor
-    ? Uint8Array
-    : T extends NumberConstructor
-    ? number
-    : T extends BigIntConstructor
-    ? bigint
-    : T extends StringConstructor
-    ? string
-    : never
-
-type ConvertType<T> = T extends PrimitiveType ? ConvertPrimitiveType<T> : T extends Parameter<infer R> ? R : never
-
 type EnumRaw =
     | {
           __kind: string
@@ -85,7 +71,7 @@ type EnumRaw =
 type EnumEntry<E extends EnumRaw, K> = Extract<E, {__kind: K}>
 
 type EnumConfig<T extends EnumRaw> = {
-    [K in T['__kind'] as EnumEntry<T, K> extends {value: any} ? K : never]: Parameter<any>
+    [K in T['__kind'] as EnumEntry<T, K> extends {value: any} ? K : never]?: Parameter<any>
 }
 
 export const Enum =
@@ -102,7 +88,9 @@ export const Enum =
                         value: EnumEntry<T, K> extends infer U
                             ? U extends {value: any}
                                 ? K extends keyof E
-                                    ? InstanceType<E[K]>
+                                    ? E[K] extends Parameter<any>
+                                        ? InstanceType<E[K]>
+                                        : U['value']
                                     : null
                                 : null
                             : null
@@ -118,7 +106,11 @@ export const Enum =
                     if (isKeyOf(config, kind)) {
                         assert('value' in this.__value)
                         const type = config[kind]
-                        return fn(new type(this.__value.value) as any)
+                        if (type == null) {
+                            return fn(this.__value.value)
+                        } else {
+                            return fn(new type(this.__value.value) as any)
+                        }
                     } else {
                         return fn(null as any)
                     }

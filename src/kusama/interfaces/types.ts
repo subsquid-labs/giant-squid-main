@@ -49,8 +49,8 @@ export interface Lookup<Target extends Constructor<any>, Source extends Construc
 }
 
 export interface StaticLookup<Target extends Constructor<any>, Source extends Constructor<any>> {
-    readonly Source: Source
-    readonly Target: Target
+    Source: Source
+    Target: Target
 
     lookup(s: InstanceType<Source>): InstanceType<Target>
     unlookup(t: InstanceType<Target>): InstanceType<Source>
@@ -85,14 +85,8 @@ type EnumRaw =
 type EnumEntry<E extends EnumRaw, K> = Extract<E, {__kind: K}>
 
 type EnumConfig<T extends EnumRaw> = {
-    [K in T['__kind'] as EnumEntry<T, K> extends {value: any} ? K : never]?: Parameter<any>
+    [K in T['__kind'] as EnumEntry<T, K> extends {value: any} ? K : never]: Parameter<any>
 }
-
-// type EnumCase<T extends EnumRaw, K, P extends Parameter<any>> = EnumEntry<T, K> extends infer Entry
-//     ? Entry extends {value: any}
-//         ? (value: InstanceType<P>) => any
-//         : never
-//     : never
 
 export const Enum =
     <T extends EnumRaw>() =>
@@ -101,51 +95,33 @@ export const Enum =
         class Enum {
             constructor(readonly __value: T) {}
 
+            // FIXME: needs rework
             match<
                 M extends {
                     [K in T['__kind']]?: (
                         value: EnumEntry<T, K> extends infer U
                             ? U extends {value: any}
                                 ? K extends keyof E
-                                    ? E[K] extends infer R
-                                        ? R extends undefined
-                                            ? U['value']
-                                            : R extends Parameter<any>
-                                            ? InstanceType<R>
-                                            : never
-                                        : never
-                                    : never
-                                : never
-                            : never
+                                    ? InstanceType<E[K]>
+                                    : null
+                                : null
+                            : null
                     ) => any
                 } & {
                     _?: () => any
                 }
             >(map: M): ReturnType<Exclude<M[keyof M], undefined>> {
-                const kind = this.__value.__kind
+                const kind = this.__value.__kind as T['__kind']
 
                 const fn = map[kind]
                 if (fn != null) {
-                    const type = config[kind]
-
-                    const getValue = (t: EnumType, raw: any) => {
-                        switch (t) {
-                            case String:
-                            case Number:
-                            case BigInt:
-                            case Uint8Array:
-                                return this.__value.value
-                            case null:
-                            case undefined:
-                                return null
-                            default:
-                                const c = t as Parameter<any>
-                                assert('__value' in c.prototype) // TODO: need better check
-                                return new c(raw)
-                        }
+                    if (isKeyOf(config, kind)) {
+                        assert('value' in this.__value)
+                        const type = config[kind]
+                        return fn(new type(this.__value.value) as any)
+                    } else {
+                        return fn(null as any)
                     }
-
-                    return fn(getValue(type, this.__value.value) as any)
                 } else {
                     assert(map._ != null)
                     return map._()
@@ -160,3 +136,7 @@ export const Enum =
         return Enum
     }
 export type Enum<T extends EnumRaw> = ReturnType<typeof Enum<T>>
+
+function isKeyOf<T extends {}>(obj: T, key: string | number | symbol): key is keyof T {
+    return key in obj
+}

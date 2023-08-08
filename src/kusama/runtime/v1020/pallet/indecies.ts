@@ -17,9 +17,10 @@ export const Pallet = <T extends Config, S extends PalletSetup = {}>(setup: S) =
 
         static lookup(s: InstanceType<Address<T['AccountId']>>) {
             return s.match({
-                AccountId: (v) => v,
+                AccountId: (v) => v as any,
             })
         }
+
         static unlookup(t: InstanceType<T['AccountId']>): never {
             throw new Error(`not impemented`)
         }

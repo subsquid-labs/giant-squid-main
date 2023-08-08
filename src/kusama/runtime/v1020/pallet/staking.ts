@@ -590,7 +590,7 @@ export const BondExtraCallMapper = <T extends Config>(
 export const UnbondCallMapper = <T extends Config>(
     pallet: Pallet<T, {Calls: Pick<Calls<T>, 'unbond'>}>,
     success?: boolean
-) =>
+) =>    
     class implements CallMapper {
         handle(ctx: MappingContext<StoreWithCache>, call: Call): void {
             if (success != null && call.success != success) return
@@ -691,9 +691,7 @@ export const WithdrawUnbondedCallMapper = <T extends Config>(
                 .setExtrinsic(call.extrinsic)
                 .lazy(async () => {
                     const controller = await ctx.store.getOrFail(Account, {
-                        where: {
-                            id: controllerId,
-                        },
+                        where: {id: controllerId},
                         relations: {controllerOf: {stash: true, unlocking: true}},
                     })
                     const staker = controller.controllerOf
@@ -707,7 +705,7 @@ export const WithdrawUnbondedCallMapper = <T extends Config>(
                     }
 
                     if (staker.activeBond === 0n && withdrawable.length == staker.unlocking.length) {
-                        const ledger = await new pallet.Storage.Ledger(ctx, call.block, controllerAddress).value
+                        const ledger = await new pallet.Storage.Ledger(ctx, call.block, controllerAddress as any).value
                         const stashAddress = ledger?.stash
                         const stashId = stashAddress?.format()
 

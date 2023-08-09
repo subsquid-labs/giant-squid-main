@@ -1,0 +1,130 @@
+# Native + ForeignAssets
+type Token @entity {
+  id: ID!
+  multilocation: json!
+  """
+  multilocation sha256 hash
+  """
+  xcID: ID!
+  name: String!
+  symbol: String! @index
+  decimals: Int!
+}
+
+type TokenBalance @entity {
+  id: ID!
+  account: Account!
+  token: TokenId
+  balance: BigInt!
+  status: AssetStatus!
+}
+
+type AccountFTokenBalance @entity {
+  id: ID!
+  account: Account!
+  token: FToken!
+  amount: BigInt!
+  updatedAtBlock: BigInt!
+  updatedAt: DateTime!
+}
+
+type AssetTransferAccount @entity {
+  id: ID!
+  transfer: FtTransfer
+  account: Account!
+  direction: TransferDirection
+}
+
+type AccountFTokenBalance @entity {
+  id: ID! # <account_id>-<token_id>
+  account: Account!
+  token: FToken!
+  amount: BigInt!
+  updatedAtBlock: BigInt!
+  updatedAt: DateTime!
+}
+
+enum TransferDirection {
+  From
+  To
+}
+
+type NativeTransferAccount @entity {
+  id: ID!
+  blockNumber: Int! @index
+  timestamp: DateTime! @index
+  extrinsicHash: String @index
+  from: Account!
+  to: Account!
+  amount: BigInt @index
+  token: Token!
+}
+
+enum AssetStatus {
+  ACTIVE
+  FROZEN
+  DESTROYED
+  LISTED
+}
+
+enum AssetEventType {
+  FORCE_CREATE
+  TRNASFER
+  MINT
+  BURN
+  FREEZE
+  THAWE
+  CREATE
+  DESTROY
+  METADATA_SET
+  METADATA_CLEAR
+  ATTRIBUTE_SET
+  ATTRIBUTE_CLEAR
+  TEAM_CHANGE
+  OWNER_CHANGE
+  BOUGHT
+  PRICE_SET
+  PRICE_REMOVED
+  MAX_SUPPLY_SET
+}
+
+type FtTransfer implements Transfer @entity {
+  id: ID!
+  blockNumber: BigInt! @index
+  timestamp: DateTime!
+  eventIndex: Int!
+  txnHash: String!
+  from: Account!
+  to: Account!
+  amount: BigInt @index
+  transferType: TransferType @index
+  token: FToken!
+}
+
+# Non-Fungible token transfers
+type NftTransfer implements Transfer @entity {
+  id: ID!
+  blockNumber: BigInt! @index
+  timestamp: DateTime!
+  eventIndex: Int!
+  txnHash: String!
+  from: Account!
+  to: Account!
+  operator: Account
+  amount: BigInt! @index
+  transferType: TransferType @index
+  token: NfToken!
+  isBatch: Boolean!
+}
+
+interface Transfer {
+  id: ID!
+  blockNumber: BigInt!
+  timestamp: DateTime!
+  eventIndex: Int!
+  txnHash: String!
+  from: Account!
+  to: Account!
+  amount: BigInt
+  transferType: TransferType
+}

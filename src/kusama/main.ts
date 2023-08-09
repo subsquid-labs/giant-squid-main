@@ -116,7 +116,6 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                 }
             }
         }
-        console.dir(items, {depth: 3})
     }
 
     // await queue.process(ctx)

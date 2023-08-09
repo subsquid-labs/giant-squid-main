@@ -1,8 +1,10 @@
 import {IdentityProvideJudgementCall} from '@metadata/kusama/calls'
 import {Call, ChainContext} from '../../../interfaces'
 import {
+    Calls,
     Config,
     Data,
+    Events,
     IdentityClearedEvent,
     IdentityClearedEventMapper,
     IdentityInfo,
@@ -18,8 +20,14 @@ import {
 } from '../../v1032/pallet/identity'
 
 export {
+    Calls,
+    Config,
+    Data,
+    Events,
     IdentityClearedEvent,
     IdentityClearedEventMapper,
+    IdentityInfo,
+    IdentityJudgement,
     IdentityKilledEvent,
     IdentityKilledEventMapper,
     Pallet,
@@ -28,16 +36,13 @@ export {
     SetIdentityCallMapper,
     SetSubsCall,
     SetSubsCallMapper,
-    Data,
-    IdentityInfo,
-    Config,
 }
 
 /*********
  * CALLS *
  *********/
 
-export const ProvideJudgmentCall = (pallet: Pallet) =>
+export const ProvideJudgmentCall = <T extends Config>(pallet: Pallet<T>) =>
     class {
         readonly target: InstanceType<Config['Lookup']['Source']>
         readonly judgement: IdentityJudgement
@@ -49,32 +54,36 @@ export const ProvideJudgmentCall = (pallet: Pallet) =>
         }
     }
 
-/******************
- * IMPLEMENTATION *
- ******************/
+export default () => {
+    const pallet = Pallet<
+        Config,
+        {
+            Calls: Calls<Config>
+            Events: Events<Config>
+        }
+    >()
 
-const pallet = new Pallet()
+    pallet.Calls = {
+        provide_judgment: ProvideJudgmentCall(pallet),
+        set_identity: SetIdentityCall(pallet),
+        set_subs: SetSubsCall(pallet),
+    }
 
-pallet.Calls = {
-    provide_judgment: ProvideJudgmentCall(pallet),
-    set_identity: SetIdentityCall(pallet),
-    set_subs: SetSubsCall(pallet),
+    pallet.Events = {
+        IdentityCleared: IdentityClearedEvent(pallet),
+        IdentityKilled: IdentityKilledEvent(pallet),
+    }
+
+    pallet.CallMappers = {
+        set_subs: SetSubsCallMapper(pallet, true),
+        provide_judgment: ProvideJudgmentCallMapper(pallet, true),
+        set_identity: SetIdentityCallMapper(pallet, true),
+    }
+
+    pallet.EventMappers = {
+        IdentityClear: IdentityClearedEventMapper(pallet),
+        IdentityKill: IdentityKilledEventMapper(pallet),
+    }
+
+    return pallet
 }
-
-pallet.Events = {
-    IdentityCleared: IdentityClearedEvent(pallet),
-    IdentityKilled: IdentityKilledEvent(pallet),
-}
-
-pallet.CallMappers = {
-    set_subs: SetSubsCallMapper(pallet, true),
-    provide_judgment: ProvideJudgmentCallMapper(pallet, true),
-    set_identity: SetIdentityCallMapper(pallet, true),
-}
-
-pallet.EventMappers = {
-    IdentityClear: IdentityClearedEventMapper(pallet),
-    IdentityKill: IdentityKilledEventMapper(pallet),
-}
-
-export default pallet

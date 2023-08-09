@@ -69,7 +69,7 @@ export const Pallet = <T extends Config, S extends PalletSetup>() => {
 
     return Pallet
 }
-export type Pallet<T extends Config, S extends PalletSetup> = ReturnType<typeof Pallet<T, S>>
+export type Pallet<T extends Config, S extends PalletSetup = {}> = ReturnType<typeof Pallet<T, S>>
 
 export const TransferEvent = <T extends Config>(pallet: Pallet<T, {Events: Pick<Events<T>, 'Transfer'>}>) =>
     class TransferEvent {

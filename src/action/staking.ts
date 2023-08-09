@@ -40,7 +40,7 @@ export class RewardAction extends Action<RewardData> {
         const reward = new StakingReward({
             id: this.data.id,
             blockNumber: this.block.height,
-            timestamp: new Date(this.block.timestamp),
+            timestamp: new Date(this.block.timestamp ?? 0),
             extrinsicHash: this.extrinsic?.hash,
             account,
             staker,
@@ -71,7 +71,7 @@ export class SlashAction extends Action<SlashData> {
         const slash = new StakingSlash({
             id: this.data.id,
             blockNumber: this.block.height,
-            timestamp: new Date(this.block.timestamp),
+            timestamp: new Date(this.block.timestamp ?? 0),
             extrinsicHash: this.extrinsic?.hash,
             account,
             staker,
@@ -100,7 +100,7 @@ export class BondAction extends Action<BondData> {
         const bond = new StakingBond({
             id: this.data.id,
             blockNumber: this.block.height,
-            timestamp: new Date(this.block.timestamp),
+            timestamp: new Date(this.block.timestamp ?? 0),
             extrinsicHash: this.extrinsic?.hash,
             staker,
             account,
@@ -125,7 +125,7 @@ export class NewEraAction extends Action<NewEraData> {
             id: this.data.id,
             index: this.data.index,
             startedAt: this.block.height,
-            timestamp: new Date(this.block.timestamp),
+            timestamp: new Date(this.block.timestamp ?? 0),
             nominatorsCount: 0,
             validatorsCount: 0,
             total: 0n,
@@ -425,7 +425,7 @@ export class CreateUnlockChunkAction extends Action<CreateUnlockChunkData> {
         const chunk = new StakingUnlockChunk({
             id: this.data.id,
             blockNumber: this.block.height,
-            timestamp: new Date(this.block.timestamp),
+            timestamp: new Date(this.block.timestamp ?? 0),
             staker,
             amount: this.data.amount,
             lockedUntilEra: this.data.lockedUntilEra,

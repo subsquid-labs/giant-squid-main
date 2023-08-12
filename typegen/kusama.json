@@ -46,18 +46,7 @@
         "Staking.validate",
         "Staking.withdraw_unbonded"
     ],
-    "storage": [
-        "Session.Validators",
-        "Staking.ActiveEra",
-        "Staking.CurrentElected",
-        "Staking.CurrentEra",
-        "Staking.CurrentEraStartSessionIndex",
-        "Staking.ErasStakers",
-        "Staking.ForceEra",
-        "Staking.Stakers",
-        "Staking.CurrentEraPointsEarned",
-        "Staking.Ledger"
-    ],
+    "storage": true,
     "constants": [
         "Staking.BondingDuration",
         "Staking.SessionsPerEra"

@@ -28,6 +28,7 @@ const Actions = {
     staking_updateUnlockChunk: Staking.UpdateUnlockChunkAction,
     staking_withdrawUnlockChunk: Staking.WithdrawUnlockChunkAction,
     staking_newEra: Staking.NewEraAction,
+    staking_startEra: Staking.StartEraAction,
     staking_endEra: Staking.EndEraAction,
     staking_endSetEraReward: Staking.EndEraAction,
     staking_newEraValidator: Staking.NewEraValidatorAction,

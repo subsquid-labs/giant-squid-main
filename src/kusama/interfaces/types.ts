@@ -41,6 +41,12 @@ export interface Serialize {
     }
 }
 
+export interface From {
+    new (...args: any[]): {}
+
+    from(value: any): InstanceType<this>
+}
+
 export interface Lookup<Target extends Constructor<any>, Source extends Constructor<any>> {
     readonly Source: Source
     readonly Target: Target

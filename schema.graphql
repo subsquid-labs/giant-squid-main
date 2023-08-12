@@ -180,9 +180,9 @@ enum StakingEraStatus {
 type StakingEra @entity {
     id: ID!
     index: Int!
-    timestamp: DateTime!
     status: StakingEraStatus!
-    startedAt: Int!
+    createdAt: Int!
+    startedAt: Int
     endedAt: Int
     total: BigInt!
     validatorsCount: Int!

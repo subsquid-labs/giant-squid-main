@@ -12,7 +12,10 @@ export class StakingBondingDurationConstant {
      *  Number of eras that staked funds must remain bonded for.
      */
     get isV1020() {
-        return this.runtime.getConstantTypeHash('Staking', 'BondingDuration') === 'b76f37d33f64f2d9b3234e29034ab4a73ee9da01a61ab139c27f8c841971e469'
+        return (
+            this.runtime.getConstantTypeHash('Staking', 'BondingDuration') ===
+            'b76f37d33f64f2d9b3234e29034ab4a73ee9da01a61ab139c27f8c841971e469'
+        )
     }
 
     /**
@@ -42,7 +45,10 @@ export class StakingSessionsPerEraConstant {
      *  Number of sessions per era.
      */
     get isV1020() {
-        return this.runtime.getConstantTypeHash('Staking', 'SessionsPerEra') === 'b76f37d33f64f2d9b3234e29034ab4a73ee9da01a61ab139c27f8c841971e469'
+        return (
+            this.runtime.getConstantTypeHash('Staking', 'SessionsPerEra') ===
+            'b76f37d33f64f2d9b3234e29034ab4a73ee9da01a61ab139c27f8c841971e469'
+        )
     }
 
     /**

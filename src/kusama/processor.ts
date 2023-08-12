@@ -12,7 +12,7 @@ import {
 export const processor = new SubstrateBatchProcessor()
     .setDataSource({
         archive: 'https://substrate.archive.subsquid.io/network/kusama',
-        chain: 'wss://kusama.api.onfinality.io/public-ws',
+        chain: 'wss://kusama-rpc.polkadot.io',
     })
     .setFields({
         block: {
@@ -69,15 +69,12 @@ export const processor = new SubstrateBatchProcessor()
             'Staking.validate',
             'Staking.nominate',
             'Staking.chill',
-            // 'Staking.force_no_eras',
-            // 'Staking.force_new_era',
-            // 'Staking.force_new_era_always',
         ],
         extrinsic: true,
     })
     .setBlockRange({
         from: 0,
-        // to: 277_710,
+        to: 1775826,
     })
 
 export type Fields = SubstrateBatchProcessorFields<typeof processor>

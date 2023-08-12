@@ -1,27 +1,25 @@
-export type Result<T, E> =
-    | {
-          __kind: 'Ok'
-          value: T
-      }
-    | {
-          __kind: 'Err'
-          value: E
-      }
+export type Result<T, E> = {
+    __kind: 'Ok'
+    value: T
+} | {
+    __kind: 'Err'
+    value: E
+}
 
-export type Option<T> =
-    | {
-          __kind: 'Some'
-          value: T
-      }
-    | {
-          __kind: 'None'
-      }
+
+export type Option<T> = {
+    __kind: 'Some',
+    value: T
+} | {
+    __kind: 'None'
+}
+
 
 export interface Runtime {
     getCallTypeHash(name: string): string
-    decodeJsonCall(call: {name: string; args: any}): any
+    decodeJsonCall(call: {name: string, args: any}): any
     getEventTypeHash(name: string): string
-    decodeJsonEvent(event: {name: string; args: any}): any
+    decodeJsonEvent(event: {name: string, args: any}): any
     getConstantTypeHash(pallet: string, name: string): string | undefined
     getConstant(pallet: string, name: string): any
     getStorageItemTypeHash(prefix: string, name: string): string | undefined
@@ -29,29 +27,15 @@ export interface Runtime {
     queryStorage(rpc: RpcClient, blockHash: string, prefix: string, name: string, keyList?: any[]): Promise<any[]>
     getKeys(rpc: RpcClient, blockHash: string, prefix: string, name: string, ...args: any[]): Promise<any[]>
     getPairs(rpc: RpcClient, blockHash: string, prefix: string, name: string, ...args: any[]): Promise<any[]>
-    getKeysPaged(
-        rpc: RpcClient,
-        pageSize: number,
-        blockHash: string,
-        prefix: string,
-        name: string,
-        ...args: any[]
-    ): AsyncIterable<any[]>
-    getPairsPaged(
-        rpc: RpcClient,
-        pageSize: number,
-        blockHash: string,
-        prefix: string,
-        name: string,
-        ...args: any[]
-    ): AsyncIterable<[key: any, value: any][]>
+    getKeysPaged(rpc: RpcClient, pageSize: number, blockHash: string, prefix: string, name: string, ...args: any[]): AsyncIterable<any[]>
+    getPairsPaged(rpc: RpcClient, pageSize: number, blockHash: string, prefix: string, name: string, ...args: any[]): AsyncIterable<[key: any, value: any][]>
 }
 
-export type RuntimeCtx =
-    | Runtime
-    | {
-          _runtime: Runtime
-      }
+
+export type RuntimeCtx = Runtime | {
+    _runtime: Runtime
+}
+
 
 export function getRuntime(ctx: RuntimeCtx): Runtime {
     if ('_runtime' in ctx) {
@@ -61,18 +45,22 @@ export function getRuntime(ctx: RuntimeCtx): Runtime {
     }
 }
 
+
 interface RpcClient {
     call(method: string, params?: any[]): Promise<any>
-    batchCall(calls: {method: string; params?: any[]}[]): Promise<any[]>
+    batchCall(calls: {method: string, params?: any[]}[]): Promise<any[]>
 }
+
 
 export interface ChainContext {
     _chain: Chain
 }
 
+
 export interface Chain {
     rpc: RpcClient
 }
+
 
 export interface Event {
     name: string
@@ -82,6 +70,7 @@ export interface Event {
     }
 }
 
+
 export interface Call {
     name: string
     args: any
@@ -90,15 +79,18 @@ export interface Call {
     }
 }
 
+
 export interface BlockContext extends ChainContext {
     block: Block
 }
+
 
 export interface Block {
     hash: string
     height: number
     _runtime: Runtime
 }
+
 
 export class StorageBase {
     protected readonly _chain: Chain
@@ -150,14 +142,7 @@ export class StorageBase {
     }
 
     protected getKeysPaged(pageSize: number, ...args: any[]): AsyncIterable<any[]> {
-        return this.runtime.getKeysPaged(
-            this._chain.rpc,
-            pageSize,
-            this.blockHash,
-            this.getPrefix(),
-            this.getName(),
-            ...args
-        )
+        return this.runtime.getKeysPaged(this._chain.rpc, pageSize, this.blockHash, this.getPrefix(), this.getName(), ...args)
     }
 
     protected getPairs(...args: any[]): Promise<[k: any, v: any][]> {
@@ -165,13 +150,6 @@ export class StorageBase {
     }
 
     protected getPairsPaged(pageSize: number, ...args: any[]): AsyncIterable<[k: any, v: any][]> {
-        return this.runtime.getPairsPaged(
-            this._chain.rpc,
-            pageSize,
-            this.blockHash,
-            this.getPrefix(),
-            this.getName(),
-            ...args
-        )
+        return this.runtime.getPairsPaged(this._chain.rpc, pageSize, this.blockHash, this.getPrefix(), this.getName(), ...args)
     }
 }

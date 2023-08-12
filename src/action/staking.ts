@@ -124,15 +124,29 @@ export class NewEraAction extends Action<NewEraData> {
         const era = new StakingEra({
             id: this.data.id,
             index: this.data.index,
-            startedAt: this.block.height,
-            timestamp: new Date(this.block.timestamp ?? 0),
+            status: StakingEraStatus.Planned,
+            createdAt: this.block.height,
             nominatorsCount: 0,
             validatorsCount: 0,
             total: 0n,
-            status: StakingEraStatus.Active,
         })
 
         await ctx.store.insert(era)
+    }
+}
+
+export interface StartEraData {
+    eraId: string
+}
+
+export class StartEraAction extends Action<StartEraData> {
+    async perform(ctx: ActionContext): Promise<void> {
+        const era = await ctx.store.getOrFail(StakingEra, this.data.eraId)
+
+        era.status = StakingEraStatus.Active
+        era.startedAt = this.block.height
+
+        await ctx.store.upsert(era)
     }
 }
 

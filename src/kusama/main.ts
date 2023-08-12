@@ -2,6 +2,7 @@ import {StoreWithCache} from '@belopash/squid-tools'
 import {TypeormDatabase} from '@subsquid/typeorm-store'
 import {Block, BlockHeader, Call, Event, Extrinsic, processor} from './processor'
 import assert from 'assert'
+import {ActionQueue} from '@gs/action'
 
 export function getRuntime(block: BlockHeader) {
     const version = block.specVersion
@@ -16,10 +17,10 @@ export function getRuntime(block: BlockHeader) {
         case 1027:
         case 1028:
         case 1029:
-            return require('./runtime/v1020').runtime
+            return require('./v1020').runtime
         case 1030:
         case 1031:
-            return require('./runtime/v1030').runtime
+            return require('./v1030').runtime
         case 1032:
         case 1033:
         case 1038:
@@ -27,63 +28,65 @@ export function getRuntime(block: BlockHeader) {
         case 1040:
         case 1042:
         case 1045:
+            return require('./v1032').runtime
+        case 1050:
+            return require('./v1050').runtime
+        case 1051:
+            return require('./v1051').runtime
+        case 1052:
+        case 1053:
+        case 1054:
+        case 1055:
+        case 1058:
+            return require('./v1058').runtime
+        case 1062:
+        case 2005:
+        case 2007:
+        case 2008:
+        case 2011:
+        case 2012:
+        case 2013:
+        // case '2015':
+        // case '2019':
+        // case '2022':
+        // case '2023':
+        // case '2024':
+        // case '2025':
+        // case '2026':
+        // case '2027':
+        //     return require('./v2015').runtime
+        // case '2028':
+        // case '2029':
+        // case '2030':
+        // case '9010':
+        // case '9030':
+        // case '9040':
+        //     return require('./v2028').runtime
+        // case '9050':
+        // case '9070':
+        // case '9080':
+        // case '9090':
+        // case '9100':
+        //     return require('./v9050').runtime
+        // case '9111':
+        // case '9122':
+        //     return require('./v9111').runtime
+        // case '9130':
+        //     return require('./v9130').runtime
+        // case '9300':
+        //     return require('./v9300').runtime
+        // case '9430':
+        //     return require('./v9430').runtime
         default:
-            return require('./runtime/v1032').runtime
-            // case '1050':
-            // case '1051':
-            // case '1052':
-            // case '1053':
-            // case '1054':
-            // case '1055':
-            // case '1058':
-            // case '1062':
-            // case '2005':
-            // case '2007':
-            // case '2008':
-            // case '2011':
-            // case '2012':
-            // case '2013':
-            //     return require('./runtime/v1050').runtime
-            // case '2015':
-            // case '2019':
-            // case '2022':
-            // case '2023':
-            // case '2024':
-            // case '2025':
-            // case '2026':
-            // case '2027':
-            //     return require('./runtime/v2015').runtime
-            // case '2028':
-            // case '2029':
-            // case '2030':
-            // case '9010':
-            // case '9030':
-            // case '9040':
-            //     return require('./runtime/v2028').runtime
-            // case '9050':
-            // case '9070':
-            // case '9080':
-            // case '9090':
-            // case '9100':
-            //     return require('./runtime/v9050').runtime
-            // case '9111':
-            // case '9122':
-            //     return require('./runtime/v9111').runtime
-            // case '9130':
-            //     return require('./runtime/v9130').runtime
-            // case '9300':
-            //     return require('./runtime/v9300').runtime
-            // case '9430':
-            //     return require('./runtime/v9430').runtime
             throw new Error(`Unknown runtime version: ${version}`)
     }
 }
 
 processor.run(new TypeormDatabase(), async (_ctx) => {
     const store = StoreWithCache.create(_ctx.store)
-    // const queue = new ActionQueue()
+    const queue = new ActionQueue()
 
-    const ctx = {..._ctx, store}
+    const ctx = {..._ctx, store, queue}
     for (let block of ctx.blocks) {
         const runtime = getRuntime(block.header)
 
@@ -95,9 +98,11 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                     const pallet = runtime[palletName]
                     if (pallet == null) continue
 
+                    // ctx.log.info(`recived event ${palletName}.${itemName}`)
                     const mapper = pallet.EventMappers[itemName]
                     if (mapper == null) continue
 
+                    // ctx.log.info(`processing event ${palletName}.${itemName}`)
                     new mapper().handle(ctx, value)
 
                     break
@@ -107,9 +112,11 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
                     const pallet = runtime[palletName]
                     if (pallet == null) continue
 
+                    // ctx.log.info(`recived call ${palletName}.${itemName}`)
                     const mapper = pallet.CallMappers[itemName]
                     if (mapper == null) continue
 
+                    // ctx.log.info(`processing call ${palletName}.${itemName}`)
                     new mapper().handle(ctx, value)
 
                     break
@@ -118,7 +125,7 @@ processor.run(new TypeormDatabase(), async (_ctx) => {
         }
     }
 
-    // await queue.process(ctx)
+    await queue.process(ctx)
     await ctx.store.flush()
 })
 

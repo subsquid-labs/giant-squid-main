@@ -45,7 +45,7 @@ export interface PalletSetup {
     Constants?: Record<string, ConstantType<any>>
 }
 
-// export interface PalletBase<T, S extends PalletSetup> {
+// export interface Pallet<T, S extends PalletSetup> {
 //     Config: T
 //     Events?: S['Events']
 //     Calls?: S['Calls']
@@ -55,8 +55,8 @@ export interface PalletSetup {
 //     EventMappers: Record<string, new () => EventMapper>
 //     CallMappers: Record<string, new () => CallMapper>
 // }
-export const PalletBase = <T, S extends PalletSetup>() => {
-    abstract class PalletBase {
+export const Pallet = <T, S extends PalletSetup = {}>() => {
+    abstract class Pallet {
         static Config: T
 
         static Events: S['Events']
@@ -64,8 +64,8 @@ export const PalletBase = <T, S extends PalletSetup>() => {
         static Storage: S['Storage']
         static Constants: S['Constants']
 
-        static EventMappers: Record<string, new () => EventMapper>
-        static CallMappers: Record<string, new () => CallMapper>
+        static EventMappers: Record<string, new () => EventMapper> = {}
+        static CallMappers: Record<string, new () => CallMapper> = {}
 
         // constructor(setup: T) {
         //     this.Config = setup.Config
@@ -88,20 +88,20 @@ export const PalletBase = <T, S extends PalletSetup>() => {
         // }
     }
 
-    return PalletBase
+    return Pallet
 }
-export type PalletBase<T, S extends PalletSetup> = ReturnType<typeof PalletBase<T, S>>
+export type Pallet<T, S extends PalletSetup = {}> = ReturnType<typeof Pallet<T, S>>
 
 export const Runtime = <
     T extends {
-        readonly [k: string]: PalletBase<any, any>
+        readonly [k: string]: Pallet<any, any>
     }
 >(
     config: T
 ) => config
 export type Runtime<
     T extends {
-        readonly [k: string]: PalletBase<any, any>
+        readonly [k: string]: Pallet<any, any>
     }
 > = ReturnType<typeof Runtime<T>>
 

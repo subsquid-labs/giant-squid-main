@@ -1,1 +1,1 @@
-export * from '../../v1020/primitive'
+export * from '@gs/primitive'

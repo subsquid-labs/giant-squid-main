@@ -1,40 +1,9 @@
+import Default, {Config, IdentityJudgement} from '@gs/pallets/identity/v2'
 import {IdentityProvideJudgementCall} from '@metadata/kusama/calls'
-import {Call, ChainContext, Pallet} from '../../interfaces'
-import {
-    Calls,
-    Config,
-    Data,
-    Events,
-    IdentityClearedEvent,
-    IdentityClearedEventMapper,
-    IdentityInfo,
-    IdentityJudgement,
-    IdentityKilledEvent,
-    IdentityKilledEventMapper,
-    ProvideJudgmentCallMapper,
-    SetIdentityCall,
-    SetIdentityCallMapper,
-    SetSubsCall,
-    SetSubsCallMapper,
-} from '../../v1032/pallet/identity'
+import {Call, Pallet} from '../../../interfaces'
+import {IdentityClearedEvent, IdentityKilledEvent, SetIdentityCall, SetSubsCall} from '../../v1032/pallet/identity'
 
-export {
-    Calls,
-    Config,
-    Data,
-    Events,
-    IdentityClearedEvent,
-    IdentityClearedEventMapper,
-    IdentityInfo,
-    IdentityJudgement,
-    IdentityKilledEvent,
-    IdentityKilledEventMapper,
-    ProvideJudgmentCallMapper,
-    SetIdentityCall,
-    SetIdentityCallMapper,
-    SetSubsCall,
-    SetSubsCallMapper,
-}
+export {IdentityClearedEvent, IdentityKilledEvent, SetIdentityCall, SetSubsCall}
 
 /*********
  * CALLS *
@@ -53,13 +22,7 @@ export const ProvideJudgmentCall = <T extends Config>(P: Pallet<T>) =>
     }
 
 export default () => {
-    class P extends Pallet<
-        Config,
-        {
-            Calls: Calls<Config>
-            Events: Events<Config>
-        }
-    >() {}
+    class P extends Default() {}
 
     P.Calls = {
         provide_judgment: ProvideJudgmentCall(P),
@@ -70,17 +33,6 @@ export default () => {
     P.Events = {
         IdentityCleared: IdentityClearedEvent(P),
         IdentityKilled: IdentityKilledEvent(P),
-    }
-
-    P.CallMappers = {
-        set_subs: SetSubsCallMapper(P, true),
-        provide_judgment: ProvideJudgmentCallMapper(P, true),
-        set_identity: SetIdentityCallMapper(P, true),
-    }
-
-    P.EventMappers = {
-        IdentityClear: IdentityClearedEventMapper(P),
-        IdentityKill: IdentityKilledEventMapper(P),
     }
 
     return P

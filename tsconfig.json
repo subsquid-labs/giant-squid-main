@@ -21,6 +21,15 @@
       "@gs/util/*": [
         "./src/utils/*",
       ],
+      "@gs/interfaces": [
+        "./src/interfaces",
+      ],
+      "@gs/pallets/*": [
+        "./src/pallets/*",
+      ],
+      "@gs/primitive": [
+        "./src/primitive",
+      ],
       "@metadata/*": [
         "./src/metadata/*"
       ]

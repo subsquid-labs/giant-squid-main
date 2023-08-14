@@ -32,11 +32,11 @@ export function getRuntime(block: BlockHeader) {
         case 1050:
             return require('./v1050').runtime
         case 1051:
-            return require('./v1051').runtime
         case 1052:
         case 1053:
         case 1054:
         case 1055:
+            return require('./v1051').runtime
         case 1058:
             return require('./v1058').runtime
         case 1062:
@@ -139,6 +139,8 @@ type Item =
           value: Event
       }
 
+const CALL_FIRST = 1
+
 function orderItems(block: Block): Item[] {
     const items: Item[] = []
 
@@ -163,12 +165,12 @@ function orderItems(block: Block): Item[] {
                     case 'call':
                         return compareCalls(a.value, b.value)
                     case 'event':
-                        return compareCallEvent(a.value, b.value)
+                        return compareCallEvent(a.value, b.value, CALL_FIRST)
                 }
             case 'event':
                 switch (b.kind) {
                     case 'call':
-                        return compareCallEvent(b.value, a.value) * -1
+                        return compareCallEvent(b.value, a.value, CALL_FIRST) * -1
                     case 'event':
                         return compareEvents(a.value, b.value)
                 }
@@ -190,18 +192,17 @@ function compareCalls(a: {extrinsicIndex: number; address: number[]}, b: {extrin
     )
 }
 
-const CALL_FIRST = 1
-
 function compareCallEvent(
     a: {extrinsicIndex: number; address: number[]},
-    b: {extrinsicIndex?: number; callAddress?: number[]}
+    b: {extrinsicIndex?: number; callAddress?: number[]},
+    callFirst: number
 ) {
     return b.extrinsicIndex == null || b.callAddress == null
         ? 1
         : a.extrinsicIndex - b.extrinsicIndex ||
               a.address.length - b.callAddress.length ||
               (a.address.length == 0 ? 0 : last(a.address) - last(b.callAddress)) ||
-              CALL_FIRST
+              callFirst
 }
 
 function last<T>(arr: T[]): T {

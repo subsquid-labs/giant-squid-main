@@ -1,26 +1,8 @@
-import {StoreWithCache} from '@belopash/squid-tools'
 import {SessionNewSessionEvent} from '@metadata/kusama/events'
-import {BlockHeader, Event, MappingContext, Pallet} from '../../interfaces'
-import {EventType} from '../../interfaces/types'
+import {Event, Pallet} from '../../../interfaces'
+import Default from '@gs/pallets/session/v1'
 
-export interface OnSessionEnding {
-    onSessionEnding(
-        ctx: MappingContext<StoreWithCache>,
-        block: BlockHeader,
-        endingIndex: number,
-        willApplyAt: number
-    ): void
-}
-
-export type Config = {
-    OnSessionEnding: OnSessionEnding
-}
-
-export type Events<T extends Config> = {
-    NewSession: EventType<{sessionIndex: number}>
-}
-
-export const NewSessionEvent = <T extends Config>(P: Pallet<T>) =>
+export const NewSessionEvent = (P: Pallet<{}>) =>
     class NewSessionEvent {
         readonly sessionIndex: number
 
@@ -30,28 +12,11 @@ export const NewSessionEvent = <T extends Config>(P: Pallet<T>) =>
         }
     }
 
-export const NewSessionEventMapper = <T extends Config>(P: Pallet<T, {Events: Pick<Events<T>, 'NewSession'>}>) =>
-    class Mapper {
-        handle(ctx: MappingContext<StoreWithCache>, event: Event): void {
-            const data = new P.Events.NewSession(event)
-            P.Config.OnSessionEnding.onSessionEnding(
-                ctx,
-                event.block,
-                data.sessionIndex - 1,
-                data.sessionIndex + 1
-            )
-        }
-    }
-
 export default () => {
-    class P extends Pallet<Config, {Events: Events<Config>}>() {}
+    class P extends Default() {}
 
     P.Events = {
         NewSession: NewSessionEvent(P),
-    }
-
-    P.EventMappers = {
-        NewSession: NewSessionEventMapper(P),
     }
 
     return P

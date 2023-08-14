@@ -1,4 +1,4 @@
-import {Runtime} from '../interfaces'
+import {Runtime} from '../../interfaces'
 import pallet_balances from './pallet/balances'
 import pallet_indecies from './pallet/indecies'
 import pallet_session from './pallet/session'

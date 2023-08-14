@@ -1,6 +1,6 @@
 import {StoreWithCache} from '@belopash/squid-tools'
 import {ActionQueue} from '@gs/action'
-import {Call, Event, Block, Extrinsic, BlockHeader} from '../processor'
+import {Call, Event, Block, Extrinsic, BlockHeader} from '../kusama/processor'
 import {CallType, ConstantType, EventType, StorageType} from './types'
 import {DataHandlerContext} from '@subsquid/substrate-processor'
 
@@ -55,7 +55,7 @@ export interface PalletSetup {
 //     EventMappers: Record<string, new () => EventMapper>
 //     CallMappers: Record<string, new () => CallMapper>
 // }
-export const Pallet = <T, S extends PalletSetup = {}>() => {
+export const Pallet = <T = {}, S extends PalletSetup = {}>() => {
     abstract class Pallet {
         static Config: T
 

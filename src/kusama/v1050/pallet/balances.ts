@@ -1,14 +1,8 @@
 import {BalancesTransferEvent} from '@metadata/kusama/events'
-import {Event, Pallet} from '../../interfaces'
-import {Config, Events, transfer, TransferEventMapper} from '../../v1032/pallet/balances'
+import {Event, Pallet} from '../../../interfaces'
+import Default, {Config} from '@gs/pallets/balances/v1'
 
-export {Pallet, TransferEventMapper, Config, transfer}
-
-/**********
- * EVENTS *
- **********/
-
-export const TransferEvent = <T extends Config>(P: Pallet<T, {Events: Pick<Events<T>, 'Transfer'>}>) =>
+export const TransferEvent = <T extends Config>(P: Pallet<T>) =>
     class TransferEvent {
         readonly from: InstanceType<T['AccountId']>
         readonly to: InstanceType<T['AccountId']>
@@ -24,14 +18,10 @@ export const TransferEvent = <T extends Config>(P: Pallet<T, {Events: Pick<Event
     }
 
 export default () => {
-    class P extends Pallet<Config, {Events: Events<Config>}>() {}
+    class P extends Default() {}
 
     P.Events = {
         Transfer: TransferEvent(P),
-    }
-
-    P.EventMappers = {
-        Transfer: TransferEventMapper(P),
     }
 
     return P

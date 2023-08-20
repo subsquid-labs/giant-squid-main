@@ -1,6 +1,5 @@
-import {Display, Enum, From, Lookup, Parameter, Serialize} from '@gs/interfaces'
-import {implements_} from '@gs/util/decorator'
-import * as metadata from '@metadata/kusama/v1020'
+import {Display, Enum, From, Lookup, Parameter, Serialize, StaticLookup} from '~interfaces'
+import {implements_} from '~util/decorator'
 import * as ss58 from '@subsquid/ss58'
 import {decodeHex, toHex} from '@subsquid/substrate-processor'
 import assert from 'assert'
@@ -9,7 +8,7 @@ import {Constructor} from 'type-fest'
 export function AccountId32(prefix: number) {
     @implements_<Parameter<Uint8Array> & Display & Serialize & From>()
     class AccountId32 {
-        prefix = prefix
+        readonly prefix = prefix
 
         constructor(readonly __value: Uint8Array) {}
 
@@ -39,12 +38,29 @@ export function AccountId32(prefix: number) {
 }
 export type AccountId32 = ReturnType<typeof AccountId32>
 
-export const Address = <AccountId extends Parameter<any>>(AccountId: AccountId) =>
-    class Address extends Enum<metadata.LookupSource>()({
+export type AddressRaw =
+    | {
+          __kind: `Idx${number}`
+      }
+    | {
+          __kind: 'IdxU32'
+          value: number
+      }
+    | {
+          __kind: 'IdxU64'
+          value: bigint
+      }
+    | {
+          __kind: 'AccountId'
+          value: Uint8Array
+      }
+
+export const Address = <AccountId extends Parameter>(AccountId: AccountId) =>
+    class Address extends Enum<AddressRaw>()({
         AccountId: AccountId,
     }) {}
 
-export type Address<AccountId extends Parameter<any>> = ReturnType<typeof Address<AccountId>>
+export type Address<AccountId extends Parameter> = ReturnType<typeof Address<AccountId>>
 
 export const IdentityLookup = <AccountId extends Constructor<any>>(AccountId: AccountId) => {
     @implements_<Lookup<AccountId, AccountId>>()
@@ -60,3 +76,69 @@ export const IdentityLookup = <AccountId extends Constructor<any>>(AccountId: Ac
     return IdentityLookup
 }
 export type IdentityLookup<AccountId extends Constructor<any>> = ReturnType<typeof IdentityLookup<AccountId>>
+
+@implements_<Parameter<Uint8Array> & Serialize>()
+export class Raw {
+    constructor(readonly __value: Uint8Array) {}
+
+    serialize() {
+        return Buffer.from(this.__value)
+            .toString('utf-8')
+            .replace(/\u0000/g, '')
+    }
+}
+
+export type MultiAddressRaw =
+    | {
+          __kind: 'Id'
+          value: Uint8Array
+      }
+    | {
+          __kind: 'Index'
+          value: number
+      }
+    | {
+          __kind: 'Raw'
+          value: Uint8Array
+      }
+    | {
+          __kind: 'Address32'
+          value: Uint8Array
+      }
+    | {
+          __kind: 'Address20'
+          value: Uint8Array
+      }
+export const MultiAddress = <AccountId extends Parameter>(AccountId: AccountId) => {
+    class MultiAddress extends Enum<MultiAddressRaw>()({
+        Raw,
+        Id: AccountId,
+    }) {}
+
+    return MultiAddress
+}
+export type MultiAddress<AccountId extends Parameter> = ReturnType<typeof MultiAddress<AccountId>>
+
+export const AccountIdLookup = <AccountId extends Parameter>(AccountId: AccountId) => {
+    @implements_<StaticLookup<AccountId, MultiAddress<AccountId>>>()
+    class AccountIdLookup {
+        static Source = MultiAddress(AccountId)
+        static Target = AccountId
+
+        static lookup(s: InstanceType<MultiAddress<AccountId>>): InstanceType<AccountId> {
+            return s.match({
+                Id: (v) => v as any,
+                _: () => {
+                    throw new Error()
+                },
+            })
+        }
+
+        static unlookup(): never {
+            throw new Error()
+        }
+    }
+
+    return AccountIdLookup
+}
+export type AccountIdLookup<AccountId extends Parameter> = ReturnType<typeof AccountIdLookup<AccountId>>

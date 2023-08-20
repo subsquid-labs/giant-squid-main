@@ -11,7 +11,7 @@ import {
 
 export const processor = new SubstrateBatchProcessor()
     .setDataSource({
-        archive: 'https://substrate.archive.subsquid.io/network/kusama',
+        archive: 'https://v2.archive.subsquid.io/network/kusama',
         chain: 'wss://kusama-rpc.polkadot.io',
     })
     .setFields({
@@ -48,6 +48,7 @@ export const processor = new SubstrateBatchProcessor()
             'Identity.IdentitySubRevoked',
         ],
         call: true,
+        extrinsic: true,
     })
     .addCall({
         name: [
@@ -73,7 +74,7 @@ export const processor = new SubstrateBatchProcessor()
         extrinsic: true,
     })
     .setBlockRange({
-        from: 0,
+        from: 1038250,
         // to: 1775826,
     })
 

@@ -1,7 +1,7 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {Call, Event, EventMapper, EventType, MappingContext, Pallet} from '@gs/interfaces'
-import {Account} from '@gs/model'
-import type * as pallet_system from '@gs/pallets/system/v1'
+import {Call, Event, EventMapper, EventType, MappingContext, Pallet} from '~interfaces'
+import {Account} from '~model'
+import type * as pallet_system from '~pallets/system/v1'
 
 export interface Config extends pallet_system.Config {}
 
@@ -82,8 +82,10 @@ export const TransferEventMapper = <T extends Config>(P: Pallet<T, {Events: {Tra
         }
     }
 
-export const Default = <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>() => {
-    class P extends Pallet<T, S>() {}
+export const Default = <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(
+    setup: (config: T) => S
+) => {
+    class P extends Pallet<T, S>(setup) {}
 
     P.EventMappers = {
         Transfer: TransferEventMapper(P),

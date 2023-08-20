@@ -1,7 +1,6 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {Account, Identity, IdentitySub, Judgement} from '@gs/model'
-import {getOriginAccountId} from '@gs/util/misc'
-import * as metadata from '@metadata/kusama/v1030'
+import {Account, Identity, IdentitySub, Judgement} from '~model'
+import {getOriginAccountId} from '~util/misc'
 import {toHex} from '@subsquid/substrate-processor'
 import {
     Call,
@@ -15,25 +14,15 @@ import {
     Pallet,
     Parameter,
     Serialize,
-} from '@gs/interfaces'
-import * as pallet_system from '@gs/pallets/system/v1'
-import {implements_} from '@gs/util/decorator'
-import {Spread, ValueOf} from 'type-fest'
+} from '~interfaces'
+import * as pallet_system from '~pallets/system/v1'
+import {implements_} from '~util/decorator'
+import {ValueOf} from 'type-fest'
+import {Raw} from '~primitive'
 
 /*********
  * TYPES *
  *********/
-
-@implements_<Parameter<Uint8Array> & Serialize>()
-export class Raw {
-    constructor(readonly __value: Uint8Array) {}
-
-    serialize() {
-        return Buffer.from(this.__value)
-            .toString('utf-8')
-            .replace(/\u0000/g, '')
-    }
-}
 
 @implements_<Parameter<Uint8Array> & Serialize>()
 export class Hash {
@@ -535,8 +524,8 @@ export const IdentityKilledEventMapper = <T extends Config>(
         }
     }
 
-export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>() => {
-    class P extends Pallet<T, S>() {}
+export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(setup: (Config: T) => S) => {
+    class P extends Pallet<T, S>(setup) {}
 
     P.CallMappers = {
         set_subs: SetSubsCallMapper(P, true),

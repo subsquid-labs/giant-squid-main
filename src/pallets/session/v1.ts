@@ -1,5 +1,5 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {BlockHeader, Event, EventType, MappingContext, Pallet} from '@gs/interfaces'
+import {BlockHeader, Event, EventType, MappingContext, Pallet} from '~interfaces'
 
 export interface OnSessionEnding {
     onSessionEnding(
@@ -30,8 +30,8 @@ export const NewSessionEventMapper = <T extends Config>(P: Pallet<T, {Events: {N
         }
     }
 
-export default <T extends Config = Config, S extends PalletSetup = PalletSetup>() => {
-    class P extends Pallet<T, S>() {}
+export default <T extends Config = Config, S extends PalletSetup = PalletSetup>(setup: (Config: T) => S) => {
+    class P extends Pallet(setup) {}
 
     P.EventMappers = {
         NewSession: NewSessionEventMapper(P),

@@ -1,13 +1,13 @@
 import {Constructor} from 'type-fest'
-import {Display, Lookup, Serialize, Parameter, From, Pallet} from '@gs/interfaces'
+import {Display, Lookup, Serialize, Parameter, From, Pallet} from '~interfaces'
 
 export interface Config {
     AccountId: Parameter<Uint8Array> & Display & Serialize & From
-    Lookup: Lookup<Config['AccountId'], Constructor<unknown>>
+    Lookup: Lookup<Config['AccountId'], Parameter>
 }
 
-export default () => {
-    class P extends Pallet<Config>() {}
+export default <T extends Config = Config>(setup: (Config: T) => {}) => {
+    class P extends Pallet(setup) {}
 
     return P
 }

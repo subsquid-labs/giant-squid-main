@@ -1,5 +1,5 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {BlockHeader, Event, MappingContext, Pallet} from '@gs/interfaces'
+import {BlockHeader, Event, MappingContext, Pallet} from '~interfaces'
 import {NewSessionEventType, PalletSetup} from './v1'
 
 export interface SessionManager {
@@ -24,8 +24,8 @@ export const NewSessionEventMapper = <T extends Pick<Config, 'SessionManager'>>(
         }
     }
 
-export default <T extends Config = Config, S extends PalletSetup = PalletSetup>() => {
-    class P extends Pallet<T, S>() {}
+export default <T extends Config = Config, S extends PalletSetup = PalletSetup>(setup: (Config: T) => S) => {
+    class P extends Pallet<T, S>(setup) {}
 
     P.EventMappers = {
         NewSession: NewSessionEventMapper(P),

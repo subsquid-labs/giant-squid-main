@@ -1,6 +1,6 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {Pallet, EventMapper, MappingContext, Event, CallType, BlockHeader} from '@gs/interfaces'
-import {createEraId, createEraStakerId} from '@gs/util/id'
+import {Pallet, EventMapper, MappingContext, Event, CallType, BlockHeader} from '~interfaces'
+import {createEraId, createEraStakerId} from '~util/id'
 import {StakingEra, StakingEraValidator, Staker, PayeeType} from '../../model/generated'
 import {
     ActiveEraStorageType,
@@ -42,8 +42,16 @@ import {
     endSession,
     newSession,
     startSession,
+    ActiveEraInfo,
+    Exposure,
+    Forcing,
+    RewardDestination,
+    StakingLedger,
+    endEra,
+    newEra,
+    startEra,
 } from './v3'
-import {implements_} from '@gs/util/decorator'
+import {implements_} from '~util/decorator'
 import {SessionManager} from '../session/v2'
 
 export {
@@ -86,6 +94,14 @@ export {
     endSession,
     newSession,
     startSession,
+    ActiveEraInfo,
+    Exposure,
+    Forcing,
+    RewardDestination,
+    StakingLedger,
+    endEra,
+    newEra,
+    startEra,
 }
 
 export type PayoutStakersCallType<T extends Pick<Config, 'AccountId'>> = CallType<{
@@ -129,7 +145,8 @@ export interface PalletSetup<T extends Config> {
 }
 
 export const RewardEventMapper = <T extends Config>(
-    P: Pallet<T, {Events: {Reward: RewardEventType<T>}; Calls: {payout_stakers: PayoutStakersCallType<T>}}>
+    P: Pallet<T, {Events: {Reward: RewardEventType<T>}; Calls: {payout_stakers: PayoutStakersCallType<T>}}> &
+        PalletOptions
 ) =>
     class implements EventMapper {
         handle(ctx: MappingContext<StoreWithCache>, item: Event): void {
@@ -161,6 +178,8 @@ export const RewardEventMapper = <T extends Config>(
 
             const stashAddress = data.account
             const stashId = stashAddress.format()
+            if (P.skipStakers?.includes(stashId)) return
+
             const stakerId = stashId
             const stakerDeferred = ctx.store.defer(Staker, stakerId, {stash: true, payee: true})
 

@@ -10,11 +10,11 @@ import {
     Pallet,
     Parameter,
     StorageType,
-} from '@gs/interfaces'
-import {Account, Staker, StakingEra, StakingEraStatus} from '@gs/model'
-import {implements_} from '@gs/util/decorator'
-import {createEraId, createEraNominationId, createEraStakerId} from '@gs/util/id'
-import {getOriginAccountId} from '@gs/util/misc'
+} from '~interfaces'
+import {Account, Staker, StakingEra, StakingEraStatus} from '~model'
+import {implements_} from '~util/decorator'
+import {createEraId, createEraNominationId, createEraStakerId} from '~util/id'
+import {getOriginAccountId} from '~util/misc'
 import assert from 'assert'
 import {SessionManager} from '../session/v2'
 import {
@@ -34,6 +34,7 @@ import {
     LedgerStorageType,
     NominateCallMapper,
     NominateCallType,
+    RewardDestination,
     SetControllerCallMapper,
     SetControllerCallType,
     SetPayeeCallMapper,
@@ -75,6 +76,7 @@ export {
     WithdrawUnbondedCallType,
     Forcing,
     StakingLedger,
+    RewardDestination,
 }
 
 type ActiveEraInfoRaw = {
@@ -148,6 +150,10 @@ export interface PalletSetup<T extends Config> {
     }
 }
 
+export interface Setup<Config, PalletSetup> {
+    (Config: Config): PalletSetup
+}
+
 export interface PalletOptions {
     skipStakers?: string[]
 }
@@ -216,15 +222,6 @@ export function newEra<T extends Config>(
         .setBlock(block)
         .setExtrinsic(undefined)
         .lazy(async () => {
-            const prevEra = await ctx.store.get(StakingEra, {where: {}, order: {index: 'DESC'}})
-            assert(prevEra?.index == null || prevEra.index < currentEraIndex)
-
-            if (prevEra != null) {
-                ctx.queue.add('staking_endEra', {
-                    eraId: prevEra.id,
-                })
-            }
-
             const eraId = createEraId(currentEraIndex)
             ctx.queue.add('staking_newEra', {
                 id: eraId,
@@ -332,14 +329,24 @@ export function newEra<T extends Config>(
 export function startSession(
     this: Pallet<
         Config,
-        {Storage: {ActiveEra: ActiveEraStorageType; ErasStartSessionIndex: ErasStartSessionIndexStorageType}}
+        {
+            Storage: {
+                ActiveEra: ActiveEraStorageType
+                CurrentEra: CurrentEraStorageType
+                ErasStartSessionIndex: ErasStartSessionIndexStorageType
+            }
+        }
     >,
     ctx: MappingContext<StoreWithCache>,
     block: BlockHeader,
     startSession: number
 ) {
     ctx.queue.setBlock(block).lazy(async () => {
-        const curActiveEraIndex = await new this.Storage.ActiveEra(ctx, block).value.then((v) => v?.index ?? 0)
+        let curActiveEraIndex = await new this.Storage.ActiveEra(ctx, block).value.then((v) => v?.index)
+        if (curActiveEraIndex == null) {
+            curActiveEraIndex = await new this.Storage.CurrentEra(ctx, block).value // TODO: investigate if this correct
+            assert(curActiveEraIndex != null)
+        }
 
         const curActiveEraStartSessionIndex = await new this.Storage.ErasStartSessionIndex(
             ctx,
@@ -549,9 +556,12 @@ export const RewardEventMapper = <T extends Config>(P: Pallet<T, {Events: {Rewar
         }
     }
 
-export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(opts?: PalletOptions) => {
+export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(
+    setup: Setup<T, S>,
+    opts?: PalletOptions
+) => {
     @implements_<SessionManager & PalletOptions>()
-    class P extends Pallet<Config, S>() {
+    class P extends Pallet(setup) {
         static skipStakers = opts?.skipStakers
 
         static newSession(ctx: MappingContext<StoreWithCache>, block: BlockHeader, newIndex: number): void {

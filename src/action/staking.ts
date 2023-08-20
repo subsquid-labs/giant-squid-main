@@ -14,7 +14,7 @@ import {
     StakingSlash,
     StakingUnlockChunk,
     ValidatorData,
-} from '@gs/model'
+} from '~model'
 import assert from 'assert'
 import {Action, ActionContext} from './action'
 

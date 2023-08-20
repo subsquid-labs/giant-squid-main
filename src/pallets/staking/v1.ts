@@ -13,16 +13,16 @@ import {
     Pallet,
     Parameter,
     StorageType,
-} from '@gs/interfaces'
-import {Account, PayeeType, Staker, StakingEra, StakingUnlockChunk} from '@gs/model'
-import {implements_} from '@gs/util/decorator'
-import {createEraId, createEraNominationId, createEraStakerId} from '@gs/util/id'
-import {getOriginAccountId} from '@gs/util/misc'
+} from '~interfaces'
+import {Account, PayeeType, Staker, StakingEra, StakingUnlockChunk} from '~model'
+import {implements_} from '~util/decorator'
+import {createEraId, createEraNominationId, createEraStakerId} from '~util/id'
+import {getOriginAccountId} from '~util/misc'
 import assert from 'assert'
 import MathBI from 'extra-bigint'
-import * as pallet_system from '@gs/pallets/system/v1'
+import * as pallet_system from '~pallets/system/v1'
 import {OnSessionEnding} from '../session/v1'
-import {StakingStakersStorage} from '@metadata/kusama/storage'
+import {StakingStakersStorage} from '~metadata/kusama/storage'
 
 /*********
  * TYPES *
@@ -44,7 +44,7 @@ type RewardDestinationRaw =
     | {
           __kind: 'None'
       }
-export const RewardDestination = <AccountId extends Parameter<any>>(AccountId: AccountId) => {
+export const RewardDestination = <AccountId extends Parameter>(AccountId: AccountId) => {
     @implements_<Parameter<RewardDestinationRaw>>()
     class RewardDestination extends Enum<RewardDestinationRaw>()({
         Account: AccountId,
@@ -52,7 +52,7 @@ export const RewardDestination = <AccountId extends Parameter<any>>(AccountId: A
 
     return RewardDestination
 }
-export type RewardDestination<AccountId extends Parameter<any>> = InstanceType<
+export type RewardDestination<AccountId extends Parameter> = InstanceType<
     ReturnType<typeof RewardDestination<AccountId>>
 >
 
@@ -89,7 +89,7 @@ type StakingLedgerRaw = {
     total: bigint
     active: bigint
 }
-export const StakingLedger = <AccountId extends Parameter<any>>(AccountId: AccountId) => {
+export const StakingLedger = <AccountId extends Parameter>(AccountId: AccountId) => {
     @implements_<Parameter<StakingLedgerRaw>>()
     class StakingLedger {
         readonly stash: InstanceType<AccountId>
@@ -105,14 +105,14 @@ export const StakingLedger = <AccountId extends Parameter<any>>(AccountId: Accou
 
     return StakingLedger
 }
-export type StakingLedger<AccountId extends Parameter<any>> = ReturnType<typeof StakingLedger<AccountId>>
+export type StakingLedger<AccountId extends Parameter> = ReturnType<typeof StakingLedger<AccountId>>
 
 export interface ExposureRaw {
     total: bigint
     own: bigint
     others: IndividualExposureRaw[]
 }
-export const Exposure = <AccountId extends Parameter<any>>(AccountId: AccountId) => {
+export const Exposure = <AccountId extends Parameter>(AccountId: AccountId) => {
     const _IndividualExposure = IndividualExposure(AccountId)
 
     @implements_<Parameter<ExposureRaw>>()
@@ -130,13 +130,13 @@ export const Exposure = <AccountId extends Parameter<any>>(AccountId: AccountId)
 
     return Exposure
 }
-export type Exposure<AccountId extends Parameter<any>> = ReturnType<typeof Exposure<AccountId>>
+export type Exposure<AccountId extends Parameter> = ReturnType<typeof Exposure<AccountId>>
 
 export interface IndividualExposureRaw {
     who: Uint8Array
     value: bigint
 }
-export const IndividualExposure = <AccountId extends Parameter<any>>(AccountId: AccountId) => {
+export const IndividualExposure = <AccountId extends Parameter>(AccountId: AccountId) => {
     @implements_<Parameter<IndividualExposureRaw>>()
     class IndividualExposure {
         readonly who: InstanceType<AccountId>
@@ -150,7 +150,7 @@ export const IndividualExposure = <AccountId extends Parameter<any>>(AccountId: 
 
     return IndividualExposure
 }
-export type IndividualExposure<AccountId extends Parameter<any>> = ReturnType<typeof IndividualExposure<AccountId>>
+export type IndividualExposure<AccountId extends Parameter> = ReturnType<typeof IndividualExposure<AccountId>>
 
 /**********
  * CONFIG *
@@ -890,12 +890,6 @@ export const RewardEventMapper = <T extends Config>(Pallet: Pallet<T, {Events: {
     class implements EventMapper {
         handle(ctx: MappingContext<StoreWithCache>, event: Event): void {
             const data = new Pallet.Events.Reward(event)
-
-            // ctx.queue.lazy(async () => {
-            //     const era = await ctx.store.getOrFail(StakingEra, {where: {}, order: {index: 'DESC'}})
-
-            //     ctx.queue.add()
-            // })
         }
     }
 
@@ -965,9 +959,9 @@ export const SlashEventMapper = <T extends Config>(Pallet: Pallet<T, {Events: {S
         }
     }
 
-export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>() => {
+export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(setup: (Config: T) => S) => {
     @implements_<OnSessionEnding>()
-    class P extends Pallet<T, S>() {
+    class P extends Pallet(setup) {
         static onSessionEnding(
             ctx: MappingContext<StoreWithCache>,
             block: BlockHeader,

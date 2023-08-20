@@ -1,8 +1,8 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {BlockHeader, Call, CallMapper, Event, EventMapper, EventType, MappingContext, Pallet} from '@gs/interfaces'
-import {Account, PayeeType, Staker} from '@gs/model'
-import {implements_} from '@gs/util/decorator'
-import {getOriginAccountId} from '@gs/util/misc'
+import {BlockHeader, Call, CallMapper, Event, EventMapper, EventType, MappingContext, Pallet} from '~interfaces'
+import {Account, PayeeType, Staker} from '~model'
+import {implements_} from '~util/decorator'
+import {getOriginAccountId} from '~util/misc'
 import assert from 'assert'
 import {SessionManager} from '../session/v2'
 import {
@@ -39,6 +39,14 @@ import {
     ValidateCallMapper,
     ValidateCallType,
     WithdrawUnbondedCallType,
+    ActiveEraInfo,
+    Exposure,
+    Forcing,
+    RewardDestination,
+    StakingLedger,
+    endEra,
+    newEra,
+    startEra,
 } from './v2'
 
 export {
@@ -75,6 +83,14 @@ export {
     ValidateCallMapper,
     ValidateCallType,
     WithdrawUnbondedCallType,
+    ActiveEraInfo,
+    Exposure,
+    Forcing,
+    RewardDestination,
+    StakingLedger,
+    endEra,
+    newEra,
+    startEra,
 }
 
 export type BondedEventType<T extends Pick<Config, 'AccountId'>> = EventType<{

@@ -1,6 +1,6 @@
-import Default, {Config} from '@gs/pallets/session/v2'
-import {SessionNewSessionEvent} from '@metadata/kusama/events'
-import {Event, Pallet} from '../../../interfaces'
+import Default, {Config} from '~pallets/session/v2'
+import {SessionNewSessionEvent} from '~metadata/kusama/events'
+import {Event, Pallet} from '~interfaces'
 
 export const NewSessionEvent = <T extends Config>(P: Pallet<T>) =>
     class NewSessionEvent {
@@ -13,7 +13,7 @@ export const NewSessionEvent = <T extends Config>(P: Pallet<T>) =>
     }
 
 export default () => {
-    class P extends Default() {}
+    const P = Default()
 
     P.Events = {
         NewSession: NewSessionEvent(P),

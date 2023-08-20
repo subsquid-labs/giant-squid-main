@@ -10,27 +10,28 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "skipLibCheck": true,
+    "composite": true,
     // "baseUrl": "./src",
     "paths": {
-      "@gs/action": [
+      "~action": [
         "./src/action",
       ],
-      "@gs/model": [
+      "~model": [
         "./src/model",
       ],
-      "@gs/util/*": [
+      "~util/*": [
         "./src/utils/*",
       ],
-      "@gs/interfaces": [
+      "~interfaces": [
         "./src/interfaces",
       ],
-      "@gs/pallets/*": [
+      "~pallets/*": [
         "./src/pallets/*",
       ],
-      "@gs/primitive": [
+      "~primitive": [
         "./src/primitive",
       ],
-      "@metadata/*": [
+      "~metadata/*": [
         "./src/metadata/*"
       ]
     },

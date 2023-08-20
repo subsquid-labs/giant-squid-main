@@ -1,28 +1,28 @@
-import {BalancesTransferEvent} from '@metadata/kusama/events'
-import {Event, Pallet} from '../../../interfaces'
-import Default, {Config} from '@gs/pallets/balances/v1'
+import {BalancesTransferEvent} from '~metadata/kusama/events'
+import Default from '~pallets/balances/v1'
+import {Event, Parameter} from '~interfaces'
 
-export const TransferEvent = <T extends Config>(P: Pallet<T>) =>
+export const TransferEvent = <AccountId extends Parameter>(AccountId: AccountId) =>
     class TransferEvent {
-        readonly from: InstanceType<T['AccountId']>
-        readonly to: InstanceType<T['AccountId']>
+        readonly from: InstanceType<AccountId>
+        readonly to: InstanceType<AccountId>
         readonly amount: bigint
 
         constructor(event: Event) {
             const data = new BalancesTransferEvent(event).asV1050
 
-            this.from = new P.Config.AccountId(data[0]) as any
-            this.to = new P.Config.AccountId(data[1]) as any
+            this.from = new AccountId(data[0]) as any
+            this.to = new AccountId(data[1]) as any
             this.amount = data[2]
         }
     }
 
 export default () => {
-    class P extends Default() {}
-
-    P.Events = {
-        Transfer: TransferEvent(P),
-    }
+    const P = Default((Config) => ({
+        Events: {
+            Transfer: TransferEvent(Config.AccountId),
+        },
+    }))
 
     return P
 }

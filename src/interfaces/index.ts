@@ -1,8 +1,9 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {ActionQueue} from '@gs/action'
-import {Call, Event, Block, Extrinsic, BlockHeader} from '../kusama/processor'
-import {CallType, ConstantType, EventType, StorageType} from './types'
 import {DataHandlerContext} from '@subsquid/substrate-processor'
+import {ActionQueue} from '~action'
+import {Block, BlockHeader, Call, Event, Extrinsic} from '../kusama/processor'
+import {CallType, ConstantType, EventType, StorageType} from './types'
+import {Setup} from '~pallets/staking/v2'
 
 export {Call, Event, Block, Extrinsic, BlockHeader}
 
@@ -45,19 +46,21 @@ export interface PalletSetup {
     Constants?: Record<string, ConstantType<any>>
 }
 
-// export interface Pallet<T, S extends PalletSetup> {
-//     Config: T
-//     Events?: S['Events']
-//     Calls?: S['Calls']
-//     Storage?: S['Storage']
-//     Constants?: S['Constants']
-
-//     EventMappers: Record<string, new () => EventMapper>
-//     CallMappers: Record<string, new () => CallMapper>
-// }
-export const Pallet = <T = {}, S extends PalletSetup = {}>() => {
+export const Pallet = <T = {}, S extends PalletSetup = {}>(setup: Setup<T, S>) => {
     abstract class Pallet {
-        static Config: T
+        static #Config: T
+        public static get Config(): T {
+            return this.#Config
+        }
+        public static set Config(value: T) {
+            this.#Config = value
+
+            const s = setup(value)
+            this.Events = s.Events
+            this.Calls = s.Calls
+            this.Storage = s.Storage
+            this.Constants = s.Constants
+        }
 
         static Events: S['Events']
         static Calls: S['Calls']

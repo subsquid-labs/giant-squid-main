@@ -1,29 +1,19 @@
-import {StoreWithCache} from '@belopash/squid-tools'
-import Default, {
-    ActiveEraInfo,
-    ChillCallMapper,
-    Config,
-    Exposure,
-    SlashEventMapper,
-    StakingLedger,
-} from '@gs/pallets/staking/v2'
-import {StakingRewardEvent} from '@metadata/kusama/events'
+import Default, {ActiveEraInfo, Config, Exposure, StakingLedger, RewardDestination} from '~pallets/staking/v2'
+import {StakingRewardEvent} from '~metadata/kusama/events'
 import {
     StakingActiveEraStorage,
     StakingCurrentEraStorage,
     StakingErasStakersStorage,
     StakingErasStartSessionIndexStorage,
     StakingLedgerStorage,
-} from '@metadata/kusama/storage'
-import {BlockHeader, ChainContext, Event, EventMapper, MappingContext, Pallet} from '../../../interfaces'
+} from '~metadata/kusama/storage'
+import {BlockHeader, Call, ChainContext, Event, Pallet} from '~interfaces'
 import {
-    BondCall,
     BondExtraCall,
     BondingDurationConstant,
+    ChillCall,
     ForceEraStorage,
     ForceUnstakeCall,
-    NominateCall,
-    SetControllerCall,
     SetPayeeCall,
     SlashEvent,
     UnbondCall,
@@ -31,21 +21,60 @@ import {
     WithdrawUnbondedCall,
 } from '../../v1032/pallet/staking'
 import skipStakers from '../../skipStakers'
+import {StakingBondCall, StakingNominateCall, StakingSetControllerCall} from '~metadata/kusama/calls'
 
 export {
-    BondCall,
     BondExtraCall,
     BondingDurationConstant,
     ForceEraStorage,
     ForceUnstakeCall,
-    NominateCall,
-    SetControllerCall,
     SetPayeeCall,
     SlashEvent,
     UnbondCall,
     ValidateCall,
     WithdrawUnbondedCall,
+    ChillCall,
 }
+
+/*********
+ * CALLS *
+ *********/
+
+export const BondCall = <T extends Config>(Pallet: Pallet<T>) =>
+    class {
+        readonly controller: InstanceType<T['Lookup']['Source']>
+        readonly value: bigint
+        readonly payee: RewardDestination<T['AccountId']>
+
+        constructor(call: Call) {
+            const data = new StakingBondCall(call).asV1050
+
+            this.controller = new Pallet.Config.Lookup.Source(data.controller) as any
+            this.value = data.value
+            this.payee = new (RewardDestination(Pallet.Config.AccountId))(data.payee)
+        }
+    }
+
+export const SetControllerCall = <T extends Config>(Pallet: Pallet<T>) =>
+    class {
+        readonly controller: InstanceType<T['Lookup']['Source']>
+
+        constructor(call: Call) {
+            const data = new StakingSetControllerCall(call).asV1050
+
+            this.controller = new Pallet.Config.Lookup.Source(data.controller) as any
+        }
+    }
+
+export const NominateCall = <T extends Config>(Pallet: Pallet<T>) =>
+    class {
+        readonly targets: InstanceType<T['Lookup']['Source']>[]
+
+        constructor(call: Call) {
+            const data = new StakingNominateCall(call).asV1050
+            this.targets = data.targets.map((t) => new Pallet.Config.Lookup.Source(t)) as any
+        }
+    }
 
 /**********
  * EVENTS *
@@ -108,15 +137,13 @@ export const LedgerStorage = <T extends Config>(Pallet: Pallet<T>) =>
     }
 
 export const EraElectedStorage = <T extends Config>(Pallet: Pallet<T>) => {
-    const _AccountId = Pallet.Config.AccountId
-
     return class {
-        readonly value: Promise<InstanceType<typeof _AccountId>[]>
+        readonly value: Promise<InstanceType<T['AccountId']>[]>
 
         constructor(ctx: ChainContext, block: BlockHeader, era: number) {
             this.value = new StakingErasStakersStorage(ctx, block).asV1050
-                .getKeys()
-                .then((r) => r.map((k) => new _AccountId(k[1])))
+                .getKeys(era)
+                .then((r) => r.map((k) => new Pallet.Config.AccountId(k[1]) as any))
         }
     }
 }
@@ -136,11 +163,11 @@ export const EraStakersStorage = <T extends Config>(Pallet: Pallet<T>) => {
 }
 
 export default () => {
-    class P extends Default({skipStakers}) {}
+    const P = Default({skipStakers})
 
     P.Events = {
         Reward: RewardEvent(P),
-        Slash: SlashEvent(P),
+        Slash: SlashEvent({AccountId: P}),
     }
 
     P.Calls = {
@@ -153,7 +180,7 @@ export default () => {
         set_payee: SetPayeeCall(P),
         validate: ValidateCall(P),
         nominate: NominateCall(P),
-        chill: ChillCallMapper(P),
+        chill: ChillCall(P),
     }
 
     P.Storage = {

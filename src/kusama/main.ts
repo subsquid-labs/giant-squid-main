@@ -2,7 +2,7 @@ import {StoreWithCache} from '@belopash/squid-tools'
 import {TypeormDatabase} from '@subsquid/typeorm-store'
 import {Block, BlockHeader, Call, Event, Extrinsic, processor} from './processor'
 import assert from 'assert'
-import {ActionQueue} from '@gs/action'
+import {ActionQueue} from '~action'
 
 export function getRuntime(block: BlockHeader) {
     const version = block.specVersion

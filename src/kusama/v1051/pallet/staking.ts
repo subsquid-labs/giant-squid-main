@@ -1,6 +1,6 @@
-import {Event, Pallet} from '@gs/interfaces'
-import Default, {ChillCallMapper, Config} from '@gs/pallets/staking/v3'
-import {StakingBondedEvent, StakingUnbondedEvent, StakingWithdrawnEvent} from '@metadata/kusama/events'
+import {Event, Pallet} from '~interfaces'
+import Default, {Config} from '~pallets/staking/v3'
+import {StakingBondedEvent, StakingUnbondedEvent, StakingWithdrawnEvent} from '~metadata/kusama/events'
 import {
     BondCall,
     BondExtraCall,
@@ -21,6 +21,7 @@ import {
     EraElectedStorage,
     EraStakersStorage,
     ErasStartSessionIndex,
+    ChillCall,
 } from '../../v1050/pallet/staking'
 import skipStakers from '../../skipStakers'
 
@@ -44,6 +45,7 @@ export {
     EraElectedStorage,
     EraStakersStorage,
     ErasStartSessionIndex,
+    ChillCall,
 }
 
 /**********
@@ -90,11 +92,11 @@ export const WithdrawnEvent = <T extends Config>(P: Pallet<T>) =>
     }
 
 export default () => {
-    class P extends Default({skipStakers}) {}
+    const P = Default({skipStakers})
 
     P.Events = {
         Reward: RewardEvent(P),
-        Slash: SlashEvent(P),
+        Slash: SlashEvent({AccountId: P}),
         Bonded: BondedEvent(P),
         Unbonded: UnbondedEvent(P),
         Withdrawn: WithdrawnEvent(P),
@@ -109,7 +111,7 @@ export default () => {
         set_payee: SetPayeeCall(P),
         validate: ValidateCall(P),
         nominate: NominateCall(P),
-        chill: ChillCallMapper(P),
+        chill: ChillCall(P),
     }
 
     P.Storage = {

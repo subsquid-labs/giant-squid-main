@@ -1,1 +1,3 @@
-export {default} from '@gs/pallets/system/v1'
+import Default from '~pallets/system/v1'
+
+export default () => Default(() => ({}))

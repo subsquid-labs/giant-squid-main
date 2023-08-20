@@ -1,9 +1,6 @@
-import Default, {Config} from '~pallets/staking/v4'
-import {StakingPayoutStakersCall} from '~metadata/kusama/calls'
-import {Call, Pallet} from '~interfaces'
+import Default, {Config, RewardDestination} from '~pallets/staking/v4'
 import {
     ActiveEra,
-    BondCall,
     BondedEvent,
     BondExtraCall,
     BondingDurationConstant,
@@ -15,9 +12,8 @@ import {
     ForceEraStorage,
     ForceUnstakeCall,
     LedgerStorage,
-    NominateCall,
+    PayoutStakersCall,
     RewardEvent,
-    SetControllerCall,
     SetPayeeCall,
     SlashEvent,
     UnbondCall,
@@ -25,12 +21,13 @@ import {
     ValidateCall,
     WithdrawnEvent,
     WithdrawUnbondedCall,
-} from '../../v1051/pallet/staking'
+} from '../../v1058/pallet/staking'
 import skipStakers from '../../skipStakers'
+import {StakingBondCall, StakingNominateCall, StakingSetControllerCall} from '~metadata/kusama/calls'
+import {Call, Pallet} from '~interfaces'
 
 export {
     ActiveEra,
-    BondCall,
     BondedEvent,
     BondExtraCall,
     BondingDurationConstant,
@@ -41,9 +38,7 @@ export {
     ForceEraStorage,
     ForceUnstakeCall,
     LedgerStorage,
-    NominateCall,
     RewardEvent,
-    SetControllerCall,
     SetPayeeCall,
     SlashEvent,
     UnbondCall,
@@ -54,16 +49,39 @@ export {
     ChillCall,
 }
 
-export const PayoutStakersCall = <T extends Config>(P: Pallet<T>) =>
+export const BondCall = <T extends Config>(Pallet: Pallet<T>) =>
     class {
-        readonly validatorStash: InstanceType<T['AccountId']>
-        readonly era: number
+        readonly controller: InstanceType<T['Lookup']['Source']>
+        readonly value: bigint
+        readonly payee: RewardDestination<T['AccountId']>
 
         constructor(call: Call) {
-            const data = new StakingPayoutStakersCall(call).asV1058
+            const data = new StakingBondCall(call).asV2028
 
-            this.validatorStash = new P.Config.AccountId(data.validatorStash) as any
-            this.era = data.era
+            this.controller = new Pallet.Config.Lookup.Source(data.controller) as any
+            this.value = data.value
+            this.payee = new (RewardDestination(Pallet.Config.AccountId))(data.payee)
+        }
+    }
+
+export const SetControllerCall = <T extends Config>(Pallet: Pallet<T>) =>
+    class {
+        readonly controller: InstanceType<T['Lookup']['Source']>
+
+        constructor(call: Call) {
+            const data = new StakingSetControllerCall(call).asV2028
+
+            this.controller = new Pallet.Config.Lookup.Source(data.controller) as any
+        }
+    }
+
+export const NominateCall = <T extends Config>(Pallet: Pallet<T>) =>
+    class {
+        readonly targets: InstanceType<T['Lookup']['Source']>[]
+
+        constructor(call: Call) {
+            const data = new StakingNominateCall(call).asV2028
+            this.targets = data.targets.map((t) => new Pallet.Config.Lookup.Source(t)) as any
         }
     }
 
@@ -72,7 +90,7 @@ export default () => {
 
     P.Events = {
         Reward: RewardEvent(P),
-        Slash: SlashEvent({AccountId: P}),
+        Slash: SlashEvent(P),
         Bonded: BondedEvent(P),
         Unbonded: UnbondedEvent(P),
         Withdrawn: WithdrawnEvent(P),

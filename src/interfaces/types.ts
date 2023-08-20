@@ -1,5 +1,5 @@
 import {Block, BlockHeader, Call, ChainContext, Event} from '.'
-import {implements_} from '@gs/util/decorator'
+import {implements_} from '~util/decorator'
 import assert from 'assert'
 import {ConditionalExcept, ConditionalKeys, ConditionalPick, Constructor, Except, Simplify, ValueOf} from 'type-fest'
 
@@ -47,14 +47,14 @@ export interface From {
     from(value: any): InstanceType<this>
 }
 
-export interface Lookup<Target extends Constructor<any>, Source extends Constructor<any>> {
+export interface Lookup<Target extends Parameter = Parameter, Source extends Parameter = Parameter> {
     readonly Source: Source
     readonly Target: Target
 
     lookup(s: InstanceType<Source>): InstanceType<Target>
 }
 
-export interface StaticLookup<Target extends Constructor<any>, Source extends Constructor<any>> {
+export interface StaticLookup<Target extends Parameter, Source extends Parameter> {
     Source: Source
     Target: Target
 
@@ -77,7 +77,7 @@ type EnumRaw =
 type EnumEntry<E extends EnumRaw, K> = Extract<E, {__kind: K}>
 
 type EnumConfig<T extends EnumRaw> = {
-    [K in T['__kind'] as EnumEntry<T, K> extends {value: any} ? K : never]?: Parameter<any>
+    [K in T['__kind'] as EnumEntry<T, K> extends {value: any} ? K : never]?: Parameter
 }
 
 export const Enum =
@@ -94,7 +94,7 @@ export const Enum =
                         value: EnumEntry<T, K> extends infer U
                             ? U extends {value: any}
                                 ? K extends keyof E
-                                    ? E[K] extends Parameter<any>
+                                    ? E[K] extends Parameter
                                         ? InstanceType<E[K]>
                                         : U['value']
                                     : null

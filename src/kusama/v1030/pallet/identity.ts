@@ -1,77 +1,77 @@
-import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCall} from '@metadata/kusama/calls'
-import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '@metadata/kusama/events'
-import {Call, Event, Pallet} from '../../../interfaces'
-import Default, {Config, Data, IdentityInfo, IdentityJudgement} from '@gs/pallets/identity/v1'
+import {IdentityProvideJudgementCall, IdentitySetIdentityCall, IdentitySetSubsCall} from '~metadata/kusama/calls'
+import {IdentityIdentityClearedEvent, IdentityIdentityKilledEvent} from '~metadata/kusama/events'
+import {Call, Event, Parameter} from '~interfaces'
+import Default, {Data, IdentityInfo, IdentityJudgement} from '~pallets/identity/v1'
 
-export const SetSubsCall = <T extends Config>(P: Pallet<T>) =>
+//#region CALLS
+
+export const SetSubsCall = <AccountId extends Parameter>(AccountId: AccountId) =>
     class {
-        readonly subs: [InstanceType<T['AccountId']>, Data][]
+        readonly subs: [InstanceType<AccountId>, Data][]
 
         constructor(call: Call) {
             const data = new IdentitySetSubsCall(call).asV1030
-            this.subs = data.subs.map((s) => [new P.Config.AccountId(s[0]) as any, new Data(s[1])])
+            this.subs = data.subs.map((s) => [new AccountId(s[0]) as any, new Data(s[1])])
         }
     }
 
-export const ProvideJudgmentCall = <T extends Config>(P: Pallet<T>) =>
+export const ProvideJudgmentCall = <LookupSource extends Parameter>(LookupSource: LookupSource) =>
     class {
-        readonly target: InstanceType<T['Lookup']['Source']>
+        readonly target: InstanceType<LookupSource>
         readonly judgement: IdentityJudgement
 
         constructor(call: Call) {
             const data = new IdentityProvideJudgementCall(call).asV1030
-            this.target = new P.Config.Lookup.Source(data.target) as any
+            this.target = new LookupSource(data.target) as any
             this.judgement = new IdentityJudgement(data.judgement)
         }
     }
 
-export const SetIdentityCall = <T extends Config>(P: Pallet<T>) =>
-    class {
-        readonly info: IdentityInfo
+export class SetIdentityCall {
+    readonly info: IdentityInfo
 
-        constructor(call: Call) {
-            const data = new IdentitySetIdentityCall(call).asV1030
-            this.info = new IdentityInfo(data.info)
-        }
+    constructor(call: Call) {
+        const data = new IdentitySetIdentityCall(call).asV1030
+        this.info = new IdentityInfo(data.info)
     }
+}
 
-/**********
- * EVENTS *
- **********/
+//#endregion
 
-export const IdentityClearedEvent = <T extends Config>(P: Pallet<T>) =>
+//#region EVENTS
+
+export const IdentityClearedEvent = <AccountId extends Parameter>(AccountId: AccountId) =>
     class {
-        readonly who: InstanceType<T['AccountId']>
+        readonly who: InstanceType<AccountId>
 
         constructor(event: Event) {
             const data = new IdentityIdentityClearedEvent(event).asV1030
-            this.who = new P.Config.AccountId(data[0]) as any
+            this.who = new AccountId(data[0]) as any
         }
     }
 
-export const IdentityKilledEvent = <T extends Config>(P: Pallet<T>) =>
+export const IdentityKilledEvent = <AccountId extends Parameter>(AccountId: AccountId) =>
     class {
-        readonly who: InstanceType<T['AccountId']>
+        readonly who: InstanceType<AccountId>
 
         constructor(event: Event) {
             const data = new IdentityIdentityKilledEvent(event).asV1030
-            this.who = new P.Config.AccountId(data[0]) as any
+            this.who = new AccountId(data[0]) as any
         }
     }
 
-export default () => {
-    class P extends Default() {}
+//#endregion
 
-    P.Calls = {
-        provide_judgment: ProvideJudgmentCall(P),
-        set_identity: SetIdentityCall(P),
-        set_subs: SetSubsCall(P),
-    }
+export default () =>
+    Default((Config) => ({
+        Calls: {
+            provide_judgment: ProvideJudgmentCall(Config.Lookup.Source),
+            set_subs: SetSubsCall(Config.AccountId),
+            set_identity: SetIdentityCall,
+        },
 
-    P.Events = {
-        IdentityCleared: IdentityClearedEvent(P),
-        IdentityKilled: IdentityKilledEvent(P),
-    }
-
-    return P
-}
+        Events: {
+            IdentityCleared: IdentityClearedEvent(Config.AccountId),
+            IdentityKilled: IdentityKilledEvent(Config.AccountId),
+        },
+    }))

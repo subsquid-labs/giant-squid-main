@@ -1,8 +1,8 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {Call, CallMapper, CallType, MappingContext, Pallet, Parameter} from '@gs/interfaces'
-import {Account, Identity, Judgement} from '@gs/model'
-import {implements_} from '@gs/util/decorator'
-import {getOriginAccountId} from '@gs/util/misc'
+import {Call, CallMapper, CallType, MappingContext, Pallet, Parameter} from '~interfaces'
+import {Account, Identity, Judgement} from '~model'
+import {implements_} from '~util/decorator'
+import {getOriginAccountId} from '~util/misc'
 import {toHex} from '@subsquid/substrate-processor'
 import {
     Config,
@@ -17,7 +17,6 @@ import {
     IdentityKilledEventType,
     ProvideJudgmentCallMapper,
     ProvideJudgmentCallType,
-    Raw,
     SetSubsCallMapper,
     SetSubsCallType,
 } from './v1'
@@ -35,7 +34,6 @@ export {
     IdentityKilledEventType,
     ProvideJudgmentCallMapper,
     ProvideJudgmentCallType,
-    Raw,
     SetSubsCallMapper,
     SetSubsCallType,
 }
@@ -155,8 +153,8 @@ export const SetIdentityCallMapper = <T extends Config>(
         }
     }
 
-export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>() => {
-    class P extends Pallet<T, S>() {}
+export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(setup: (Config: T) => S) => {
+    class P extends Pallet(setup) {}
 
     P.CallMappers = {
         set_subs: SetSubsCallMapper(P, true),

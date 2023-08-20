@@ -1,4 +1,4 @@
-import {Account, Identity, IdentityAdditionalField, IdentitySub, Judgement} from '@gs/model'
+import {Account, Identity, IdentityAdditionalField, IdentitySub, Judgement} from '~model'
 import {Action, ActionContext} from './action'
 
 export interface RenameIdentitySubData {

@@ -1,13 +1,13 @@
-import {Pallet, StaticLookup} from '@gs/interfaces'
-import type * as pallet_system from '@gs/pallets/system/v1'
-import {implements_} from '@gs/util/decorator'
-import {Address} from '@gs/primitive'
+import {Pallet, StaticLookup} from '~interfaces'
+import type * as pallet_system from '~pallets/system/v1'
+import {implements_} from '~util/decorator'
+import {Address} from '~primitive'
 
 export interface Config extends pallet_system.Config {}
 
-export default <T extends Config = Config>() => {
+export default <T extends Config = Config>(setup: (Config: T) => {}) => {
     @implements_<StaticLookup<T['AccountId'], Address<T['AccountId']>>>()
-    class P extends Pallet<T>() {
+    class P extends Pallet(setup) {
         static get Source() {
             return Address(this.Config.AccountId)
         }

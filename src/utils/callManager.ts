@@ -1,7 +1,7 @@
 // import assert from 'assert'
 // import {createHash} from 'crypto'
 // import * as storage from '@subsquid/substrate-processor/lib/util/storage'
-// import {StakingActiveEraStorage, StakingErasStakersStorage, StakingLedgerStorage} from '@metadata/kusama/storage'
+// import {StakingActiveEraStorage, StakingErasStakersStorage, StakingLedgerStorage} from '~metadata/kusama/storage'
 // import {Chain} from '@subsquid/substrate-processor/lib/chain'
 // import {StorageItem} from '@subsquid/substrate-metadata'
 // import {getNameHash} from '@subsquid/substrate-processor/lib/util/storage'

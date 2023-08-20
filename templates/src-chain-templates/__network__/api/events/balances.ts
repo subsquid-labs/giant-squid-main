@@ -1,4 +1,4 @@
-import {UnknownVersionError} from '@gs/util/errors'
+import {UnknownVersionError} from '~util/errors'
 import {BalancesTransferEvent} from '../../types/events'
 import {ChainContext, Event} from '../../types/support'
 

@@ -1,4 +1,4 @@
-import {Event, Pallet} from '~interfaces'
+import {Event, Pallet, Parameter} from '~interfaces'
 import Default, {Config} from '~pallets/staking/v3'
 import {StakingBondedEvent, StakingUnbondedEvent, StakingWithdrawnEvent} from '~metadata/kusama/events'
 import {
@@ -52,81 +52,79 @@ export {
  * EVENTS *
  **********/
 
-export const BondedEvent = <T extends Config>(P: Pallet<T>) =>
+export const BondedEvent = <AccountId extends Parameter>(AccountId: AccountId) =>
     class {
-        readonly account: InstanceType<T['AccountId']>
+        readonly account: InstanceType<AccountId>
         readonly amount: bigint
 
         constructor(event: Event) {
             const data = new StakingBondedEvent(event).asV1051
 
-            this.account = new P.Config.AccountId(data[0]) as any
+            this.account = new AccountId(data[0]) as any
             this.amount = data[1]
         }
     }
 
-export const UnbondedEvent = <T extends Config>(P: Pallet<T>) =>
+export const UnbondedEvent = <AccountId extends Parameter>(AccountId: AccountId) =>
     class {
-        readonly account: InstanceType<T['AccountId']>
+        readonly account: InstanceType<AccountId>
         readonly amount: bigint
 
         constructor(event: Event) {
             const data = new StakingUnbondedEvent(event).asV1051
 
-            this.account = new P.Config.AccountId(data[0]) as any
+            this.account = new AccountId(data[0]) as any
             this.amount = data[1]
         }
     }
 
-export const WithdrawnEvent = <T extends Config>(P: Pallet<T>) =>
+export const WithdrawnEvent = <AccountId extends Parameter>(AccountId: AccountId) =>
     class {
-        readonly account: InstanceType<T['AccountId']>
+        readonly account: InstanceType<AccountId>
         readonly amount: bigint
 
         constructor(event: Event) {
             const data = new StakingWithdrawnEvent(event).asV1051
 
-            this.account = new P.Config.AccountId(data[0]) as any
+            this.account = new AccountId(data[0]) as any
             this.amount = data[1]
         }
     }
 
-export default () => {
-    const P = Default({skipStakers})
-
-    P.Events = {
-        Reward: RewardEvent(P),
-        Slash: SlashEvent({AccountId: P}),
-        Bonded: BondedEvent(P),
-        Unbonded: UnbondedEvent(P),
-        Withdrawn: WithdrawnEvent(P),
-    }
-    P.Calls = {
-        bond: BondCall(P),
-        bond_extra: BondExtraCall(P),
-        unbond: UnbondCall(P),
-        force_unstake: ForceUnstakeCall(P),
-        withdraw_unbonded: WithdrawUnbondedCall(P),
-        set_controller: SetControllerCall(P),
-        set_payee: SetPayeeCall(P),
-        validate: ValidateCall(P),
-        nominate: NominateCall(P),
-        chill: ChillCall(P),
-    }
-
-    P.Storage = {
-        ForceEra: ForceEraStorage(P),
-        CurrentEra: CurrentEraStorage(P),
-        Ledger: LedgerStorage(P),
-        ActiveEra: ActiveEra(P),
-        ErasStartSessionIndex: ErasStartSessionIndex(P),
-        EraElected: EraElectedStorage(P),
-        EraStakers: EraStakersStorage(P),
-    }
-
-    P.Constants = {
-        BondingDuration: BondingDurationConstant(P),
-    }
-
-    return P
-}
+export default () =>
+    Default(
+        (Config) => ({
+            Calls: {
+                bond: BondCall(Config.Lookup, Config.AccountId),
+                bond_extra: BondExtraCall,
+                unbond: UnbondCall,
+                force_unstake: ForceUnstakeCall(Config.AccountId),
+                withdraw_unbonded: WithdrawUnbondedCall,
+                set_controller: SetControllerCall(Config.Lookup),
+                set_payee: SetPayeeCall(Config.AccountId),
+                validate: ValidateCall,
+                nominate: NominateCall(Config.Lookup),
+                chill: ChillCall,
+            },
+            Events: {
+                Reward: RewardEvent(Config.AccountId),
+                Slash: SlashEvent(Config.AccountId),
+                Bonded: BondedEvent(Config.AccountId),
+                Unbonded: UnbondedEvent(Config.AccountId),
+                Withdrawn: WithdrawnEvent(Config.AccountId),
+            },
+            Storage: {
+                ForceEra: ForceEraStorage,
+                CurrentEra: CurrentEraStorage,
+                Ledger: LedgerStorage(Config.AccountId),
+                ActiveEra: ActiveEra,
+                ErasStartSessionIndex: ErasStartSessionIndex,
+                EraElected: EraElectedStorage(Config.AccountId),
+                EraStakers: EraStakersStorage(Config.AccountId),
+            },
+            Constants: {
+                BondingDuration: BondingDurationConstant,
+            },
+        }),
+        {skipStakers}
+    )

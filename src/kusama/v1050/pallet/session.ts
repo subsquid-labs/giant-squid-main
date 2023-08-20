@@ -1,23 +1,11 @@
-import Default, {Config} from '~pallets/session/v2'
-import {SessionNewSessionEvent} from '~metadata/kusama/events'
-import {Event, Pallet} from '~interfaces'
+import Default from '~pallets/session/v2'
+import {NewSessionEvent} from '../../v1032/pallet/session'
 
-export const NewSessionEvent = <T extends Config>(P: Pallet<T>) =>
-    class NewSessionEvent {
-        readonly sessionIndex: number
+export {NewSessionEvent}
 
-        constructor(event: Event) {
-            const data = new SessionNewSessionEvent(event).asV1020
-            this.sessionIndex = data
-        }
-    }
-
-export default () => {
-    const P = Default()
-
-    P.Events = {
-        NewSession: NewSessionEvent(P),
-    }
-
-    return P
-}
+export default () =>
+    Default(() => ({
+        Events: {
+            NewSession: NewSessionEvent,
+        },
+    }))

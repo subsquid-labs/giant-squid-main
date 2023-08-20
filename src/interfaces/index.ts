@@ -3,7 +3,6 @@ import {DataHandlerContext} from '@subsquid/substrate-processor'
 import {ActionQueue} from '~action'
 import {Block, BlockHeader, Call, Event, Extrinsic} from '../kusama/processor'
 import {CallType, ConstantType, EventType, StorageType} from './types'
-import {Setup} from '~pallets/staking/v2'
 
 export {Call, Event, Block, Extrinsic, BlockHeader}
 
@@ -44,6 +43,10 @@ export interface PalletSetup {
     Calls?: Record<string, CallType<any>>
     Storage?: Record<string, StorageType<any, any>>
     Constants?: Record<string, ConstantType<any>>
+}
+
+export interface Setup<Config, PalletSetup> {
+    (Config: Config): PalletSetup
 }
 
 export const Pallet = <T = {}, S extends PalletSetup = {}>(setup: Setup<T, S>) => {

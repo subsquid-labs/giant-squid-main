@@ -4,7 +4,8 @@ import pallet_indecies from './pallet/indecies'
 import pallet_session from './pallet/session'
 import pallet_staking from './pallet/staking'
 import pallet_system from './pallet/system'
-import {AccountId32} from '../primitive'
+import pallet_identity from './pallet/identity'
+import {AccountId32, AccountIdLookup} from './primitive'
 
 const prefix = 2
 
@@ -14,13 +15,14 @@ export const runtime = Runtime({
     Indecies: pallet_indecies(),
     Staking: pallet_staking(),
     Session: pallet_session(),
+    Identity: pallet_identity(),
 })
 
 const AccountId = AccountId32(prefix)
 
 runtime.System.Config = {
     AccountId: AccountId,
-    Lookup: runtime.Indecies,
+    Lookup: AccountIdLookup(AccountId),
 }
 
 runtime.Balances.Config = {
@@ -36,5 +38,9 @@ runtime.Indecies.Config = {
 }
 
 runtime.Session.Config = {
-    OnSessionEnding: runtime.Staking,
+    SessionManager: runtime.Staking,
+}
+
+runtime.Identity.Config = {
+    ...runtime.System.Config,
 }

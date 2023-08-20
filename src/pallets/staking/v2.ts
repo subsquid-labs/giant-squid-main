@@ -9,6 +9,7 @@ import {
     MappingContext,
     Pallet,
     Parameter,
+    Setup,
     StorageType,
 } from '~interfaces'
 import {Account, Staker, StakingEra, StakingEraStatus} from '~model'
@@ -99,7 +100,7 @@ export class ActiveEraInfo {
  **********/
 
 export type RewardEventType<T extends Pick<Config, 'AccountId'>> = EventType<{
-    account: InstanceType<T['AccountId']>
+    staker: InstanceType<T['AccountId']>
     amount: bigint
 }>
 
@@ -148,10 +149,6 @@ export interface PalletSetup<T extends Config> {
     Constants: {
         BondingDuration: BondingDurationConstantType
     }
-}
-
-export interface Setup<Config, PalletSetup> {
-    (Config: Config): PalletSetup
 }
 
 export interface PalletOptions {

@@ -7,7 +7,7 @@ import {
     StakingErasStartSessionIndexStorage,
     StakingLedgerStorage,
 } from '~metadata/kusama/storage'
-import {BlockHeader, Call, ChainContext, Event, Pallet} from '~interfaces'
+import {BlockHeader, Call, ChainContext, Event, Lookup, Pallet, Parameter} from '~interfaces'
 import {
     BondExtraCall,
     BondingDurationConstant,
@@ -40,121 +40,124 @@ export {
  * CALLS *
  *********/
 
-export const BondCall = <T extends Config>(Pallet: Pallet<T>) =>
-    class {
-        readonly controller: InstanceType<T['Lookup']['Source']>
+export function BondCall<Lookup_ extends Lookup, AccountId extends Parameter>(Lookup: Lookup_, AccountId: AccountId) {
+    const _RewardDestination = RewardDestination(AccountId)
+
+    return class BondCall {
+        readonly controller: InstanceType<Lookup_['Source']>
         readonly value: bigint
-        readonly payee: RewardDestination<T['AccountId']>
+        readonly payee: RewardDestination<AccountId>
 
         constructor(call: Call) {
             const data = new StakingBondCall(call).asV1050
-
-            this.controller = new Pallet.Config.Lookup.Source(data.controller) as any
+            this.controller = new Lookup.Source(data.controller) as any
             this.value = data.value
-            this.payee = new (RewardDestination(Pallet.Config.AccountId))(data.payee)
+            this.payee = new _RewardDestination(data.payee)
         }
     }
+}
 
-export const SetControllerCall = <T extends Config>(Pallet: Pallet<T>) =>
-    class {
-        readonly controller: InstanceType<T['Lookup']['Source']>
+export function SetControllerCall<Lookup_ extends Lookup>(Lookup: Lookup_) {
+    return class SetControllerCall {
+        readonly controller: InstanceType<Lookup_['Source']>
 
         constructor(call: Call) {
             const data = new StakingSetControllerCall(call).asV1050
-
-            this.controller = new Pallet.Config.Lookup.Source(data.controller) as any
+            this.controller = new Lookup.Source(data.controller) as any
         }
     }
+}
 
-export const NominateCall = <T extends Config>(Pallet: Pallet<T>) =>
-    class {
-        readonly targets: InstanceType<T['Lookup']['Source']>[]
+export function NominateCall<Lookup_ extends Lookup>(Lookup: Lookup_) {
+    return class NominateCall {
+        readonly targets: InstanceType<Lookup_['Source']>[]
 
         constructor(call: Call) {
             const data = new StakingNominateCall(call).asV1050
-            this.targets = data.targets.map((t) => new Pallet.Config.Lookup.Source(t)) as any
+            this.targets = data.targets.map((t) => new Lookup.Source(t) as any)
         }
     }
+}
 
 /**********
  * EVENTS *
  **********/
 
-export const RewardEvent = <T extends Config>(P: Pallet<T>) =>
-    class {
-        readonly account: InstanceType<T['AccountId']>
+export function RewardEvent<AccountId extends Parameter>(AccountId: AccountId) {
+    return class SlashEvent {
+        readonly staker: InstanceType<AccountId>
         readonly amount: bigint
 
         constructor(event: Event) {
             const data = new StakingRewardEvent(event).asV1050
 
-            this.account = new P.Config.AccountId(data[0]) as any
+            this.staker = new AccountId(data[0]) as any
             this.amount = data[1]
         }
     }
+}
 
 /***********
  * STORAGE *
  ***********/
 
-export const ActiveEra = <T extends Config>(P: Pallet<T>) =>
-    class {
-        readonly value: Promise<ActiveEraInfo | undefined>
+export class ActiveEra {
+    readonly value: Promise<ActiveEraInfo | undefined>
 
-        constructor(ctx: ChainContext, block: BlockHeader) {
-            this.value = new StakingActiveEraStorage(ctx, block).asV1050.get().then((v) => v && new ActiveEraInfo(v))
-        }
+    constructor(ctx: ChainContext, block: BlockHeader) {
+        this.value = new StakingActiveEraStorage(ctx, block).asV1050.get().then((v) => v && new ActiveEraInfo(v))
     }
+}
 
-export const ErasStartSessionIndex = <T extends Config>(P: Pallet<T>) =>
-    class {
-        readonly value: Promise<number | undefined>
+export class ErasStartSessionIndex {
+    readonly value: Promise<number | undefined>
 
-        constructor(ctx: ChainContext, block: BlockHeader, index: number) {
-            this.value = new StakingErasStartSessionIndexStorage(ctx, block).asV1050.get(index)
-        }
+    constructor(ctx: ChainContext, block: BlockHeader, index: number) {
+        this.value = new StakingErasStartSessionIndexStorage(ctx, block).asV1050.get(index)
     }
+}
 
-export const CurrentEraStorage = <T extends Config>(Pallet: Pallet<T>) =>
-    class {
-        readonly value: Promise<number | undefined>
+export class CurrentEraStorage {
+    readonly value: Promise<number | undefined>
 
-        constructor(ctx: ChainContext, block: BlockHeader) {
-            this.value = new StakingCurrentEraStorage(ctx, block).asV1050.get()
-        }
+    constructor(ctx: ChainContext, block: BlockHeader) {
+        this.value = new StakingCurrentEraStorage(ctx, block).asV1050.get()
     }
+}
 
-export const LedgerStorage = <T extends Config>(Pallet: Pallet<T>) =>
-    class {
-        readonly value: Promise<InstanceType<StakingLedger<T['AccountId']>> | undefined>
+export function LedgerStorage<AccountId extends Parameter>(AccountId: AccountId) {
+    const _StakingLedger = StakingLedger(AccountId)
+
+    return class LedgerStorage {
+        readonly value: Promise<InstanceType<StakingLedger<AccountId>> | undefined>
 
         constructor(ctx: ChainContext, block: BlockHeader, key: InstanceType<Config['AccountId']>) {
-            const Ledger = StakingLedger(Pallet.Config.AccountId)
             this.value = new StakingLedgerStorage(ctx, block).asV1050
                 .get(key.__value)
-                .then((v) => (v == null ? undefined : new Ledger(v)))
-        }
-    }
-
-export const EraElectedStorage = <T extends Config>(Pallet: Pallet<T>) => {
-    return class {
-        readonly value: Promise<InstanceType<T['AccountId']>[]>
-
-        constructor(ctx: ChainContext, block: BlockHeader, era: number) {
-            this.value = new StakingErasStakersStorage(ctx, block).asV1050
-                .getKeys(era)
-                .then((r) => r.map((k) => new Pallet.Config.AccountId(k[1]) as any))
+                .then((v) => (v == null ? undefined : new _StakingLedger(v)))
         }
     }
 }
 
-export const EraStakersStorage = <T extends Config>(Pallet: Pallet<T>) => {
+export function EraElectedStorage<AccountId extends Parameter>(AccountId: AccountId) {
+    return class EraElectedStorage {
+        readonly value: Promise<InstanceType<AccountId>[]>
+
+        constructor(ctx: ChainContext, block: BlockHeader, era: number) {
+            this.value = new StakingErasStakersStorage(ctx, block).asV1050
+                .getKeys(era)
+                .then((r) => r.map((k) => new AccountId(k[1]) as any))
+        }
+    }
+}
+
+export const EraStakersStorage = <AccountId extends Parameter>(AccountId: AccountId) => {
+    const _Exposure = Exposure(AccountId)
+
     return class {
-        readonly value: Promise<InstanceType<Exposure<T['AccountId']>>[]>
+        readonly value: Promise<InstanceType<Exposure<AccountId>>[]>
 
-        constructor(ctx: ChainContext, block: BlockHeader, keys: [number, InstanceType<T['AccountId']>][]) {
-            const _Exposure = Exposure(Pallet.Config.AccountId)
-
+        constructor(ctx: ChainContext, block: BlockHeader, keys: [number, InstanceType<AccountId>][]) {
             this.value = new StakingErasStakersStorage(ctx, block).asV1050
                 .getMany(keys.map((k) => [k[0], k[1].__value]))
                 .then((r) => r.map((s) => new _Exposure(s)))
@@ -162,40 +165,37 @@ export const EraStakersStorage = <T extends Config>(Pallet: Pallet<T>) => {
     }
 }
 
-export default () => {
-    const P = Default({skipStakers})
-
-    P.Events = {
-        Reward: RewardEvent(P),
-        Slash: SlashEvent({AccountId: P}),
-    }
-
-    P.Calls = {
-        bond: BondCall(P),
-        bond_extra: BondExtraCall(P),
-        unbond: UnbondCall(P),
-        force_unstake: ForceUnstakeCall(P),
-        withdraw_unbonded: WithdrawUnbondedCall(P),
-        set_controller: SetControllerCall(P),
-        set_payee: SetPayeeCall(P),
-        validate: ValidateCall(P),
-        nominate: NominateCall(P),
-        chill: ChillCall(P),
-    }
-
-    P.Storage = {
-        ForceEra: ForceEraStorage(P),
-        CurrentEra: CurrentEraStorage(P),
-        Ledger: LedgerStorage(P),
-        ActiveEra: ActiveEra(P),
-        ErasStartSessionIndex: ErasStartSessionIndex(P),
-        EraElected: EraElectedStorage(P),
-        EraStakers: EraStakersStorage(P),
-    }
-
-    P.Constants = {
-        BondingDuration: BondingDurationConstant(P),
-    }
-
-    return P
-}
+export default () =>
+    Default(
+        (Config) => ({
+            Calls: {
+                bond: BondCall(Config.Lookup, Config.AccountId),
+                bond_extra: BondExtraCall,
+                unbond: UnbondCall,
+                force_unstake: ForceUnstakeCall(Config.AccountId),
+                withdraw_unbonded: WithdrawUnbondedCall,
+                set_controller: SetControllerCall(Config.Lookup),
+                set_payee: SetPayeeCall(Config.AccountId),
+                validate: ValidateCall,
+                nominate: NominateCall(Config.Lookup),
+                chill: ChillCall,
+            },
+            Events: {
+                Reward: RewardEvent(Config.AccountId),
+                Slash: SlashEvent(Config.AccountId),
+            },
+            Storage: {
+                ForceEra: ForceEraStorage,
+                CurrentEra: CurrentEraStorage,
+                Ledger: LedgerStorage(Config.AccountId),
+                ActiveEra: ActiveEra,
+                ErasStartSessionIndex: ErasStartSessionIndex,
+                EraElected: EraElectedStorage(Config.AccountId),
+                EraStakers: EraStakersStorage(Config.AccountId),
+            },
+            Constants: {
+                BondingDuration: BondingDurationConstant,
+            },
+        }),
+        {skipStakers}
+    )

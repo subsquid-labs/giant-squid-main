@@ -1,11 +1,12 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {BlockHeader, Call, CallMapper, Event, EventMapper, EventType, MappingContext, Pallet} from '~interfaces'
+import {BlockHeader, Call, CallMapper, Event, EventMapper, EventType, MappingContext, Pallet, Setup} from '~interfaces'
 import {Account, PayeeType, Staker} from '~model'
 import {implements_} from '~util/decorator'
 import {getOriginAccountId} from '~util/misc'
 import assert from 'assert'
 import {SessionManager} from '../session/v2'
 import {
+    ActiveEraInfo,
     ActiveEraStorageType,
     BondCallType,
     BondExtraCallType,
@@ -14,18 +15,23 @@ import {
     ChillCallType,
     Config,
     CurrentEraStorageType,
+    endEra,
     endSession,
     EraElectedStorageType,
     ErasStartSessionIndexStorageType,
     EraStakersStorageType,
+    Exposure,
     ForceEraStorageType,
     ForceUnstakeCallMapper,
     ForceUnstakeCallType,
+    Forcing,
     LedgerStorageType,
+    newEra,
     newSession,
     NominateCallMapper,
     NominateCallType,
     PalletOptions,
+    RewardDestination,
     RewardEventMapper,
     RewardEventType,
     SetControllerCallMapper,
@@ -34,19 +40,13 @@ import {
     SetPayeeCallType,
     SlashEventMapper,
     SlashEventType,
+    StakingLedger,
+    startEra,
     startSession,
     UnbondCallType,
     ValidateCallMapper,
     ValidateCallType,
     WithdrawUnbondedCallType,
-    ActiveEraInfo,
-    Exposure,
-    Forcing,
-    RewardDestination,
-    StakingLedger,
-    endEra,
-    newEra,
-    startEra,
 } from './v2'
 
 export {
@@ -358,9 +358,12 @@ export const BondCallMapper = <T extends Config>(
         }
     }
 
-export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(opts?: PalletOptions) => {
+export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(
+    setup: Setup<T, S>,
+    opts?: PalletOptions
+) => {
     @implements_<SessionManager & PalletOptions>()
-    class P extends Pallet<Config, S>() {
+    class P extends Pallet(setup) {
         static skipStakers = opts?.skipStakers
 
         static newSession(ctx: MappingContext<StoreWithCache>, block: BlockHeader, newIndex: number): void {

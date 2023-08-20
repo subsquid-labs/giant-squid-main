@@ -61,7 +61,6 @@ export class UnbondCall {
         this.value = data.value
     }
 }
-
 export function ForceUnstakeCall<AccountId extends Parameter>(AccountId: AccountId) {
     return class ForceUnstakeCall {
         readonly stash: InstanceType<AccountId>
@@ -112,8 +111,8 @@ export class ValidateCall {
     }
 }
 
-export const NominateCall = <Lookup_ extends Lookup>(Lookup: Lookup_) =>
-    class {
+export function NominateCall<Lookup_ extends Lookup>(Lookup: Lookup_) {
+    return class NominateCall {
         readonly targets: InstanceType<Lookup_['Source']>[]
 
         constructor(call: Call) {
@@ -121,6 +120,7 @@ export const NominateCall = <Lookup_ extends Lookup>(Lookup: Lookup_) =>
             this.targets = data.targets.map((t) => new Lookup.Source(t) as any)
         }
     }
+}
 
 export class ChillCall {
     constructor(call: Call) {
@@ -224,13 +224,11 @@ export function StakersStorage<AccountId extends Parameter>(AccountId: AccountId
     }
 }
 
-export function BondingDurationConstant() {
-    return class {
-        readonly value: number
+export class BondingDurationConstant {
+    readonly value: number
 
-        constructor(block: BlockHeader) {
-            this.value = new StakingBondingDurationConstant(block).asV1020
-        }
+    constructor(block: BlockHeader) {
+        this.value = new StakingBondingDurationConstant(block).asV1020
     }
 }
 
@@ -261,6 +259,6 @@ export default () =>
             Stakers: StakersStorage(Config.AccountId),
         },
         Constants: {
-            BondingDuration: BondingDurationConstant(),
+            BondingDuration: BondingDurationConstant,
         },
     }))

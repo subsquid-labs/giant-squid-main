@@ -1,9 +1,6 @@
-import Default, {Config} from '~pallets/staking/v4'
-import {StakingPayoutStakersCall} from '~metadata/kusama/calls'
-import {Call, Pallet, Parameter} from '~interfaces'
+import Default, {RewardDestination} from '~pallets/staking/v5'
 import {
     ActiveEra,
-    BondCall,
     BondedEvent,
     BondExtraCall,
     BondingDurationConstant,
@@ -15,25 +12,26 @@ import {
     ForceEraStorage,
     ForceUnstakeCall,
     LedgerStorage,
-    NominateCall,
-    RewardEvent,
-    SetControllerCall,
+    PayoutStakersCall,
     SetPayeeCall,
-    SlashEvent,
     UnbondCall,
     UnbondedEvent,
     ValidateCall,
     WithdrawnEvent,
     WithdrawUnbondedCall,
-} from '../../v1051/pallet/staking'
+    RewardedEvent,
+    SlashedEvent,
+} from '../../v9090/pallet/staking'
 import skipStakers from '../../skipStakers'
+import {StakingBondCall, StakingNominateCall, StakingSetControllerCall} from '~metadata/kusama/calls'
+import {Call, Lookup, Parameter} from '~interfaces'
 
 export {
     ActiveEra,
-    BondCall,
     BondedEvent,
     BondExtraCall,
     BondingDurationConstant,
+    ChillCall,
     CurrentEraStorage,
     EraElectedStorage,
     ErasStartSessionIndex,
@@ -41,31 +39,55 @@ export {
     ForceEraStorage,
     ForceUnstakeCall,
     LedgerStorage,
-    NominateCall,
-    RewardEvent,
-    SetControllerCall,
+    PayoutStakersCall,
     SetPayeeCall,
-    SlashEvent,
     UnbondCall,
     UnbondedEvent,
     ValidateCall,
     WithdrawnEvent,
     WithdrawUnbondedCall,
-    ChillCall,
+    RewardedEvent,
+    SlashedEvent,
 }
 
-export const PayoutStakersCall = <AccountId extends Parameter>(AccountId: AccountId) =>
-    class {
-        readonly validatorStash: InstanceType<AccountId>
-        readonly era: number
+export function BondCall<Lookup_ extends Lookup, AccountId extends Parameter>(Lookup: Lookup_, AccountId: AccountId) {
+    const _RewardDestination = RewardDestination(AccountId)
+
+    return class BondCall {
+        readonly controller: InstanceType<Lookup_['Source']>
+        readonly value: bigint
+        readonly payee: RewardDestination<AccountId>
 
         constructor(call: Call) {
-            const data = new StakingPayoutStakersCall(call).asV1058
-
-            this.validatorStash = new AccountId(data.validatorStash) as any
-            this.era = data.era
+            const data = new StakingBondCall(call).asV9111
+            this.controller = new Lookup.Source(data.controller) as any
+            this.value = data.value
+            this.payee = new _RewardDestination(data.payee)
         }
     }
+}
+
+export function SetControllerCall<Lookup_ extends Lookup>(Lookup: Lookup_) {
+    return class SetControllerCall {
+        readonly controller: InstanceType<Lookup_['Source']>
+
+        constructor(call: Call) {
+            const data = new StakingSetControllerCall(call).asV9111
+            this.controller = new Lookup.Source(data.controller) as any
+        }
+    }
+}
+
+export function NominateCall<Lookup_ extends Lookup>(Lookup: Lookup_) {
+    return class NominateCall {
+        readonly targets: InstanceType<Lookup_['Source']>[]
+
+        constructor(call: Call) {
+            const data = new StakingNominateCall(call).asV9111
+            this.targets = data.targets.map((t) => new Lookup.Source(t) as any)
+        }
+    }
+}
 
 export default () =>
     Default(
@@ -84,8 +106,8 @@ export default () =>
                 payout_stakers: PayoutStakersCall(Config.AccountId),
             },
             Events: {
-                Reward: RewardEvent(Config.AccountId),
-                Slash: SlashEvent(Config.AccountId),
+                Rewarded: RewardedEvent(Config.AccountId),
+                Slashed: SlashedEvent(Config.AccountId),
                 Bonded: BondedEvent(Config.AccountId),
                 Unbonded: UnbondedEvent(Config.AccountId),
                 Withdrawn: WithdrawnEvent(Config.AccountId),

@@ -1,58 +1,58 @@
 import {StoreWithCache} from '@belopash/squid-tools'
-import {Pallet, EventMapper, MappingContext, Event, CallType, BlockHeader, Setup} from '~interfaces'
+import {BlockHeader, CallType, Event, EventMapper, MappingContext, Pallet, Setup} from '~interfaces'
+import {Account, PayeeType, Staker, StakingEra, StakingEraValidator, StakingUnlockChunk} from '~model'
+import {implements_} from '~util/decorator'
 import {createEraId, createEraStakerId} from '~util/id'
-import {StakingEra, StakingEraValidator, Staker, PayeeType} from '../../model/generated'
+import MathBI from 'extra-bigint'
+import {SessionManager} from '../session/v2'
 import {
+    ActiveEraInfo,
     ActiveEraStorageType,
     BondCallMapper,
     BondCallType,
-    BondExtraCallType,
     BondedEventMapper,
     BondedEventType,
+    BondExtraCallType,
     BondingDurationConstantType,
     ChillCallMapper,
     ChillCallType,
     Config,
     CurrentEraStorageType,
+    endEra,
+    endSession,
     EraElectedStorageType,
-    EraStakersStorageType,
     ErasStartSessionIndexStorageType,
+    EraStakersStorageType,
+    Exposure,
     ForceEraStorageType,
     ForceUnstakeCallMapper,
     ForceUnstakeCallType,
+    Forcing,
     LedgerStorageType,
+    newEra,
+    newSession,
     NominateCallMapper,
     NominateCallType,
     PalletOptions,
+    RewardDestination,
     RewardEventType,
     SetControllerCallMapper,
     SetControllerCallType,
     SetPayeeCallMapper,
     SetPayeeCallType,
-    SlashEventMapper,
     SlashEventType,
+    StakingLedger,
+    startEra,
+    startSession,
     UnbondCallType,
     UnbondedEventMapper,
     UnbondedEventType,
     ValidateCallMapper,
     ValidateCallType,
-    WithdrawUnbondedCallType,
     WithdrawnEventMapper,
     WithdrawnEventType,
-    endSession,
-    newSession,
-    startSession,
-    ActiveEraInfo,
-    Exposure,
-    Forcing,
-    RewardDestination,
-    StakingLedger,
-    endEra,
-    newEra,
-    startEra,
-} from './v3'
-import {implements_} from '~util/decorator'
-import {SessionManager} from '../session/v2'
+    WithdrawUnbondedCallType,
+} from './v4'
 
 export {
     ActiveEraStorageType,
@@ -81,7 +81,6 @@ export {
     SetControllerCallType,
     SetPayeeCallMapper,
     SetPayeeCallType,
-    SlashEventMapper,
     SlashEventType,
     UnbondCallType,
     UnbondedEventMapper,
@@ -111,8 +110,8 @@ export type PayoutStakersCallType<T extends Pick<Config, 'AccountId'>> = CallTyp
 
 export interface PalletSetup<T extends Config> {
     Events: {
-        Reward: RewardEventType<T>
-        Slash: SlashEventType<T>
+        Rewarded: RewardEventType<T>
+        Slashed: SlashEventType<T>
         Bonded: BondedEventType<T>
         Unbonded: UnbondedEventType<T>
         Withdrawn: WithdrawnEventType<T>
@@ -144,13 +143,13 @@ export interface PalletSetup<T extends Config> {
     }
 }
 
-export const RewardEventMapper = <T extends Config>(
-    P: Pallet<T, {Events: {Reward: RewardEventType<T>}; Calls: {payout_stakers: PayoutStakersCallType<T>}}> &
+export const RewardedEventMapper = <T extends Config>(
+    P: Pallet<T, {Events: {Rewarded: RewardEventType<T>}; Calls: {payout_stakers: PayoutStakersCallType<T>}}> &
         PalletOptions
 ) =>
     class implements EventMapper {
         handle(ctx: MappingContext<StoreWithCache>, item: Event): void {
-            const data = new P.Events.Reward(item)
+            const data = new P.Events.Rewarded(item)
 
             const getRewardInfo = () => {
                 if (item.call && item.call.name === 'Staking.payout_stakers') {
@@ -211,6 +210,72 @@ export const RewardEventMapper = <T extends Config>(
         }
     }
 
+export const SlashedEventMapper = <T extends Config>(Pallet: Pallet<T, {Events: {Slashed: SlashEventType<T>}}>) =>
+    class implements EventMapper {
+        handle(ctx: MappingContext<StoreWithCache>, event: Event): void {
+            const data = new Pallet.Events.Slashed(event)
+
+            const stashAddress = data.staker
+            const stashId = stashAddress.format()
+            ctx.store.defer(Account, stashId)
+
+            const stakerId = stashId
+            const stakerDeferred = ctx.store.defer(Staker, stakerId)
+
+            ctx.queue
+                .setBlock(event.block)
+                .setExtrinsic(event.extrinsic)
+                .add('staking_slash', {
+                    id: event.id,
+                    stakerId,
+                    accountId: stashId,
+                    amount: data.amount,
+                })
+                .lazy(async () => {
+                    const staker = await stakerDeferred.getOrFail()
+
+                    let remainSlash = data.amount
+                    const slashAmount = (balance: bigint) => {
+                        const value = MathBI.min(remainSlash, balance)
+                        remainSlash = MathBI.max(remainSlash - value, 0n)
+
+                        return value
+                    }
+
+                    const bondDelta = slashAmount(staker.activeBond)
+                    ctx.queue.add('staking_bond', {
+                        id: event.id,
+                        stakerId,
+                        accountId: stashId,
+                        amount: -bondDelta,
+                    })
+
+                    if (remainSlash > 0) {
+                        const unlocking = await ctx.store.find(StakingUnlockChunk, {
+                            where: {withdrawn: false},
+                            order: {blockNumber: 'ASC'},
+                        })
+
+                        for (const chunk of unlocking) {
+                            if (remainSlash <= 0) break
+
+                            const newChunkAmount = chunk.amount - slashAmount(chunk.amount)
+                            ctx.queue.add('staking_updateUnlockChunk', {
+                                chunkId: chunk.id,
+                                value: newChunkAmount,
+                            })
+
+                            if (newChunkAmount === 0n) {
+                                ctx.queue.add('staking_withdrawUnlockChunk', {
+                                    chunkId: chunk.id,
+                                })
+                            }
+                        }
+                    }
+                })
+        }
+    }
+
 export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetup<T>>(
     setup: Setup<T, S>,
     opts?: PalletOptions
@@ -231,8 +296,8 @@ export default <T extends Config = Config, S extends PalletSetup<T> = PalletSetu
     }
 
     P.EventMappers = {
-        Reward: RewardEventMapper(P),
-        Slash: SlashEventMapper(P),
+        Reward: RewardedEventMapper(P),
+        Slash: SlashedEventMapper(P),
         Bonded: BondedEventMapper(P),
         Unbonded: UnbondedEventMapper(P),
         Withdrawn: WithdrawnEventMapper(P),
